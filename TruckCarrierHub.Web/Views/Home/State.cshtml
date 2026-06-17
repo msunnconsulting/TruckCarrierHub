@@ -351,6 +351,16 @@
 </div>
 
 <script>
+    // Back to top — bound directly so it fires regardless of ready-block errors
+    $(".up-arrow-citypage").click(function () {
+        $('html, body').scrollTop(0);
+    });
+
+    // Hide loader when returning via browser navigation from city page
+    setTimeout(function () {
+        $("#al").hide();
+    }, 100);
+
     $(document).ready(function () {
         // Read more / Read less for state article
         var stateExpanded = false;
@@ -369,15 +379,5 @@
                 stateExpanded = true;
             }
         });
-
-        // Back to top
-        $(".up-arrow-citypage").click(function () {
-            window.scrollTo(document.body.scrollHeight, 0);
-        });
-
-        // Hide loader when returning via browser navigation from city page
-        setTimeout(function () {
-            $("#al").hide();
-        }, 100);
     });
 </script>

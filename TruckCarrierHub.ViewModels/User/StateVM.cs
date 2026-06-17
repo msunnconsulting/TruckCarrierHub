@@ -23,6 +23,8 @@
 
         public string PageDescription { get; set; }
 
+        public string MetaDescription { get; set; }
+
         public string HomeArticle { get; set; }
 
         public string SearchFor { get; set; }

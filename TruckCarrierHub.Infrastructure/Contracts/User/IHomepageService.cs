@@ -24,6 +24,8 @@
 
         string GetPageDescription(string pageName, string state, string city, int? pageNum = null);
 
+        string GetPlainHomeMetaDescription();
+
         string GetHomeArticle();
 
         string GetStateName(string stateCode);

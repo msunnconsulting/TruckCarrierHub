@@ -3,7 +3,6 @@
 @using PartnerCarrier.ViewModels.Admin;
 @using PartnerCarrier.Infrastructure.Contracts.Admin.AdminManagement;
 @using PartnerCarrier.Web.SessionManager;
-@using System.Text.RegularExpressions;
 @model StateVM
 @{
     ViewBag.Title = Model.PageTitle;
@@ -26,13 +25,10 @@
 
     ViewBag.IsHiringCheckboxIsChecked = SessionManager.Instance.IsHiringCheckboxIsChecked;
     ViewBag.IsReviewsFilterCheckboxIsChecked = SessionManager.Instance.IsReviewsFilterCheckboxIsChecked;
-
-    string metaDescription = Regex.Replace(Model.PageDescription ?? "", "<.*?>", "");
-    metaDescription = metaDescription.Replace("\"", "'");
 }
 @section AdditionalMeta
 {
-    <meta name="description" content="@metaDescription" />
+    <meta name="description" content="@Model.MetaDescription" />
     <link rel="canonical" href="https://truckcarrierhub.com" />
     <style>
         .popover {

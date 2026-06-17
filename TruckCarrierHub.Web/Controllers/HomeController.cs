@@ -53,6 +53,7 @@ namespace PartnerCarrier.Web.Controllers
             stateVM.PageTitle = _homepageService.GetPageTitle(pageName, null, null);
             //set page description
             stateVM.PageDescription = _homepageService.GetPageDescription(pageName, null, null);
+            stateVM.MetaDescription = _homepageService.GetPlainHomeMetaDescription();
             //set homepage article text (separate from PageDescription)
             stateVM.HomeArticle = _homepageService.GetHomeArticle();
 

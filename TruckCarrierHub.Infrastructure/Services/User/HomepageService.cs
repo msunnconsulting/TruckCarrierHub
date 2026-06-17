@@ -531,6 +531,17 @@
             return pageDescription;
         }
 
+        public string GetPlainHomeMetaDescription()
+        {
+            var countOfDriverJobs = db.Database.SqlQuery<int>("select count(*) from Business where NowHiring!=0").FirstOrDefault();
+            var description = db.Database.SqlQuery<string>("select HomePageDescription from Admin").FirstOrDefault() ?? "";
+            var plainCount = countOfDriverJobs.ToString() + " Truck Driver Jobs";
+            description = description.Replace("Truck Driver Jobs", plainCount);
+            var countOfTotalCompanies = db.Database.SqlQuery<int>("select count (*) from TransportCompany").FirstOrDefault();
+            description = description.Replace("more than 1.8 million", countOfTotalCompanies.ToString("#,##0"));
+            return description;
+        }
+
         /// <summary>
         /// Get the homepage article text (Admin.HomeArticle), shown on the
         /// homepage separately from PageDescription, which has its own

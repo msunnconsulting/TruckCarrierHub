@@ -1,6 +1,5 @@
-﻿@using PartnerCarrier.ViewModels.User
-@using PartnerCarrier.ViewModels.Admin;
 @using PartnerCarrier.ViewModels.User
+@using PartnerCarrier.ViewModels.Admin;
 @using PartnerCarrier.Web.App_Start;
 @using PartnerCarrier.Infrastructure.Contracts.Admin.AdminManagement;
 @using PartnerCarrier.Web.SessionManager;
@@ -12,14 +11,15 @@
     var _businessManagements = StructuremapMvc.StructureMapDependencyScope.CurrentNestedContainer.GetInstance<IBusinessMangementService>();
     var globalHiring = _businessManagements.GetGlobalHiring();
     var reviewsFilter = _businessManagements.GetReviewsFilter();
-    var IsShowOnStatePage = _businessManagements.GetCheckboxListForShowGetAQuoteControl().Where(a => a.Name.Contains("Show on State/Province page")).Select(a => a.ControlToShow).FirstOrDefault();
-
+    var IsShowOnStatePage = _businessManagements.GetCheckboxListForShowGetAQuoteControl()
+        .Where(a => a.Name.Contains("Show on State/Province page"))
+        .Select(a => a.ControlToShow)
+        .FirstOrDefault();
 
     if (globalHiring.GlobalHire == (int)GLobalHiring.HomeStateAndCityPage || globalHiring.GlobalHire == (int)GLobalHiring.StateAndCityPage)
     {
         ViewBag.IsShowGlobalHiringCheckbox = true;
     }
-
     if (reviewsFilter.SelectedFilterValue == (int)ManageReviewEnum.HomeStateAndCityPage || reviewsFilter.SelectedFilterValue == (int)ManageReviewEnum.StateAndCityPage)
     {
         ViewBag.IsShowReviewsCheckbox = true;
@@ -27,197 +27,357 @@
 
     ViewBag.IsHiringCheckboxIsChecked = SessionManager.Instance.IsHiringCheckboxIsChecked;
     ViewBag.IsReviewsFilterCheckboxIsChecked = SessionManager.Instance.IsReviewsFilterCheckboxIsChecked;
-
     ViewBag.CanonicalUrl = Request.Url.GetLeftPart(UriPartial.Path);
-    String metaDescription;
+
+    // Meta description from first paragraph
+    string metaDescription;
     var firstParagraphMatch = Regex.Match(
         Model.PageDescription ?? "",
         @"<p>(.*?)</p>",
         RegexOptions.Singleline | RegexOptions.IgnoreCase
     );
-    if (firstParagraphMatch.Success == false)
+    if (!firstParagraphMatch.Success)
     {
-        metaDescription = Model.PageDescription;
+        metaDescription = Model.PageDescription ?? "";
     }
     else
     {
-        metaDescription = firstParagraphMatch.Success
-            ? Regex.Replace(firstParagraphMatch.Groups[1].Value, "<.*?>", "")
-            : "";
+        metaDescription = Regex.Replace(firstParagraphMatch.Groups[1].Value, "<.*?>", "");
         metaDescription = metaDescription.Replace("\"", "'");
     }
 
+    // State article: strip HTML, truncate to 100 words
+    var stateArticleRaw = Regex.Replace(Model.PageDescription ?? "", "<.*?>", " ");
+    stateArticleRaw = System.Net.WebUtility.HtmlDecode(
+        Regex.Replace(stateArticleRaw, @"\s+", " ").Trim()
+    );
+    var stateArticleWords = stateArticleRaw.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+    const int stateWordLimit = 100;
+    string stateArticleTruncated = stateArticleWords.Length > stateWordLimit
+        ? string.Join(" ", stateArticleWords, 0, stateWordLimit) + "..."
+        : null;
 
+    // Stats derived from the full cities list
+    int totalCities = Model.Cities != null ? Model.Cities.Count : 0;
+    int totalCompanies = Model.Cities != null ? Model.Cities.Sum(c => c.CompanyCount) : 0;
 }
-@section AdditionalMeta
-{
+
+@section AdditionalMeta {
     <meta name="description" content="@metaDescription" />
     <link rel="canonical" href="@ViewBag.CanonicalUrl" />
 }
 
 <style>
-    /*Apply style to Get a quote control to overwrite style for only city,state and company page otherwise it disturb UI of Homepage*/
-    .homepage-font-color {
-        color: black !important;
+    .homepage-font-color { color: black !important; }
+
+    /* ---- Header ---- */
+    .state-header { margin: 20px 0 16px; }
+    .state-title {
+        font-size: 24px;
+        font-family: var(--font-display);
+        color: var(--ink-900);
+        margin: 0 0 12px;
+        line-height: 1.2;
     }
+    .state-stats { display: flex; gap: 28px; flex-wrap: wrap; }
+    .state-stat { display: flex; flex-direction: column; }
+    .state-stat-value {
+        font-family: var(--font-data);
+        font-size: 22px;
+        font-weight: 600;
+        color: var(--ink-900);
+        line-height: 1;
+    }
+    .state-stat-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--steel-500);
+        margin-top: 4px;
+    }
+
+    /* ---- Article ---- */
+    .state-article {
+        background: var(--white);
+        border: 1px solid var(--steel-200);
+        border-radius: 10px;
+        padding: 18px 20px;
+        margin-bottom: 16px;
+        font-size: 14px;
+        line-height: 1.7;
+        color: var(--ink-900);
+    }
+    .state-article-text { margin: 0 0 10px; }
+    .state-article-toggle { font-size: 12px; padding: 3px 10px; }
+
+    /* ---- Section titles ---- */
+    .state-section { margin-bottom: 28px; }
+    .state-section-title {
+        font-size: 18px;
+        font-family: var(--font-display);
+        color: var(--ink-900);
+        margin: 0 0 14px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--steel-200);
+    }
+
+    /* ---- Popular cities grid ---- */
+    .state-popular-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+    @@media (max-width: 768px) { .state-popular-grid { grid-template-columns: repeat(2, 1fr); } }
+    @@media (max-width: 480px) { .state-popular-grid { grid-template-columns: 1fr; } }
+    .state-popular-card {
+        display: flex;
+        flex-direction: column;
+        background: var(--white);
+        border: 1px solid var(--steel-200);
+        border-radius: 8px;
+        padding: 12px 14px;
+        text-decoration: none;
+        transition: border-color 0.15s;
+    }
+    .state-popular-card:hover { border-color: var(--signal-500); text-decoration: none; }
+    .state-popular-name { font-size: 14px; font-weight: 500; color: var(--signal-500); }
+    .state-popular-count {
+        font-size: 12px;
+        color: var(--steel-500);
+        margin-top: 4px;
+        font-family: var(--font-data);
+    }
+
+    /* ---- A-Z jump nav ---- */
+    .alpha-nav { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+    .alpha-pill {
+        font-size: 13px;
+        color: var(--ink-900);
+        background: var(--paper-50);
+        border: 1px solid var(--steel-200);
+        border-radius: 6px;
+        padding: 5px 10px;
+        text-decoration: none;
+        white-space: nowrap;
+        line-height: 1.4;
+    }
+    .alpha-pill:hover { background: var(--steel-200); color: var(--ink-900); text-decoration: none; }
+
+    /* ---- A-Z directory ---- */
+    .state-alpha-section { margin-bottom: 20px; }
+    .state-alpha-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+        padding-bottom: 6px;
+        border-bottom: 2px solid var(--steel-200);
+    }
+    .state-alpha-letter {
+        font-size: 22px;
+        font-weight: 700;
+        font-family: var(--font-display);
+        color: var(--ink-900);
+        line-height: 1;
+    }
+    .state-alpha-label {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--steel-500);
+    }
+    .state-alpha-up { margin-left: auto; color: var(--steel-500); cursor: pointer; }
+    .state-alpha-up:hover { color: var(--ink-900); }
+    .state-city-link {
+        display: block;
+        font-size: 13px;
+        color: var(--signal-500);
+        padding: 3px 0;
+        margin-bottom: 4px;
+        text-decoration: none;
+    }
+    .state-city-link:hover { color: var(--signal-600); text-decoration: underline; }
 </style>
 
-<!-- We had taken this hidden field for identify in js if this is State page or City page for redirection -->
 <input type="hidden" id="fromStatePage" value="true">
+
 <div class="container">
+
+    @* Breadcrumb *@
     <ul class="breadcrumb">
-        <li><a href="@Url.Action("Index","home")">Home</a></li>
+        <li><a href="@Url.Action("Index", "home")">Home</a></li>
         <li class="active">@Model.StateName</li>
     </ul>
-    <div class="row form-group">
-        <div class="col-md-12 col-sm-12">
-            <p id="cityArticle" class="state-article-text">
-                @Html.Raw(Model.PageDescription)
-            </p>
+
+    @* Header *@
+    <div class="state-header">
+        <h1 class="state-title">Trucking Companies in @Model.StateName</h1>
+        <div class="state-stats">
+            <div class="state-stat">
+                <span class="state-stat-value">@totalCities.ToString("N0")</span>
+                <span class="state-stat-label">Cities</span>
+            </div>
+            <div class="state-stat">
+                <span class="state-stat-value">@totalCompanies.ToString("N0")</span>
+                <span class="state-stat-label">Companies</span>
+            </div>
         </div>
     </div>
 
-    <div class="row form-group">
-        <div>
-            @* Show Get A Quote Control on this page or not which is set from admin website *@
-            @if (IsShowOnStatePage == true)
+    @* State article with Read more *@
+    @if (!string.IsNullOrEmpty(stateArticleRaw))
+    {
+        <div class="state-article">
+            <div id="stateArticle"
+                 class="state-article-text"
+                 data-fulltext="@stateArticleRaw">
+                @(stateArticleTruncated ?? stateArticleRaw)
+            </div>
+            @if (stateArticleTruncated != null)
             {
-                @Html.Partial("_GetAQuoteControl", Model.GetAQuoteVM)
+                <button id="btnStateArticle" class="btn btn-default state-article-toggle">Read more</button>
             }
         </div>
+    }
 
-        <div class="col-md-12 text-center">
-            <!-- Banner Section -->
-            @if (Model.OutboundBanner.IsShow)
+    @* Get A Quote (admin-controlled) *@
+    @if (IsShowOnStatePage == true)
+    {
+        @Html.Partial("_GetAQuoteControl", Model.GetAQuoteVM)
+    }
+
+    @* Outbound banner *@
+    @if (Model.OutboundBanner.IsShow)
+    {
+        <div class="text-center" style="margin-bottom:16px;">
+            @if (Model.OutboundBanner.IsFollow)
             {
-                if (Model.OutboundBanner.IsFollow)
-                {
-
-                    <a href="@Model.OutboundBanner.URL" class="banner-link" title="@Model.OutboundBanner.TitleText" target="_blank">
-                        <img src="get-banner-image?fileName=@Model.OutboundBanner.FileName" style="max-width: 100%; max-height: 200px;" alt="@Model.OutboundBanner.AltText" />
-                    </a>
-
-                }
-                else
-                {
-                    <a href="@Model.OutboundBanner.URL" class="banner-link" title="@Model.OutboundBanner.TitleText" rel="nofollow" target="_blank">
-                        <img src="get-banner-image?fileName=@Model.OutboundBanner.FileName" style="max-width: 100%; max-height: 200px;" alt="@Model.OutboundBanner.AltText" />
-                    </a>
-                }
+                <a href="@Model.OutboundBanner.URL" class="banner-link" title="@Model.OutboundBanner.TitleText" target="_blank">
+                    <img src="get-banner-image?fileName=@Model.OutboundBanner.FileName" style="max-width:100%;max-height:200px;" alt="@Model.OutboundBanner.AltText" />
+                </a>
+            }
+            else
+            {
+                <a href="@Model.OutboundBanner.URL" class="banner-link" title="@Model.OutboundBanner.TitleText" rel="nofollow" target="_blank">
+                    <img src="get-banner-image?fileName=@Model.OutboundBanner.FileName" style="max-width:100%;max-height:200px;" alt="@Model.OutboundBanner.AltText" />
+                </a>
             }
         </div>
+    }
 
-        <div class="col-md-12">
-            <h2 class="text-center">Most popular cities</h2>
-            <hr />
-            @if (Model.popularcities.Count > 0)
-            {
-                foreach (var city in Model.popularcities)
+    @* Most popular cities *@
+    <div class="state-section">
+        <h2 class="state-section-title">Most popular cities</h2>
+        @if (Model.popularcities != null && Model.popularcities.Count > 0)
+        {
+            <div class="state-popular-grid">
+                @foreach (var city in Model.popularcities)
                 {
                     var cityName = city.CityName;
                     if (city.CityName.Contains(" "))
                     {
                         city.CityName = city.CityName.Replace(" ", "-");
                     }
-                    var action = city.StateCode + "/" + city.CityName;
-                    <div class="col-md-4 col-sm-6 col-xs-12 form-group">
-                        <a class="city-link-font-size" onClick="$('#al').show();" href="@Url.Content("~/" + city.StateCode + "/" + city.CityName)">
-                            @cityName Trucking Companies (@city.CompanyCount)
-                        </a>
+                    <a href="@Url.Content("~/" + city.StateCode + "/" + city.CityName)"
+                       class="state-popular-card"
+                       onClick="$('#al').show();">
+                        <span class="state-popular-name">@cityName</span>
+                        <span class="state-popular-count">@city.CompanyCount.ToString("N0") companies</span>
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="text-center text-muted">No popular cities found.</p>
+        }
+    </div>
+
+    @* A-Z city directory *@
+    @if (Model.Cities != null && Model.Cities.Count > 0)
+    {
+        <div class="state-section">
+            <h2 class="state-section-title">Cities &amp; towns in @Model.StateName</h2>
+
+            @* Jump navigation *@
+            <div class="alpha-nav">
+                @for (char c = 'A'; c <= 'Z'; c++)
+                {
+                    <a href="#@c" class="alpha-pill">@c</a>
+                }
+            </div>
+
+            @* Sections A–Z *@
+            @for (char charater = 'A'; charater <= 'Z'; charater++)
+            {
+                var avalaibleCity = Model.Cities.Where(b => b.CityName.ToUpper().StartsWith(charater.ToString())).ToList();
+                if (avalaibleCity.Count > 0)
+                {
+                    <div class="state-alpha-section">
+                        <div class="state-alpha-header" id="@charater">
+                            <span class="state-alpha-letter">@charater</span>
+                            <span class="state-alpha-label">Cities and towns</span>
+                            <a class="state-alpha-up up-arrow-citypage"><i class="fa fa-arrow-up"></i></a>
+                        </div>
+                        <div class="row">
+                            @foreach (var city in avalaibleCity)
+                            {
+                                var cityName = city.CityName;
+                                if (city.CityName.Contains(" "))
+                                {
+                                    city.CityName = city.CityName.Replace(" ", "-");
+                                }
+                                <div class="col-md-4 col-sm-6 col-xs-12">
+                                    <a class="state-city-link" onClick="$('#al').show();"
+                                       href="@Url.Content("~/" + city.StateCode + "/" + city.CityName)">
+                                        @cityName Trucking Companies (@city.CompanyCount)
+                                    </a>
+                                </div>
+                            }
+                        </div>
                     </div>
                 }
             }
-            else
-            {
-                <h4 class="text-center well" colspan="7">No Most Popular City(s) Found</h4>
-            }
         </div>
-    </div>
-
-
-
-    @if (Model.Cities.Count > 0)
-    {
-        <div class="row form-group">
-            <div class="col-md-12 col-sm-12 text-center margin-bottom-10">
-                <div class="pagination">
-                    <a href="#A" class="btn btn-default btn-default-pager btn-pager">A</a>
-                    <a href="#B" class="btn btn-default btn-default-pager btn-pager">B</a>
-                    <a href="#C" class="btn btn-default btn-default-pager btn-pager">C</a>
-                    <a href="#D" class="btn btn-default btn-default-pager btn-pager">D</a>
-                    <a href="#E" class="btn btn-default btn-default-pager btn-pager">E</a>
-                    <a href="#F" class="btn btn-default btn-default-pager btn-pager">F</a>
-                    <a href="#G" class="btn btn-default btn-default-pager btn-pager">G</a>
-                    <a href="#H" class="btn btn-default btn-default-pager btn-pager">H</a>
-                    <a href="#I" class="btn btn-default btn-default-pager btn-pager">I</a>
-                    <a href="#J" class="btn btn-default btn-default-pager btn-pager">J</a>
-                    <a href="#K" class="btn btn-default btn-default-pager btn-pager">K</a>
-                    <a href="#L" class="btn btn-default btn-default-pager btn-pager">L</a>
-                    <a href="#M" class="btn btn-default btn-default-pager btn-pager">M</a>
-                </div>
-
-                <div class="">
-                    <a href="#N" class="btn btn-default btn-default-pager btn-pager">N</a>
-                    <a href="#O" class="btn btn-default btn-default-pager btn-pager">O</a>
-                    <a href="#P" class="btn btn-default btn-default-pager btn-pager">P</a>
-                    <a href="#Q" class="btn btn-default btn-default-pager btn-pager">Q</a>
-                    <a href="#R" class="btn btn-default btn-default-pager btn-pager">R</a>
-                    <a href="#S" class="btn btn-default btn-default-pager btn-pager">S</a>
-                    <a href="#T" class="btn btn-default btn-default-pager btn-pager">T</a>
-                    <a href="#U" class="btn btn-default btn-default-pager btn-pager">U</a>
-                    <a href="#V" class="btn btn-default btn-default-pager btn-pager">V</a>
-                    <a href="#W" class="btn btn-default btn-default-pager btn-pager">W</a>
-                    <a href="#X" class="btn btn-default btn-default-pager btn-pager">X</a>
-                    <a href="#Y" class="btn btn-default btn-default-pager btn-pager">Y</a>
-                    <a href="#Z" class="btn btn-default btn-default-pager btn-pager">Z</a>
-                </div>
-            </div>
-        </div>
-        for (char charater = 'A'; charater <= 'Z'; charater++)
-        {
-            var avalaibleCity = new List<CityVM>();
-            avalaibleCity = Model.Cities.Where(b => b.CityName.ToUpper().StartsWith(@charater.ToString())).ToList();
-            if (avalaibleCity.Count > 0)
-            {
-                <div class="row form-group">
-                    <div class="col-md-12 divcitylistheader" id="A">
-                        <h4 id="@charater" class="text-center h2backcolor well">CITIES AND TOWNS BEGINNING WITH (@charater) <a><i class="fa fa-arrow-up pull-right up-arrow-citypage"></i></a></h4>
-                        @foreach (var city in avalaibleCity)
-                        {
-                            var cityName = city.CityName;
-                            if (city.CityName.Contains(" "))
-                            {
-                                city.CityName = city.CityName.Replace(" ", "-");
-                            }
-                            <div class="col-md-4 col-sm-6 col-xs-12 form-group">
-                                <a class="city-link-font-size" onClick="$('#al').show();" href="@Url.Content("~/"+ city.StateCode + "/" + city.CityName)">
-                                    @cityName Trucking Companies (@city.CompanyCount)
-                                </a>
-                            </div>
-                        }
-                    </div>
-                </div>
-            }
-        }
     }
     else
     {
-        <div class="row form-group">
-            <div class="col-md-12">
-                <h4 class="text-center well" colspan="7">No City(s) Found</h4>
-            </div>
+        <div class="state-section">
+            <p class="text-center text-muted">No cities found.</p>
         </div>
     }
-</div>
-<script src="~/Themes/Bootstrap/plugins/jquery-1.10.2/jquery-1.10.2.js"></script>
-<script>
-    $(".up-arrow-citypage").click(function () {
-        window.scrollTo(document.body.scrollHeight, 0);
-    });
-    // Here, hiding the loader which is being displayed when navigate from City page to state page by browser navigation
-    // And this loader is not being hidden so hide this programmatically
-    setTimeout(() => {
-        $("#al").hide();
-    }, 100);
 
+</div>
+
+<script>
+    $(document).ready(function () {
+        // Read more / Read less for state article
+        var stateExpanded = false;
+        var stateWordLimit = @stateWordLimit;
+        $("#stateArticle, #btnStateArticle").click(function () {
+            var el = $('#stateArticle');
+            var fullText = el.data("fulltext");
+            if (stateExpanded) {
+                var truncated = fullText.split(' ').slice(0, stateWordLimit).join(' ') + '...';
+                el.text(truncated);
+                $('#btnStateArticle').text('Read more');
+                stateExpanded = false;
+            } else {
+                el.text(fullText);
+                $('#btnStateArticle').text('Read less');
+                stateExpanded = true;
+            }
+        });
+
+        // Back to top
+        $(".up-arrow-citypage").click(function () {
+            window.scrollTo(document.body.scrollHeight, 0);
+        });
+
+        // Hide loader when returning via browser navigation from city page
+        setTimeout(function () {
+            $("#al").hide();
+        }, 100);
+    });
 </script>

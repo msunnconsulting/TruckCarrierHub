@@ -55,3 +55,41 @@ strips everything after `/STATE/CITY` from the path, which also strips the `?p=`
 parameter, so every page beyond page 1 incorrectly canonicalizes to page 1. Page number needs
 to be preserved (or each paginated page should self-canonicalize) — see CLAUDE.md for the
 confirmed example (Birmingham, AL, 15 pages, all currently collapsing to page 1).
+
+## State.cshtml (state directory page)
+
+Top to bottom:
+
+1. **Breadcrumb**: Home / State name. Unchanged from current.
+2. **Header**: `<h1>Trucking Companies in [StateName]</h1>` with a two-stat block below it
+   (total cities and total companies), derived from `Model.Cities` at render time
+   (`Model.Cities.Count` and `Model.Cities.Sum(c => c.CompanyCount)`). Style the stat values
+   in the `.font-data` monospace style, similar in spirit to the Company.cshtml stats grid
+   but with just two metrics.
+3. **State article** — strip HTML from `Model.PageDescription`, truncate to 100 words, show
+   "Read more / Read less" toggle using the same pattern as City.cshtml (`data-fulltext`
+   attribute + click handler). Show unconditionally if the description is non-empty; there
+   is no per-page article-allowed flag on the state page.
+4. **Get A Quote widget** — same `IsShowOnStatePage` admin on/off flag, same
+   `_GetAQuoteControl` partial, same `GetAQuoteVM` data. Visual pass only.
+5. **Outbound banner** — same `IsShow` / `IsFollow` / nofollow logic, centered,
+   `max-width: 100%; max-height: 200px`. Visual pass only.
+6. **Most popular cities** — replace the current plain-text link list with a responsive card
+   grid (3 columns desktop / 2 tablet / 1 mobile). Each card links to the city page, shows
+   the city name and company count. Preserve the existing `onClick="$('#al').show();"` on
+   every link.
+7. **A-Z jump navigation** — same 26 letter anchors A–Z in a single flex-wrap row (no
+   split into two separate divs). Style each as a compact pill button matching the
+   `.dropdown-toggle` pill style already built for City.cshtml's filter bar
+   (same background, border, border-radius, padding). Current `btn btn-default btn-pager`
+   Bootstrap buttons replaced.
+8. **A-Z city directory** — same Razor loop (`for char 'A' to 'Z'`, filter `Model.Cities`
+   by starting letter). Replace `<h4 class="h2backcolor well">CITIES AND TOWNS BEGINNING
+   WITH (X)</h4>` with a lightweight section header: large letter + small "Cities and towns"
+   label + right-aligned back-to-top arrow. Preserve `id="@charater"` anchor on the header
+   for jump-nav targeting. City links keep the same href, `onClick`, and
+   `@cityName Trucking Companies (@city.CompanyCount)` text. Same 3-col / 2-col / 1-col
+   responsive grid.
+9. Preserve exactly: hidden field `#fromStatePage`, `.up-arrow-citypage` scroll-to-top
+   click handler, and the `#al` loader-hide `setTimeout`. No canonical fix needed (page
+   is not paginated). No query restructuring needed (performance already confirmed fine).

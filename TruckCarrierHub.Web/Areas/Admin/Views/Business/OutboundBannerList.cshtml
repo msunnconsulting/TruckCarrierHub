@@ -1,0 +1,239 @@
+﻿@using PartnerCarrier.ViewModels.Admin
+@model BaseOutboundBannerVM
+
+@{
+    ViewBag.Title = "Outbound Banners";
+}
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Index</title>
+    <style>
+        .font-weight-normal {
+            font-weight: normal !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="row">
+        <div class="col-md-10">
+            <h2> @ViewBag.Title</h2>
+        </div>
+    </div>
+    <hr class="small" />
+    <div id="dvNotification"></div>
+
+    <div class="table-responsive">
+        @using (Html.BeginForm("save-outbound-banner", "business", FormMethod.Post, new { enctype = "multipart/form-data", @id = "outboundBannerForm" }))
+        {
+            <table id="outboundBannerTable" class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th width="9%">Page Level</th>
+                        <th width="15%">Banner or Nothing</th>
+                        <th width="20%">Image</th>
+                        <th width="20%">URL</th>
+                        <th width="9%">Follow (Y/N)</th>
+                        <th width="13%">Alt Text</th>
+                        <th width="14%">Title Text</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int i = 0; i < Model.OutboundBannerList.Count; i++)
+                    {
+                        <tr>
+                            <td>
+                                @Html.DisplayFor(m => m.OutboundBannerList[i].PageLevel)
+                                @Html.HiddenFor(m => m.OutboundBannerList[i].PageLevel)
+                                @Html.HiddenFor(m => m.OutboundBannerList[i].FileName)
+                                @Html.HiddenFor(m => m.OutboundBannerList[i].Id)
+                                @Html.HiddenFor(m => m.OutboundBannerList[i].OriginalFileName)
+                            </td>
+                            <td>
+                                <label class="font-weight-normal">
+                                    @Html.RadioButtonFor(m => m.OutboundBannerList[i].IsShow, true, new { @class = "toggle-outbound-banner" }) Banner
+                                </label>
+                                <label class="font-weight-normal">
+                                    @Html.RadioButtonFor(m => m.OutboundBannerList[i].IsShow, false, new { @class = "toggle-outbound-banner" }) No Show
+                                </label>
+                            </td>
+                            <td>
+                                @Html.TextBoxFor(m => m.OutboundBannerList[i].ImageFile, (Model.OutboundBannerList[i].IsShow ? (object)new { type = "file", @class = "form-control", @onchange = "onFileChange(this, " + i + ")" } : (object)new { type = "file", @class = "form-control", @onchange = "onFileChange(this, " + i + ")", disabled = "true" }))
+                                @Html.ValidationMessageFor(m => m.OutboundBannerList[i].ImageFile, "", new { @class = "text-danger" })
+                                <div class="row" id="imagePreviewContainer_@i" style="margin-top: 5px; @Html.Raw(!string.IsNullOrEmpty(Model.OutboundBannerList[i].FileName) ? "" : "display: none;")">
+                                    <div class="col-xs-8">
+                                        <div class="thumbnail" style="margin-bottom: 0px">
+                                            <img id="imagePreview_@i" src="get-banner-image?fileName=@Model.OutboundBannerList[i].FileName" alt="Image Preview" style="height: 100px; width: 100%; @Html.Raw(Model.OutboundBannerList[i].IsShow ? "" : "pointer-events: none; opacity: 0.5;")" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                @Html.TextBoxFor(m => m.OutboundBannerList[i].URL, (Model.OutboundBannerList[i].IsShow ? (object)new { @class = "form-control" } : (object)new { @class = "form-control", disabled = "true" }))
+                                @Html.ValidationMessageFor(m => m.OutboundBannerList[i].URL, "", new { @class = "text-danger" })
+                            </td>
+                            <td>
+                                @Html.CheckBoxFor(m => m.OutboundBannerList[i].IsFollow, (Model.OutboundBannerList[i].IsShow ? (object)new { } : (object)new { disabled = "true" }))
+                            </td>
+                            <td>
+                                @Html.TextBoxFor(m => m.OutboundBannerList[i].AltText, (Model.OutboundBannerList[i].IsShow ? (object)new { @class = "form-control" } : (object)new { @class = "form-control", disabled = "true" }))
+                                @Html.ValidationMessageFor(m => m.OutboundBannerList[i].AltText, "", new { @class = "text-danger" })
+                            </td>
+                            <td>
+                                @Html.TextBoxFor(m => m.OutboundBannerList[i].TitleText, (Model.OutboundBannerList[i].IsShow ? (object)new { @class = "form-control" } : (object)new { @class = "form-control", disabled = "true" }))
+                                @Html.ValidationMessageFor(m => m.OutboundBannerList[i].TitleText, "", new { @class = "text-danger" })
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <button type="submit" class="btn btn-primary text-center">Save</button>
+        }
+    </div>
+
+    @section Scripts {
+        <script>
+            $(document).ready(function () {
+
+                // Custom validation rule for file extension
+                $.validator.addMethod("validFileExtension", function (value, element, param) {
+                    // Get the file extension from the input value
+                    var extension = value.split('.').pop().toLowerCase();
+                    // Check if the file extension is in the allowed list
+                    return this.optional(element) || $.inArray(extension, param) !== -1;
+                }, "Please choose a JPG, JPEG or PNG file.");
+
+
+                // Event handler for change in 'IsShow' radio buttons
+                $('.toggle-outbound-banner').on('change', function () {
+
+                    // Determine if 'IsShow' is true
+                    var isShow = $(this).val() === "True";
+
+                    // Find the row containing the radio button and update the state of related fields
+                    var row = $(this).closest('tr');
+                    var imageFileInput = row.find('input[type="file"]');
+                    var image = row.find('img');
+
+
+                    // Toggle disabled state for inputs
+                    row.find('input[type="file"], input[type="text"], input[type="checkbox"]').prop('disabled', !isShow);
+
+                    // Apply CSS styles to the image based on the disabled state
+                    image.css({
+                        'pointer-events': isShow ? 'auto' : 'none',
+                        'opacity': isShow ? '1' : '0.5'
+                    });
+
+                    // Manage validation rules for imageFileInput
+                    if (!isShow) {
+                        imageFileInput.rules('remove', 'required');
+                        row.find('.field-validation-error').empty();
+                    } else {
+                        imageFileInput.rules('add', {
+                            required: true,
+                            messages: {
+                                required: 'Please select an image'
+                            }
+                        });
+                    }
+                });
+
+            });
+
+            /**
+             * This function is called when the form is about to be submitted.
+             * It dynamically adjusts validation rules for image files based on 'IsShow' and 'FileName' conditions.
+             * If validation fails, it prevents the default form submission.
+             */
+            $("#outboundBannerForm").submit(function (event) {
+
+                for (var i = 0; i < 4; i++) {
+                    // Get the file name and 'IsShow' state for the current item
+                    const fileName = $(`#OutboundBannerList_${i}__FileName`).val();
+                    const isShow = $(`#OutboundBannerList_${i}__IsShow`).prop('checked');
+
+                    // Dynamically add or remove the 'required' rule based on conditions
+                    const imageFile = $(`#OutboundBannerList_${i}__ImageFile`);
+                    if ((isShow && fileName) || !isShow) {
+                        imageFile.rules("remove", "required");
+                    } else {
+                        imageFile.rules("add", "required");
+                    }
+                }
+
+                // Trigger validation
+                var isValid = $("#outboundBannerForm").valid();
+
+                // Prevent the default form submission if validation fails
+                if (!isValid) {
+                    event.preventDefault();
+                }
+            });
+
+            /**
+             * Called when the file input is changed
+             * @@param fileElement
+             * @@param index
+             */
+            function onFileChange(fileElement, index) {
+
+                // Get the preview area and container elements
+                var previewArea = document.getElementById("imagePreview_" + index);
+                var previewContainer = document.getElementById("imagePreviewContainer_" + index);
+
+                // Valid file extensions for validation
+                var validFileExtensions = ['jpeg', 'jpg', 'png'];
+
+                // Add file extension validation rules using jQuery Validation
+                $(fileElement).rules('add', {
+                    validFileExtension: validFileExtensions,
+                });
+
+                // Check if files are selected
+                if (fileElement.files && fileElement.files[0]) {
+
+                    // Get the uploaded file extension
+                    var extension = fileElement.files[0].name.split('.').pop().toLowerCase();
+
+                    // Check if the uploaded file extension is valid
+                    if (validFileExtensions.includes(extension)) {
+                        var reader = new FileReader();
+
+                        // Set up the reader onload event
+                        reader.onload = function (e) {
+                            previewArea.src = e.target.result;
+                            previewArea.style.display = "block";
+                            previewContainer.style.display = "block";
+                        };
+
+                        // Read the file as a data URL
+                        reader.readAsDataURL(fileElement.files[0]);
+
+                        // Remove the file extension validation rule if the file is valid
+                        $(fileElement).rules('remove', 'validFileExtension');
+
+                    } else {
+                        // Hide the preview area and container if the file extension is not valid
+                        previewArea.style.display = "none";
+                        previewContainer.style.display = "none";
+                    }
+
+                    // Blur the file input to trigger validation
+                    $(fileElement).blur();
+                }
+                else {
+                    // Hide the preview area and container if no files are selected
+                    previewArea.style.display = "none";
+                    previewContainer.style.display = "none";
+                }
+            }
+
+        </script>
+    }
+</body>
+
+</html>
+

@@ -1,0 +1,121 @@
+﻿@using PartnerCarrier.ViewModels.User;
+@model AddCompanyReviewVM
+
+<div class="p-4 text-center" style="font-family: Arial, sans-serif;">
+
+    @using (Ajax.BeginForm("add-review", "home", null, new AjaxOptions
+    {
+        HttpMethod = "POST",
+        OnSuccess = "reviewVm.OnSuccessAddUpdateReview",
+        OnFailure = "reviewVm.OnFailureAddUpdateReview"
+    }, new { id = "reviewAddEditForm" }))
+    {
+
+        @Html.HiddenFor(m => m.CompanyUSDOT)
+        @Html.HiddenFor(m => m.ReviewerUSDOT)
+        @Html.HiddenFor(m => m.ReviewId, new { id = "hdnReviewId" })
+        @Html.Hidden("hdnOriginalRating", Model.Rating)
+        @Html.Hidden("hdnOriginalComment", Model.Comment ?? "")
+
+        <div class="row">
+            <div class="col-md-12">
+                <p class="p-35-px text-center">
+                    <strong>@Model.ReviewerName</strong><br />
+                    <span class="hidden-xs"> is reviewing </span>
+                    <span class="visible-xs-block">is reviewing</span>
+                    <strong>@Model.CompanyName</strong>
+                </p>
+            </div>
+            <div class="row" id="dvNotification"></div>
+            <div class="col-md-12">
+                <p class="text-muted">
+                    Posting publicly across <br />
+                    <span>TruckCarrierHub.com</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Rating stars -->
+        <div class="stars mb-3">
+            @for (int i = 5; i >= 1; i--)
+            {
+                <input type="radio" id="star-@i" name="Rating" value="@i"
+                       @(Model.Rating == i ? "checked" : "") />
+                <label for="star-@i">★</label>
+            }
+        </div>
+
+
+        <div class="row margin-bottom-10">
+            <div class="col-md-12 p-35-px">
+                <!-- Textarea -->
+                    <textarea class="form-control" id="Comment" name="Comment" rows="6"
+                              placeholder="Share details of your own experience at this place">@Model.Comment</textarea>
+                <div class="margin-top-20 pull-right">
+                    <button type="button" class="btn btn-light mr-10-px" id="btnCancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btnPost"> @(Model.ReviewId > 0 ? "Update" : "Post")</button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+
+<style>
+    .mr-10-px {
+        margin-right: 10px
+    }
+
+    textarea {
+        resize: vertical;
+        max-height:180px;
+    }
+
+    @@media (max-width: 480px) {
+        textarea {
+            max-height: 125px;
+        }
+    }
+
+    .p-35-px {
+        padding: 40px
+    }
+
+    .p-35-px.alt-padding {
+        padding-top: 40px !important;
+        padding-left: 40px !important;
+        padding-right: 40px !important;
+        padding-bottom : 5px !important;
+    }
+
+    .margin-top-20 {
+        margin-top : 20px;
+    }
+
+    .stars {
+        display: inline-flex;
+        flex-direction: row-reverse;
+        justify-content: center;
+    }
+
+        .stars input {
+            display: none;
+        }
+
+        .stars label {
+            font-size: 32px;
+            color: #ccc;
+            cursor: pointer;
+            padding: 0 4px;
+        }
+
+            .stars input:checked ~ label,
+            .stars label:hover,
+            .stars label:hover ~ label {
+                color: gold;
+            }
+</style>
+
+@section Scripts {
+    <script src="~/Content/User/add-edit-review.js"></script>
+}

@@ -1,0 +1,84 @@
+﻿@using PartnerCarrier.ViewModels.Admin
+@model BusinessLoginVM
+@{
+    ViewBag.Title = "Login";
+}
+
+<style>
+    div#dvNotification > .col-md-12 {
+        margin-left: -15px !important;
+    }
+</style>
+<div id="contactus-bg-img">
+    <section class="content">
+        <div class="container">
+            <div class="row">
+                <div class="col-sm-3"></div>
+                <div class="col-sm-6 contact-form">
+                    <h2 class="text-center">Company Operator Login</h2>
+
+                    <div class="row" id="dvNotification"></div>
+
+                    @using (Ajax.BeginForm("BusinessLogin", "Home", null, new AjaxOptions
+                    {
+                        HttpMethod = "POST",
+                        OnSuccess = "vm.BusinessLoginOnSuccess",
+                        OnFailure = "vm.BusinessLoginOnFailure"
+                    }, new { @class = "form-horizontal" }))
+                    {
+                        @Html.AntiForgeryToken()
+                        @Html.Hidden("returnUrl", ViewBag.ReturnUrl as string)
+                        <div class="row">
+                            <div class="col-xs-12 col-md-12 form-group">
+                                <label>Email (of your record in US DOT SAFER website):</label>
+                                @Html.TextBoxFor(m => m.Email, new { placeholder = "Enter Email", @class = "form-control", autocomplete = "off" })
+                                @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="col-xs-12 col-md-12 form-group">
+                                <label>Password:</label>
+                                @Html.PasswordFor(m => m.Password, new { placeholder = "Enter Password", @class = "form-control" })
+                                @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        <br />
+                        <div class="row">
+                            <div class="col-xs-12 col-md-12 form-group">
+                                <button class="btn btn-primary text-center" type="submit">Login</button>
+                            </div>
+                        </div>
+
+
+                        <div class="row">
+                            <div class="col-xs-12 col-md-12 form-group">
+                                <p>
+                                    Forgot your password? Click <a href="@Url.Action("ForgotPassword","Home")"> Reset</a> and check your US DOT SAFER email inbox for a password reset email.
+                                </p>
+                                <br />
+
+                                <label>Don’t have an account on TruckCarrierHub yet?</label>
+                                <p>
+                                    To create one, go to your company’s page and click the <i> Do you operate this business? </i> link. Follow the instructions to complete the registration.<br />Once registered, you’ll be able to :
+                                </p>
+                                <ul>
+                                    <li>Post your trucking jobs.</li>
+                                    <li>Add a link to your website on your company’s page</li>
+                                    <li>Write and respond to reviews</li>
+                                </ul>
+                                <label>All features are completely free of charge.</label>
+
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="col-sm-3"></div>
+            </div>
+        </div>
+    </section>
+</div>
+
+
+
+@section Scripts{
+    <script src="~/Content/User/business-change-password.js"></script>
+}
+

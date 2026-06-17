@@ -1,0 +1,87 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36511.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TruckCarrierHub.Web", "TruckCarrierHub.Web\TruckCarrierHub.Web.csproj", "{F9D965D0-147A-485D-A844-67EA0BF61064}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TruckCarrierHub.Infrastructure", "TruckCarrierHub.Infrastructure\TruckCarrierHub.Infrastructure.csproj", "{F04E8DEC-FADD-45F5-A9E3-CB38112BB68E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TruckCarrierHub.ViewModels", "TruckCarrierHub.ViewModels\TruckCarrierHub.ViewModels.csproj", "{2AF91AA4-79D7-4CF3-9498-4E8D3C6C5CA2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common.Utility", "Common.Utility\Common.Utility.csproj", "{59B5DBAC-81E2-457B-9ED9-763D4C4E6D1F}"
+EndProject
+Project("{00D1A9C2-B5F0-4AF3-8072-F6C62B433612}") = "TruckCarrierHub.Database", "TruckCarrierHub.Database\TruckCarrierHub.Database.sqlproj", "{C10225B7-5158-424B-9981-9FEA7E7E780D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Dec 2023|Any CPU = Dec 2023|Any CPU
+		Jan 2024|Any CPU = Jan 2024|Any CPU
+		TruckCarrierHubProduction|Any CPU = TruckCarrierHubProduction|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F9D965D0-147A-485D-A844-67EA0BF61064}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F9D965D0-147A-485D-A844-67EA0BF61064}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F9D965D0-147A-485D-A844-67EA0BF61064}.Dec 2023|Any CPU.ActiveCfg = Debug|Any CPU
+		{F9D965D0-147A-485D-A844-67EA0BF61064}.Dec 2023|Any CPU.Build.0 = Debug|Any CPU
+		{F9D965D0-147A-485D-A844-67EA0BF61064}.Jan 2024|Any CPU.ActiveCfg = qa-internal|Any CPU
+		{F9D965D0-147A-485D-A844-67EA0BF61064}.Jan 2024|Any CPU.Build.0 = qa-internal|Any CPU
+		{F9D965D0-147A-485D-A844-67EA0BF61064}.TruckCarrierHubProduction|Any CPU.ActiveCfg = TruckCarrierHub_Production|Any CPU
+		{F9D965D0-147A-485D-A844-67EA0BF61064}.TruckCarrierHubProduction|Any CPU.Build.0 = TruckCarrierHub_Production|Any CPU
+		{F9D965D0-147A-485D-A844-67EA0BF61064}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F9D965D0-147A-485D-A844-67EA0BF61064}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F04E8DEC-FADD-45F5-A9E3-CB38112BB68E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F04E8DEC-FADD-45F5-A9E3-CB38112BB68E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F04E8DEC-FADD-45F5-A9E3-CB38112BB68E}.Dec 2023|Any CPU.ActiveCfg = Debug|Any CPU
+		{F04E8DEC-FADD-45F5-A9E3-CB38112BB68E}.Dec 2023|Any CPU.Build.0 = Debug|Any CPU
+		{F04E8DEC-FADD-45F5-A9E3-CB38112BB68E}.Jan 2024|Any CPU.ActiveCfg = qa-internal|Any CPU
+		{F04E8DEC-FADD-45F5-A9E3-CB38112BB68E}.Jan 2024|Any CPU.Build.0 = qa-internal|Any CPU
+		{F04E8DEC-FADD-45F5-A9E3-CB38112BB68E}.TruckCarrierHubProduction|Any CPU.ActiveCfg = TruckCarrierHub_Production|Any CPU
+		{F04E8DEC-FADD-45F5-A9E3-CB38112BB68E}.TruckCarrierHubProduction|Any CPU.Build.0 = TruckCarrierHub_Production|Any CPU
+		{F04E8DEC-FADD-45F5-A9E3-CB38112BB68E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F04E8DEC-FADD-45F5-A9E3-CB38112BB68E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2AF91AA4-79D7-4CF3-9498-4E8D3C6C5CA2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2AF91AA4-79D7-4CF3-9498-4E8D3C6C5CA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2AF91AA4-79D7-4CF3-9498-4E8D3C6C5CA2}.Dec 2023|Any CPU.ActiveCfg = Debug|Any CPU
+		{2AF91AA4-79D7-4CF3-9498-4E8D3C6C5CA2}.Dec 2023|Any CPU.Build.0 = Debug|Any CPU
+		{2AF91AA4-79D7-4CF3-9498-4E8D3C6C5CA2}.Jan 2024|Any CPU.ActiveCfg = qa-internal|Any CPU
+		{2AF91AA4-79D7-4CF3-9498-4E8D3C6C5CA2}.Jan 2024|Any CPU.Build.0 = qa-internal|Any CPU
+		{2AF91AA4-79D7-4CF3-9498-4E8D3C6C5CA2}.TruckCarrierHubProduction|Any CPU.ActiveCfg = TruckCarrierHub_Production|Any CPU
+		{2AF91AA4-79D7-4CF3-9498-4E8D3C6C5CA2}.TruckCarrierHubProduction|Any CPU.Build.0 = TruckCarrierHub_Production|Any CPU
+		{2AF91AA4-79D7-4CF3-9498-4E8D3C6C5CA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2AF91AA4-79D7-4CF3-9498-4E8D3C6C5CA2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{59B5DBAC-81E2-457B-9ED9-763D4C4E6D1F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{59B5DBAC-81E2-457B-9ED9-763D4C4E6D1F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{59B5DBAC-81E2-457B-9ED9-763D4C4E6D1F}.Dec 2023|Any CPU.ActiveCfg = Dec 2023|Any CPU
+		{59B5DBAC-81E2-457B-9ED9-763D4C4E6D1F}.Dec 2023|Any CPU.Build.0 = Dec 2023|Any CPU
+		{59B5DBAC-81E2-457B-9ED9-763D4C4E6D1F}.Jan 2024|Any CPU.ActiveCfg = Jan 2024|Any CPU
+		{59B5DBAC-81E2-457B-9ED9-763D4C4E6D1F}.Jan 2024|Any CPU.Build.0 = Jan 2024|Any CPU
+		{59B5DBAC-81E2-457B-9ED9-763D4C4E6D1F}.TruckCarrierHubProduction|Any CPU.ActiveCfg = TruckCarrierHub_Production|Any CPU
+		{59B5DBAC-81E2-457B-9ED9-763D4C4E6D1F}.TruckCarrierHubProduction|Any CPU.Build.0 = TruckCarrierHub_Production|Any CPU
+		{59B5DBAC-81E2-457B-9ED9-763D4C4E6D1F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{59B5DBAC-81E2-457B-9ED9-763D4C4E6D1F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C10225B7-5158-424B-9981-9FEA7E7E780D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C10225B7-5158-424B-9981-9FEA7E7E780D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C10225B7-5158-424B-9981-9FEA7E7E780D}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{C10225B7-5158-424B-9981-9FEA7E7E780D}.Dec 2023|Any CPU.ActiveCfg = Debug|Any CPU
+		{C10225B7-5158-424B-9981-9FEA7E7E780D}.Dec 2023|Any CPU.Build.0 = Debug|Any CPU
+		{C10225B7-5158-424B-9981-9FEA7E7E780D}.Dec 2023|Any CPU.Deploy.0 = Debug|Any CPU
+		{C10225B7-5158-424B-9981-9FEA7E7E780D}.Jan 2024|Any CPU.ActiveCfg = Jan 2024|Any CPU
+		{C10225B7-5158-424B-9981-9FEA7E7E780D}.Jan 2024|Any CPU.Build.0 = Jan 2024|Any CPU
+		{C10225B7-5158-424B-9981-9FEA7E7E780D}.Jan 2024|Any CPU.Deploy.0 = Jan 2024|Any CPU
+		{C10225B7-5158-424B-9981-9FEA7E7E780D}.TruckCarrierHubProduction|Any CPU.ActiveCfg = TruckCarrierHubProduction|Any CPU
+		{C10225B7-5158-424B-9981-9FEA7E7E780D}.TruckCarrierHubProduction|Any CPU.Build.0 = TruckCarrierHubProduction|Any CPU
+		{C10225B7-5158-424B-9981-9FEA7E7E780D}.TruckCarrierHubProduction|Any CPU.Deploy.0 = TruckCarrierHubProduction|Any CPU
+		{C10225B7-5158-424B-9981-9FEA7E7E780D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C10225B7-5158-424B-9981-9FEA7E7E780D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C10225B7-5158-424B-9981-9FEA7E7E780D}.Release|Any CPU.Deploy.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CC778DF3-BC76-4CE1-8D2E-F6D1B7F31A21}
+	EndGlobalSection
+EndGlobal

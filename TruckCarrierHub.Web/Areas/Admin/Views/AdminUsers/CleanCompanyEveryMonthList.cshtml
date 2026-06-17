@@ -1,0 +1,68 @@
+﻿@using PartnerCarrier.ViewModels.Admin
+
+@model CleanCompanyEveryMonthVM
+@{
+    ViewBag.Title = "Clear Cities With Only 1 Company";
+
+}
+<div class="row">
+    <div class="col-md-10">
+        <h2>Clear Cities</h2>
+    </div>
+</div>
+
+<hr class="small" />
+<div class="row" id="dvNotification"></div>
+
+@using (Ajax.BeginForm("clean-company-monthly-list-partial", "user", new { Area = "admin" }, new AjaxOptions
+{
+    HttpMethod = "GET",
+    OnSuccess = "vm.OnSuccessBindCleanCompanyMonthlyList",
+    OnFailure = "vm.OnFailureBindCleanCompanyMonthlyList",
+    UpdateTargetId = "cleanCompanyMonthlyList"
+}, new { id = "cleanCompanyMonthlyListForm" }))
+{
+    <input type="hidden" value="" id="CommaSeparatedUSDOTNumber" name="CommaSeparatedCheckUSDOTNumber" />
+    <input type="hidden" value="" id="isAllCheckboxCheck" name="IsAllCheck" />
+}
+
+@using (Ajax.BeginForm("clean-all-company-every-month", "user", new { Area = "admin" }, new AjaxOptions
+{
+    HttpMethod = "POST",
+    OnSuccess = "vm.OnSuccessCleaAllCompanyEveryMonth",
+    OnFailure = "vm.OnFailureCleaAllCompanyEveryMonth",
+    UpdateTargetId = "cleanCompanyMonthlyList"
+}, new { id = "cleanCompanyMonthlyFrm" }))
+{
+
+}
+
+@using (Ajax.BeginForm("clean-selected-company-every-month", "user", new { Area = "admin" }, new AjaxOptions
+{
+    HttpMethod = "POST",
+    OnSuccess = "vm.OnSuccessClearSelectedCompanyEveryMonth",
+    OnFailure = "vm.OnFailureClearSelectedCompanyEveryMonth",
+    UpdateTargetId = "cleanCompanyMonthlyList"
+}, new { id = "cleanSelectedCompanyMonthlyFrm" }))
+{
+    <input type="hidden" value="" id="DeleteSeletedUSDOTNumber" name="DeleteSeletedUSDOTNumber" />
+}
+ 
+<div class="row margin-bottom-10">
+    <div class="col-md-12 text-right">
+        <a href="Javascript:;" onclick="vm.CleanAllCompanyEveryMonth()" class="btn btn-primary" title="Clear All"><i class="fa fa-trash"></i> Clear All</a>
+        <a href="Javascript:;" onclick="vm.CleanSelectedCompanyEveryMonth()" class="btn btn-primary" title="Clear Selected"><i class="fa fa-trash"></i> Clear Selected</a>
+
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div id="cleanCompanyMonthlyList">
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/Areas/Admin/Content/PageScript/AdminUsers/clean-company-monthly-list.js"></script>
+}

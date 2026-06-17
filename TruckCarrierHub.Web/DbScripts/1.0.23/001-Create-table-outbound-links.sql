@@ -1,0 +1,8 @@
+﻿CREATE TABLE [dbo].[OutboundLink]
+(
+	[Id] BIGINT NOT NULL PRIMARY KEY IDENTITY, 
+    [URLTitle] NVARCHAR(150) NOT NULL, 
+    [URL] NVARCHAR(2048) NOT NULL, 
+    [Number] INT NOT NULL, 
+    [Comment] NVARCHAR(250) NOT NULL
+)

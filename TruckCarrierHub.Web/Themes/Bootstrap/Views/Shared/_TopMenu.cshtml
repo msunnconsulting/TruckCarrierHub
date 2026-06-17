@@ -1,0 +1,26 @@
+﻿@using PartnerCarrier.ViewModels;
+@using PartnerCarrier.Infrastructure
+@{
+   // var userInfo = FormsAuthService.Instance.LoggedInUser();
+}
+@*Top Left Menu for All Users (Guest, County & Admin)*@
+
+
+
+@*@if (FormsAuthService.Instance.IsAuthenticated)
+{*@
+    <ul class="nav navbar-nav">
+        <li>@Html.ActionLink("User","Index","Home")</li>
+    </ul>
+
+    @*@Html.Partial("_LoginPartial")*@
+@*}
+else
+{*@
+    @*Top Right Menu for All Users (Guest, County & Admin)*@
+    @*<ul class="nav navbar-nav navbar-right">
+        <li>@Html.ActionLink("Log in", "Login", "Account", routeValues: null, htmlAttributes: new { id = "loginLink" })</li>
+    </ul>*@
+@*}*@
+
+

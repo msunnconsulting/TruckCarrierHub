@@ -1,0 +1,65 @@
+﻿@using Common.Utility.ViewModels;
+@model PageSortPara
+@{
+    ViewBag.Title = "Manage Admin Users";
+}
+<div class="row">
+    <div class="col-md-12">
+        <h2>Manage Admin Users</h2>
+    </div>
+</div>
+<hr class="small" />
+
+@*Append error message with HTML using jquery*@
+<div class="row" id="dvNotification"></div>
+
+@using (Ajax.BeginForm("delete", "user", new { Area = "admin" }, new AjaxOptions
+{
+    HttpMethod = "POST",
+    OnSuccess = "vm.OnSuccessDeleteAdminUserById",
+    OnFailure = "vm.OnFailureDeleteAdminUserById",
+    UpdateTargetId = "adminUserList"
+}, new { id = "deleteAdminUserForm" }))
+{
+    <input type="hidden" name="AdminID" id="AdminID" value="" />
+}
+<div class="row">
+    <div class="row">
+        @using (Ajax.BeginForm("AdminUserListPartial", "AdminUsers", Model, new AjaxOptions
+        {
+            HttpMethod = "GET",
+            OnSuccess = "vm.OnSuccessBindAdminUserList",
+            OnFailure = "vm.OnFailureAdminuserList",
+            UpdateTargetId = "adminUserList"
+        }, new { id = "adminUserListForm" }))
+        {
+            <div class="col-sm-12">
+                <div class=" col-sm-6 col-md-3 col-xs-6 pull-left">
+                    <div class="form-group top_search">
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Name" name="searchText" id="searchTextValue" maxlength="50">
+                            <span class="input-group-btn">
+                                <button class="btn btn-primary" onclick="vm.searchAdmin();" title="Search">Search</button>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-1 margin-bottom-10 pull-right">
+                    <a href="@Url.Action("CreateAdminUser", "AdminUsers")" title="Add Admin" class="btn btn-primary pull-right"><i class="fa fa-plus"></i> Add Admin</a>
+                </div>
+            </div>
+        }
+
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div id="adminUserList">
+
+            </div>
+        </div>
+    </div>
+
+</div>
+@section Scripts {
+<script src="~/Areas/Admin/Content/PageScript/AdminUsers/admin-user-list.js"></script>
+}

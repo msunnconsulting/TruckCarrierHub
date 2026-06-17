@@ -1,0 +1,645 @@
+﻿@using PartnerCarrier.ViewModels.User
+@using Common.Utility.Extensions;
+@using Common.Utility;
+@using PartnerCarrier.ViewModels.Admin;
+@using PartnerCarrier.Web.App_Start;
+@using PartnerCarrier.Infrastructure.Contracts.Admin.AdminManagement;
+@using PartnerCarrier.Web.SessionManager;
+@using System.Text.RegularExpressions;
+@model CompanyVM
+@{
+    ViewBag.Title = Model.PageTitle;
+    var googleAPIKey = Config.GetValue("GoogleAPIKeyForMap");
+
+    var _businessManagements = StructuremapMvc.StructureMapDependencyScope.CurrentNestedContainer.GetInstance<IBusinessMangementService>();
+    var globalHiring = _businessManagements.GetGlobalHiring();
+    var reviewsFilter = _businessManagements.GetReviewsFilter();
+    var IsShowOnCityPage = _businessManagements.GetCheckboxListForShowGetAQuoteControl()
+        .Where(a => a.Name.Contains("Show on City page"))
+        .Select(a => a.ControlToShow)
+        .FirstOrDefault();
+
+    if (globalHiring.GlobalHire == (int)GLobalHiring.CityPage || globalHiring.GlobalHire == (int)GLobalHiring.HomeStateAndCityPage || globalHiring.GlobalHire == (int)GLobalHiring.StateAndCityPage)
+    {
+        ViewBag.IsShowGlobalHiringCheckbox = true;
+    }
+    if (reviewsFilter.SelectedFilterValue == (int)ManageReviewEnum.CityPage || reviewsFilter.SelectedFilterValue == (int)ManageReviewEnum.HomeStateAndCityPage || reviewsFilter.SelectedFilterValue == (int)ManageReviewEnum.StateAndCityPage)
+    {
+        ViewBag.IsShowReviewsCheckbox = true;
+    }
+
+    ViewBag.IsHiringCheckboxIsChecked = SessionManager.Instance.IsHiringCheckboxIsChecked;
+    ViewBag.IsReviewsFilterCheckboxIsChecked = SessionManager.Instance.IsReviewsFilterCheckboxIsChecked;
+
+    var uri = Request.Url;
+    var path = uri.AbsolutePath;
+    var parts = path.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+
+    // Keep only /STATE/CITY, strip any sortby/cargo segments
+    if (parts.Length >= 2)
+    {
+        path = "/" + parts[0] + "/" + parts[1];
+    }
+
+    // Preserve ?p= in the canonical so paginated pages don't all collapse to page 1.
+    // Page 1 gets the clean URL (no query string); pages 2+ get ?p=N.
+    var pageParam = Request.QueryString["p"];
+    var canonicalQuery = !string.IsNullOrEmpty(pageParam) && pageParam != "1" ? "?p=" + pageParam : "";
+    ViewBag.CanonicalUrl = uri.Scheme + "://" + uri.Authority + path + canonicalQuery;
+
+    var textHelperResponse = TextHelper.TruncateText(Model.PageDescription, Model.NumberOfWordsForCityArticle);
+    string metaDescText = Model.PageDescription ?? "";
+    var metaMatches = Regex.Matches(metaDescText, @"\.");
+    if (metaMatches.Count >= 4)
+    {
+        metaDescText = metaDescText.Substring(0, metaMatches[3].Index + 1);
+    }
+
+    var totalCount = Model.Companies != null ? Model.Companies.Pagination.TotalCount : 0;
+}
+
+@section AdditionalMeta {
+    <meta name="description" content="@metaDescText" />
+    <link rel="canonical" href="@ViewBag.CanonicalUrl" />
+}
+
+@Html.Partial("_ReviewModal")
+
+@Html.HiddenFor(c => Model.City, new { id = "city" })
+@Html.HiddenFor(s => Model.StateCode, new { id = "stateCode" })
+@Html.HiddenFor(a => a.hdnCityName, new { id = "cityName" })
+
+<style>
+    /* GetAQuote control override */
+    .homepage-font-color { color: black !important; }
+
+    /* ---- City page header ---- */
+    .city-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin: 20px 0 16px;
+        flex-wrap: wrap;
+    }
+    .city-header-left { flex: 1; min-width: 0; }
+    .city-title {
+        font-size: 22px;
+        margin: 0 0 6px;
+        line-height: 1.2;
+    }
+    .city-result-count {
+        font-size: 13px;
+        color: var(--steel-500);
+    }
+    .city-result-count .total-companies { font-weight: 600; color: var(--ink-900); }
+    .city-header-toggle { flex-shrink: 0; align-self: flex-start; }
+
+    /* ---- City article ---- */
+    .city-article {
+        background: var(--white);
+        border: 1px solid var(--steel-200);
+        border-radius: 10px;
+        padding: 18px 20px;
+        margin-bottom: 16px;
+        font-size: 14px;
+        line-height: 1.7;
+        color: var(--ink-900);
+    }
+    .city-article-text { margin: 0 0 10px; }
+    .city-article-toggle {
+        font-size: 12px;
+        padding: 3px 10px;
+    }
+
+    /* ---- Filter bar ---- */
+    .city-filter-wrap {
+        background: var(--white);
+        border: 1px solid var(--steel-200);
+        border-radius: 10px;
+        padding: 10px 14px;
+        margin-bottom: 16px;
+    }
+    .city-filter-wrap .facet-bar-container { padding: 0; }
+    .city-filter-wrap .facet-options-list { margin: 0; }
+    .city-filter-wrap .filter-dorpdown-padding { padding: 3px 4px; }
+    .city-filter-wrap .dropdown-toggle {
+        font-size: 13px;
+        color: var(--ink-900);
+        background: var(--paper-50);
+        border: 1px solid var(--steel-200);
+        border-radius: 6px;
+        padding: 5px 10px;
+        white-space: nowrap;
+    }
+    .city-filter-wrap .dropdown-toggle:hover,
+    .city-filter-wrap .dropdown-toggle:focus {
+        background: var(--steel-200);
+        color: var(--ink-900);
+        text-decoration: none;
+    }
+    .city-filter-wrap .dropdown-menu {
+        border-radius: 8px;
+        border: 1px solid var(--steel-200);
+        box-shadow: 0 4px 14px rgba(15,34,54,0.10);
+        padding: 8px 12px;
+        min-width: 180px;
+    }
+    .city-filter-wrap .no-hiring-disabled {
+        font-size: 13px;
+        color: var(--steel-500);
+        padding: 5px 6px;
+        cursor: default;
+    }
+    .city-filter-wrap .no-hiring-disabled:hover { text-decoration: none; }
+    .city-filter-wrap .facet-search-wrapper .input-group-search { width: 100%; }
+    .city-filter-wrap .searchFilterTextbox {
+        font-size: 13px;
+        height: 32px;
+        border-radius: 6px 0 0 6px;
+    }
+    .city-filter-wrap #exampleButton {
+        height: 32px;
+        padding: 0 10px;
+        border-radius: 0 6px 6px 0;
+    }
+    .city-filter-wrap .clear-filter-button { margin-right: 8px; }
+
+    /* ---- Company cards ---- */
+    .city-co-card {
+        background: var(--white);
+        border: 1px solid var(--steel-200);
+        border-radius: 10px;
+        padding: 16px 20px;
+        margin-bottom: 12px;
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+    .city-co-card:hover { border-color: var(--steel-300); }
+    .city-co-main { flex: 1; min-width: 0; }
+    .city-co-name-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+    }
+    .city-co-name {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--ink-900);
+        text-decoration: none;
+        font-family: var(--font-display);
+    }
+    .city-co-name:hover { color: var(--signal-600); text-decoration: underline; }
+    .city-co-stats {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        font-size: 13px;
+        color: var(--steel-500);
+    }
+    .city-co-stat { display: flex; gap: 4px; align-items: baseline; }
+    .city-co-stat-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .city-co-stat-value { color: var(--ink-900); }
+    .city-co-address { font-size: 13px; color: var(--steel-500); margin-top: 6px; }
+    .city-co-right {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 10px;
+        flex-shrink: 0;
+    }
+    .city-co-stars { color: var(--signal-500); font-size: 13px; white-space: nowrap; }
+    .city-co-rating-score { font-weight: 600; color: var(--ink-900); font-size: 13px; margin-right: 3px; }
+    .city-co-review-count { font-size: 12px; color: var(--steel-500); margin-left: 2px; }
+
+    /* ---- Empty state ---- */
+    .city-empty {
+        background: var(--white);
+        border: 1px solid var(--steel-200);
+        border-radius: 10px;
+        padding: 40px 20px;
+        text-align: center;
+        color: var(--steel-500);
+        font-size: 14px;
+    }
+
+    /* ---- Responsive ---- */
+    @@media (max-width: 767px) {
+        .city-header { flex-direction: column; }
+        .city-co-card { flex-direction: column; }
+        .city-co-right { align-items: flex-start; flex-direction: row; flex-wrap: wrap; }
+        .city-filter-wrap .facet-options-list { flex-wrap: wrap; }
+    }
+</style>
+
+<div class="container">
+
+    @* Breadcrumb *@
+    <ul class="breadcrumb">
+        <li><a href="@Url.Content("~/")">Home</a></li>
+        <li><a class="stateName" href="@Url.Content("~/" + Model.StateCode)">@Model.StateName</a></li>
+        <li class="active" id="anchorCityName">@Model.hdnCityName</li>
+    </ul>
+
+    @* Header row: heading + result count + List/Map toggle *@
+    <div class="city-header">
+        <div class="city-header-left">
+            <h1 class="city-title">Trucking companies in @Model.hdnCityName, @Model.StateCode</h1>
+            <div class="city-result-count">
+                <span class="total-companies">@totalCount</span>
+                @(totalCount == 1 ? "company" : "companies") found
+            </div>
+        </div>
+        <div class="city-header-toggle">
+            <div class="btn-group">
+                <a onclick="vm.MapToListView();" href="javascript:void(0);" id="list-button" class="btn btn-default list-toggle-button" data-omtag="srp:list-view">List</a>
+                <a onclick="vm.MapView();" id="map-button" class="btn btn-default map-toggle-button" data-omtag="srp:map-view">Map</a>
+            </div>
+        </div>
+    </div>
+
+    @* City article — page 1 only, with truncation + expand *@
+    @if (Model.Companies != null && Model.Companies.Pagination.PageIndex == 1 && Model.IsCityArticleAllowed && Model.IsCityArticleAllowedByAdmin)
+    {
+        <div class="city-article">
+            <div id="cityArticle"
+                 class="city-article-text truncated-text"
+                 data-fulltext="@Model.PageDescription">
+                @textHelperResponse.truncatedText
+            </div>
+            <button id="btnCityArticle" class="btn btn-default city-article-toggle">Read more</button>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(Model.PageDescription))
+    {
+        <div class="city-article">
+            <p id="cityArticle" class="city-article-text full-text">@Model.PageDescription</p>
+        </div>
+    }
+
+    @* Get a Quote (admin-controlled) *@
+    @if (IsShowOnCityPage == true)
+    {
+        <div class="homepage-font-color">
+            @Html.Partial("_GetAQuoteControl", Model.GetAQuoteVM)
+        </div>
+    }
+
+    @* Banner ad slot *@
+    @if (Model.OutboundBanner.IsShow)
+    {
+        <div class="text-center" style="margin-bottom:16px;">
+            @if (Model.OutboundBanner.IsFollow)
+            {
+                <a href="@Model.OutboundBanner.URL" class="banner-link" title="@Model.OutboundBanner.TitleText" target="_blank">
+                    <img src="/get-banner-image?fileName=@Model.OutboundBanner.FileName" style="max-width:100%;max-height:200px;" alt="@Model.OutboundBanner.AltText" />
+                </a>
+            }
+            else
+            {
+                <a href="@Model.OutboundBanner.URL" class="banner-link" title="@Model.OutboundBanner.TitleText" rel="nofollow" target="_blank">
+                    <img src="/get-banner-image?fileName=@Model.OutboundBanner.FileName" style="max-width:100%;max-height:200px;" alt="@Model.OutboundBanner.AltText" />
+                </a>
+            }
+        </div>
+    }
+
+    @* Filter bar *@
+    <div id="facet-bar" class="city-filter-wrap facet-bar-wrap">
+        <div class="affix-top facet-bar nopadding-left nopadding-right nomargin-left" data-offset-top="30px">
+            @using (Ajax.BeginForm(Url.Content("~/" + Model.StateCode + "/" + Model.City), "", null, new AjaxOptions
+            {
+                HttpMethod = "POST",
+                OnSuccess = "vm.OnSuccessSearchFilterResult",
+                OnFailure = "vm.OnFailureSearchFilterResult",
+                UpdateTargetId = "companyList"
+            }, new { id = "filterCompanyForm" }))
+            {
+                <div class="container facet-bar-container nopadding-left">
+                    <div class="col-md-2 col-sm-6 col-xs-12 nopadding-right nopadding-left">
+                        <div class="form-group facet-search-wrapper">
+                            <div class="input-group float-left input-group-search nomargin-left">
+                                <div class="form-inline">
+                                    <input type="search" class="form-control searchFilterTextbox" name="SearchText" placeholder="Search by city">
+                                </div>
+                                <span class="input-group-btn">
+                                    <button type="button" onclick="vm.SearchFilterResult();" class="btn btn-primary" id="exampleButton"><span class="glyphicon glyphicon-search"></span></button>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-10 col-sm-12 col-xs-12 facet-bar facet-search-wrapper nopadding-left nopadding-right">
+                        <ul class="nav navbar-nav facet-options-list float-left filter-button col-xs-12 nomargin-left nopadding-right">
+                            <li class="dropdown entity-dropdown filter-dorpdown-padding">
+                                <a href="#" class="dropdown-toggle text-center" data-toggle="dropdown" aria-expanded="false">Entity Type <i class="fa fa-angle-down fa-lg" aria-hidden="true"></i><p class="pull-right filterApplyBtnForEntityType hidden-lg hidden-md hidden-sm" style="display:none">Apply</p></a>
+                                <ul class="dropdown-menu dropdowntoggle-autoclose">
+                                    <div class="checkbox checkbox-primary">
+                                        <input id="entitytype-any" name="" value="Any" type="checkbox" checked="checked">
+                                        <label for="entitytype-any">Any</label>
+                                    </div>
+                                    <div class="checkbox checkbox-primary">
+                                        <input id="entity-carrier" class="entityType-checkbox" name="SelectedEntityTypes" value="C" type="checkbox">
+                                        <label for="entity-carrier">Carrier</label>
+                                    </div>
+                                    <div class="checkbox checkbox-primary">
+                                        <input id="entity-broker" class="entityType-checkbox" name="SelectedEntityTypes" value="B" type="checkbox">
+                                        <label for="entity-broker">Broker</label>
+                                    </div>
+                                    <div class="checkbox checkbox-primary">
+                                        <input id="entity-cargo-tank" class="entityType-checkbox" name="SelectedEntityTypes" value="T" type="checkbox">
+                                        <label for="entity-cargo-tank">Cargo Tank</label>
+                                    </div>
+                                </ul>
+                            </li>
+                            <li class="dropdown cargo-dropdown filter-dorpdown-padding">
+                                <a href="#" class="dropdown-toggle text-center" id="cargotypeCheckboxlist" data-toggle="dropdown">Cargo <i class="fa fa-angle-down fa-lg" aria-hidden="true"></i><p class="pull-right filterApplyBtnForCargoType hidden-lg hidden-md hidden-sm" style="display:none">Apply</p></a>
+                                <ul class="dropdown-menu dropdowntoggle-autoclose cargo-dropdown-width">
+                                    <div class="checkbox checkbox-primary">
+                                        <input id="cargotype-all" type="checkbox" value="All" checked="checked">
+                                        <label for="cargotype-all">All</label>
+                                    </div>
+                                    @for (int i = 0; i < Model.SearchFilter.CargoTypeList.Count; i++)
+                                    {
+                                        <div class="checkbox checkbox-primary">
+                                            <input id="SelectedCargoTypes_@i" name="SelectedCargoTypes" type="checkbox" value="@Model.SearchFilter.CargoTypeList[i].Value">
+                                            <label class="check" for="SelectedCargoTypes_@i">@Model.SearchFilter.CargoTypeList[i].Key</label>
+                                        </div>
+                                    }
+                                </ul>
+                            </li>
+                            <li class="dropdown trucktractor-dropdown filter-dorpdown-padding">
+                                <a href="#" class="dropdown-toggle text-center" data-toggle="dropdown">Trucks/Tractor <i class="fa fa-angle-down fa-lg" aria-hidden="true"></i><p class="pull-right filterApplyBtnForTruckAndTractor hidden-lg hidden-md hidden-sm" style="display:none">Apply</p></a>
+                                <ul class="dropdown-menu dropdowntoggle-autoclose">
+                                    <div class="col-xxs-6">
+                                        <div class="filter-selection-list">
+                                            <div class="checkbox checkbox-primary">
+                                                <input id="trucktracktor-any" type="checkbox" value="Any" checked="checked">
+                                                <label for="trucktracktor-any">Any</label>
+                                            </div>
+                                            <div class="checkbox checkbox-primary">
+                                                <input name="SelectedTruckOrTractor" class="trucktractor-checkbox" value="1-5" id="truck1-5" type="checkbox">
+                                                <label for="truck1-5">1 &ndash; 5</label>
+                                            </div>
+                                            <div class="checkbox checkbox-primary">
+                                                <input name="SelectedTruckOrTractor" class="trucktractor-checkbox" value="6-10" id="truck6-10" type="checkbox">
+                                                <label for="truck6-10">6 &ndash; 10</label>
+                                            </div>
+                                            <div class="checkbox checkbox-primary">
+                                                <input name="SelectedTruckOrTractor" id="truck11-20" class="trucktractor-checkbox" value="11-20" type="checkbox">
+                                                <label for="truck11-20">11 &ndash; 20</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-xxs-6 truckposition">
+                                        <div class="filter-selection-list">
+                                            <div class="checkbox checkbox-primary">
+                                                <input name="SelectedTruckOrTractor" class="trucktractor-checkbox" value="21-50" id="truck21-50" type="checkbox">
+                                                <label for="truck21-50">21 &ndash; 50</label>
+                                            </div>
+                                            <div class="checkbox checkbox-primary">
+                                                <input name="SelectedTruckOrTractor" class="trucktractor-checkbox" value="50-100" id="truck50-100" type="checkbox">
+                                                <label for="truck50-100">50 &ndash; 100</label>
+                                            </div>
+                                            <div class="checkbox checkbox-primary">
+                                                <input name="SelectedTruckOrTractor" class="trucktractor-checkbox" value="100-1000" id="truck100plus" type="checkbox">
+                                                <label for="truck100plus">100+</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </ul>
+                            </li>
+                            <li class="dropdown serviceType-dropdown filter-dorpdown-padding">
+                                <a href="#" class="dropdown-toggle text-center" data-toggle="dropdown" aria-expanded="false">Service Type <i class="fa fa-angle-down fa-lg" aria-hidden="true"></i><p class="pull-right filterApplyBtnForServiceType hidden-lg hidden-md hidden-sm" style="display:none">Apply</p></a>
+                                <ul class="dropdown-menu dropdowntoggle-autoclose serviceType-dropdown-width">
+                                    <div class="checkbox checkbox-primary">
+                                        <input id="servictype-all" type="checkbox" checked="checked" name="checkbox-proptype" value="">
+                                        <label for="servictype-all">All</label>
+                                    </div>
+                                    @for (int i = 0; i < Model.SearchFilter.ServiceTypeList.Count; i++)
+                                    {
+                                        <div class="checkbox checkbox-primary">
+                                            <input id="SelectedServiceTypes_@i" name="SelectedServiceTypes" type="checkbox" value="@Model.SearchFilter.ServiceTypeList[i].Value">
+                                            <label class="check" for="SelectedServiceTypes_@i">@Model.SearchFilter.ServiceTypeList[i].Key</label>
+                                        </div>
+                                    }
+                                </ul>
+                            </li>
+                            <li class="filter-dorpdown-padding city-filter-now-hiring-color">
+                                <a href="#" class="text-center no-hiring-disabled">Now Hiring:</a>
+                            </li>
+                            <li class="dropdown trailerType-dropdown filter-dorpdown-padding city-filter-now-hiring-color">
+                                <a href="#" class="dropdown-toggle text-center" data-toggle="dropdown" aria-expanded="false">Trailer Type <i class="fa fa-angle-down fa-lg" aria-hidden="true"></i><p class="pull-right filterApplyBtnForTrailerType hidden-lg hidden-md hidden-sm" style="display:none">Apply</p></a>
+                                <ul class="dropdown-menu dropdowntoggle-autoclose trailerType-dropdown-width">
+                                    <div class="checkbox checkbox-primary">
+                                        <input id="trailertype-all" type="checkbox" checked="checked" name="checkbox-proptype" value="">
+                                        <label for="trailertype-all">Not Interested</label>
+                                    </div>
+                                    @for (int i = 0; i < Model.SearchFilter.TrailerTypeList.Count; i++)
+                                    {
+                                        <div class="checkbox checkbox-primary">
+                                            <input id="SelectedTrailerTypes_@i" name="SelectedTrailerTypes" type="checkbox" value="@Model.SearchFilter.TrailerTypeList[i].Value">
+                                            <label class="check" for="SelectedTrailerTypes_@i">@Model.SearchFilter.TrailerTypeList[i].Key</label>
+                                        </div>
+                                    }
+                                </ul>
+                            </li>
+                            <li class="dropdown driverType-dropdown filter-dorpdown-padding city-filter-now-hiring-color">
+                                <a href="#" class="dropdown-toggle text-center" data-toggle="dropdown" aria-expanded="false">Driver Type <i class="fa fa-angle-down fa-lg" aria-hidden="true"></i><p class="pull-right filterApplyBtnForDriverType hidden-lg hidden-md hidden-sm" style="display:none">Apply</p></a>
+                                <ul class="dropdown-menu dropdowntoggle-autoclose driverType-dropdown-width">
+                                    <div class="checkbox checkbox-primary">
+                                        <input id="drivertype-all" type="checkbox" checked="checked" name="checkbox-proptype" value="">
+                                        <label for="drivertype-all">Not Interested</label>
+                                    </div>
+                                    @for (int i = 0; i < Model.SearchFilter.DriverTypeList.Count; i++)
+                                    {
+                                        <div class="checkbox checkbox-primary">
+                                            <input id="SelectedDriverTypes_@i" name="SelectedDriverTypes" type="checkbox" value="@Model.SearchFilter.DriverTypeList[i].Value">
+                                            <label class="check" for="SelectedDriverTypes_@i">@Model.SearchFilter.DriverTypeList[i].Key</label>
+                                        </div>
+                                    }
+                                </ul>
+                            </li>
+                            <li class="dropdown sort-by-option filter-dorpdown-padding">
+                                <a href="#" class="dropdown-toggle text-center" data-toggle="dropdown">Sort By <i class="fa fa-angle-down fa-lg" aria-hidden="true"></i><p class="pull-right filterApplyBtnForSortBy hidden-lg hidden-md hidden-sm" style="display:none">Apply</p></a>
+                                <ul class="dropdown-menu dropdowntoggle-autoclose sortby-dropdown-width">
+                                    <div class="col-xxs-6">
+                                        <div class="filter-selection-list">
+                                            <div class="radio radio-primary">
+                                                <input id="Relevance" class="sortBy" name="SortBy" value="Relevance" type="radio">
+                                                <label for="Relevance">Relevance</label>
+                                            </div>
+                                            <div class="radio radio-primary">
+                                                <input id="Alphabetical" class="sortBy" name="SortBy" value="AlphabeticOrder" type="radio">
+                                                <label for="Alphabetical">Alphabetical Order</label>
+                                            </div>
+                                            <div class="radio radio-primary">
+                                                <input id="noofTrucks" class="sortBy" name="SortBy" value="NumberOfTrucks" type="radio">
+                                                <label for="noofTrucks">Number of Trucks</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            }
+            <div id="map-progress-bar" class="hide">
+                <div id="map-load-bar" class="map-load-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    @* Active filter tags *@
+    <div style="margin-bottom:8px;">
+        <span id="span-tag" style="display:none">
+            <input class="btn btn-warning pull-left clear-filter-button" type="button" value="Clear All" id="clearTags" />
+            <input name="tags" id="tags" class="input-medium tm-input" />
+        </span>
+    </div>
+
+    @* Company list (AJAX update target) *@
+    <div id="companyList">
+        @if (Model.Companies != null && Model.Companies.Items.Count > 0)
+        {
+            @* Top pagination *@
+            <div style="margin-bottom:12px;">
+                @Html.Pager("City", "home", new { stateCode = Model.StateCode, city = Model.City.Replace(" ", "-") }, Model.Companies.Pagination)
+            </div>
+
+            @* Company cards *@
+            for (int i = 0; i < Model.Companies.Items.Count; i++)
+            {
+                var company = Model.Companies.Items[i];
+                var coState = company.PhysicalAddressStateCode;
+                var coUrl = Url.Content("~/" + coState + "/USDOT-" + company.USDOTNumber);
+
+                // Pre-compute star rating so no @{} is needed inside markup below
+                int cFull = 0;
+                int cEmpty = 0;
+                bool cHalf = false;
+                if (company.TotalReviews > 0)
+                {
+                    double cRating = company.AverageRating;
+                    cFull = (int)Math.Floor(cRating);
+                    double cFrac = cRating - cFull;
+                    cHalf = cFrac >= 0.25 && cFrac < 0.75;
+                    if (cFrac >= 0.75) { cFull++; }
+                    cEmpty = 5 - cFull - (cHalf ? 1 : 0);
+                }
+
+                <div class="city-co-card">
+                    <div class="city-co-main">
+                        <div class="city-co-name-row">
+                            <a class="city-co-name" href="@coUrl">@company.CompanyName</a>
+                            @if (company.Status != null && company.Status.ToLower() == "a")
+                            {
+                                <span class="status-badge is-active">Active</span>
+                            }
+                            else
+                            {
+                                <span class="status-badge is-inactive">Inactive</span>
+                            }
+                        </div>
+                        <div class="city-co-stats">
+                            @if (!string.IsNullOrEmpty(company.EntityType))
+                            {
+                                <span class="city-co-stat">
+                                    <span class="city-co-stat-value">@company.EntityType</span>
+                                </span>
+                            }
+                            <span class="city-co-stat">
+                                <span class="city-co-stat-label">USDOT</span>
+                                <span class="city-co-stat-value data-tag">@company.USDOTNumber</span>
+                            </span>
+                            @if (company.IccDocketNumberFirst.HasValue)
+                            {
+                                <span class="city-co-stat">
+                                    <span class="city-co-stat-label">MC</span>
+                                    <span class="city-co-stat-value data-tag">@company.IccDocketNumberFirst</span>
+                                </span>
+                            }
+                            <span class="city-co-stat">
+                                <span class="city-co-stat-label">Trucks</span>
+                                <span class="city-co-stat-value">@(company.TruckOrTractor.HasValue ? company.TruckOrTractor.ToString() : "N/A")</span>
+                            </span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(company.PhysicalAddressStreet))
+                        {
+                            <div class="city-co-address">
+                                @company.PhysicalAddressStreet, @company.PhysicalAddressCity, @company.StateCode @company.PhysicalAddressZipCode
+                            </div>
+                        }
+                    </div>
+                    <div class="city-co-right">
+                        @if (company.TotalReviews > 0)
+                        {
+                            <div class="cursor-pointer" onclick="reviewVm.openReviewOverlay(@company.USDOTNumber)">
+                                <span class="city-co-rating-score">@company.AverageRating</span>
+                                <span class="city-co-stars">
+                                    @for (int j = 0; j < cFull; j++) { <i class="fa fa-star"></i> }
+                                    @if (cHalf) { <i class="fa fa-star-half-o"></i> }
+                                    @for (int j = 0; j < cEmpty; j++) { <i class="fa fa-star-o"></i> }
+                                </span>
+                                <span class="city-co-review-count">(@company.TotalReviews)</span>
+                            </div>
+                        }
+                        <a class="btn btn-primary btn-sm" href="@coUrl">View Details</a>
+                    </div>
+                </div>
+            }
+
+            @* Bottom pagination *@
+            <div style="margin-top:8px;">
+                @Html.Pager("City", "home", new { stateCode = Model.StateCode, city = Model.City.Replace(" ", "-") }, Model.Companies.Pagination)
+            </div>
+        }
+        else
+        {
+            <div class="city-empty">No trucking companies matched your search criteria.</div>
+        }
+    </div>
+
+    @* Map view *@
+    <div class="col-md-12 col-xs-12 col-sm-12 nopadding-left" id="mapView" style="display:none">
+        <div id="map" style="position:absolute;width:100%;height:85%;"></div>
+    </div>
+
+</div>@* /container *@
+
+@section scripts {
+    <script src="https://maps.googleapis.com/maps/api/js?key=@googleAPIKey"></script>
+    <script src="~/Scripts/Common.AJAX.js"></script>
+    <script src="~/Content/User/search-filter-on-company.js"></script>
+    <script src="~/Content/User/add-edit-review.js"></script>
+    <script>
+        $(document).ready(function () {
+            var isExpanded = false;
+
+            $("#cityArticle, #btnCityArticle").click(function () {
+                var articleControl = $('#cityArticle');
+                var fullText = articleControl.data("fulltext");
+                if (isExpanded) {
+                    var wordLimit = @Model.NumberOfWordsForCityArticle;
+                    var truncated = fullText.split(' ').slice(0, wordLimit).join(' ') + '...';
+                    articleControl.text(truncated);
+                    $('#btnCityArticle').text('Read more');
+                    isExpanded = false;
+                } else {
+                    articleControl.text(fullText);
+                    $('#btnCityArticle').text('Read less');
+                    isExpanded = true;
+                }
+            });
+        });
+    </script>
+}

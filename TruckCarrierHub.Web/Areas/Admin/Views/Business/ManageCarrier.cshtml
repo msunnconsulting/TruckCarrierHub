@@ -1,0 +1,68 @@
+﻿@using PartnerCarrier.ViewModels.Admin
+@model ManageCarrierVM
+@{
+    ViewBag.Title = "Manage Carrier";
+}
+<div class="row">
+    <div class="col-md-10">
+        <h2> @ViewBag.Title</h2>
+    </div>
+    <div class="col-md-2 margin-top-15">
+        <a href="/admin/business/create-carrier" title="Add Carrier" class="btn btn-primary pull-right"><i class="fa fa-plus"></i> Add Carrier</a>
+    </div>
+</div>
+<hr class="small" />
+
+@*Append error message with HTML using jquery*@
+<div class="row" id="dvNotification"></div>
+
+@using (Ajax.BeginForm("activate-inactive-carrier", "business", new { Area = "admin" }, new AjaxOptions
+{
+    HttpMethod = "POST",
+    OnSuccess = "vm.OnSuccessActivateInActivateById",
+    OnFailure = "vm.OnFailureActivateInActivateById",
+    UpdateTargetId = "carrierList"
+}, new { id = "carrierActivateInactivateForm" }))
+{
+    <input type="hidden" name="carrierId" id="carrierId" value="" />
+}
+ 
+@using (Ajax.BeginForm("carrier-list-partial", "business", null, new AjaxOptions
+{
+    HttpMethod = "GET",
+    OnSuccess = "vm.OnSuccessBindCarrierList",
+    OnFailure = "vm.OnFailureBindCarrierList",
+    UpdateTargetId = "carrierList"
+}, new { id = "carrierListForm" }))
+{
+    <div class="row">
+        <div class="col-sm-12 col-md-3 form-group">
+            @Html.TextBoxFor(x => x.CompanyName, new { maxlength = "255", placeholder = "Company Name", @class = "form-control", id = "searchCompanyName", autocomplete = "off" })
+            @Html.ValidationMessageFor(m => m.CompanyName, "", new { @class = "text-danger" })
+
+        </div>
+        <div class="col-sm-12 col-md-3 form-group">
+            @Html.TextBoxFor(x => x.EmailAddess, new { maxlength = "256", placeholder = "Email Address", @class = "form-control", id = "searchEmail", autocomplete = "off" })
+            @Html.ValidationMessageFor(m => m.EmailAddess, "", new { @class = "text-danger" })
+        </div>
+        <div class="col-sm-12 col-md-3 form-group">
+            @Html.TextBoxFor(x => x.PhoneNumber, new { maxlength = "256", placeholder = "Phone Number", @class = "form-control", id = "searchPhoneNumber", autocomplete = "off" })
+            @Html.ValidationMessageFor(m => m.PhoneNumber, "", new { @class = "text-danger" })
+        </div>
+         <div class="col-sm-12 col-md-3 form-group text-right">
+            <button type="button" class="btn btn-primary form-group" onclick="vm.submit()" title="Search"><i class="fa fa-search" aria-hidden="true"></i> Search</button>
+            <button type="button" class="btn btn-primary" onclick="vm.clearsearch()"><i class="fa fa-refresh" title="Clear"></i> Clear</button>
+        </div>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <div id="carrierList">
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/Areas/Admin/Content/PageScript/AdminUsers/carrier-list.js"></script>
+}

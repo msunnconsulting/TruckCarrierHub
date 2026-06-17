@@ -1,0 +1,231 @@
+﻿@using PartnerCarrier.ViewModels.Admin;
+@using Common.Utility.Helpers.MVC.Extensions;
+@model CarrierVM
+@{
+    ViewBag.Title = "Add Carrier";
+    ViewBag.Title = Model.Id.HasValue ? "Edit Carrier" : "Add Carrier";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <h2>@ViewBag.Title</h2>
+    </div>
+</div>
+<hr class="small" />
+
+<div class="row" id="dvNotification"></div>
+
+@using (Ajax.BeginForm("save-carrier", "business", null, new AjaxOptions
+{
+    HttpMethod = "POST",
+    OnSuccess = "vm.OnSuccessAddUpdateCarrier",
+    OnFailure = "vm.OnFailureAddUpdateCarrier"
+}, new { id = "AddUpdateCarrierForm" }))
+{
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.Id)
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-3 col-md-3">
+                    <label class="">USDOT Number: </label>
+                </div>
+                <div class="col-md-9">
+                    @Html.TextBoxFor(m => m.USDOTNumber, new { @class = "form-control", maxlength = "9" })
+                    @Html.ValidationMessageFor(m => m.USDOTNumber, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-3 col-md-3">
+                    <label class="">Company Name: </label>
+                </div>
+                <div class="col-md-9">
+                    @Html.TextBoxFor(m => m.CompanyName, new { @class = "form-control", maxlength = "255" })
+                    @Html.ValidationMessageFor(m => m.CompanyName, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-3">
+                    <label class="">Contact Person 1:</label>
+                </div>
+                <div class="col-md-9">
+                    @Html.TextBoxFor(m => m.ContactPerson1, new { @class = "form-control", maxlength = "255" })
+                    @Html.ValidationMessageFor(m => m.ContactPerson1, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-3">
+                    <label class="">Contact Email 1:</label>
+                </div>
+                <div class="col-md-9">
+                    @Html.TextBoxFor(m => m.ContactEmail1, new { @class = "form-control", maxlength = "255" })
+                    @Html.ValidationMessageFor(m => m.ContactEmail1, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-3">
+                    <label class="">Contact Phone 1:</label>
+                </div>
+                <div class="col-md-9">
+                    @Html.TextBoxFor(m => m.ContactPhone1, new { @class = "form-control", maxlength = "255" })
+                    @Html.ValidationMessageFor(m => m.ContactPhone1, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-3">
+                    <label class="">Contact Person 2:</label>
+                </div>
+                <div class="col-md-9">
+                    @Html.TextBoxFor(m => m.ContactPerson2, new { @class = "form-control", maxlength = "255" })
+                    @Html.ValidationMessageFor(m => m.ContactPerson2, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-3">
+                    <label class="">Contact Email 2:</label>
+                </div>
+                <div class="col-md-9">
+                    @Html.TextBoxFor(m => m.ContactEmail2, new { @class = "form-control", maxlength = "255" })
+                    @Html.ValidationMessageFor(m => m.ContactEmail2, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-3">
+                    <label class="">Contact Phone 2:</label>
+                </div>
+                <div class="col-md-9">
+                    @Html.TextBoxFor(m => m.ContactPhone2, new { @class = "form-control", maxlength = "255" })
+                    @Html.ValidationMessageFor(m => m.ContactPhone2, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-3">
+                    <label class="">Carrier Active:</label>
+                </div>
+                <div class="col-md-9">
+                    @Html.CheckBoxFor(m => m.CarrierActive)
+                    @Html.ValidationMessageFor(m => m.CarrierActive, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-3">
+                    <label class="">Website:</label>
+                </div>
+                <div class="col-md-9">
+                    @Html.TextBoxFor(m => m.Website, new { @class = "form-control" })
+                    @Html.ValidationMessageFor(m => m.Website, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-3">
+                    <label class="">Max. Quotes Per Month:</label>
+                </div>
+                <div class="col-md-9">
+                    @Html.TextBoxFor(m => m.MaxQuotesPerMonth, new { @class = "form-control" })
+                    @Html.ValidationMessageFor(m => m.MaxQuotesPerMonth, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-3">
+                    <label class="">Select Load Type:</label>
+                </div>
+                <div class="col-md-9">
+                    @Html.CheckboxList("SelectedLoadTypeList", Model.LoadTypeList, Model.SelectedLoadTypeList, "25%", 4, "LoadType")
+                    @Html.ValidationMessageFor(m => m.SelectedLoadTypeList, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-3">
+                    <label class="">Preferred States/Provinces of Pickup Location (From):</label>
+                </div>
+                <div class="col-md-9">
+                    @Html.CheckboxList("SelectedPickupStateCode", Model.StateList, Model.SelectedPickupStateCode, "25%", 4, "PickupStateCode")
+                    @Html.ValidationMessageFor(m => m.SelectedPickupStateCode, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-3">
+                    <label class="">Preferred States/Provinces of Delivery Location (To):</label>
+                </div>
+                <div class="col-md-9">
+                    @Html.CheckboxList("SelectedDeliveryStateCode", Model.StateList, Model.SelectedDeliveryStateCode, "25%", 4, "DeliveryStateCode")
+                    @Html.ValidationMessageFor(m => m.SelectedDeliveryStateCode, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <hr />
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-2">
+                </div>
+                <div class="col-md-6">
+                    <button type="submit" class="btn btn-primary" value="Save" title="Save"><i class="fa fa-save"></i> Save</button>
+                    <a href="@Url.Action("manage-carrier", "business")" title="Back" class="btn btn-default"><i class="fa fa-arrow-left"></i> Back</a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="~/Areas/Admin/Content/PageScript/AdminUsers/add-edit-carrier.js"></script>
+}
+

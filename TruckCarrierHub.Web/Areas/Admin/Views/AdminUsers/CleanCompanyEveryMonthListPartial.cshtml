@@ -1,0 +1,75 @@
+﻿@using Common.Utility.ViewModels;
+@using Common.Utility.Extensions;
+@using PartnerCarrier.ViewModels.Admin;
+@using PartnerCarrier.Web.SessionManager;
+@model  CommonCleanCompanyEveryMonthAndPagelistVM
+@{
+    var isAllcheck = Model.IsAllCheck;
+    @Html.HiddenFor(a => a.IsAllCheck, new { value = isAllcheck, id = "isAllCheck" })
+
+    var usdotnUmber = Model.CommaSeparatedCheckUSDOTNumber;
+    @Html.HiddenFor(a => a.CommaSeparatedCheckUSDOTNumber, new { value = usdotnUmber, id = "CommaSeparatedValue" })
+}
+
+<div class="table-responsive">
+    <table class="table table-bordered">
+        <tr>
+            <th width="5%" class="text-center">
+                @if (Model.PagedListVM != null && Model.PagedListVM.Items.Count > 0 && Model.IsAllCheck)
+                {
+                    <input type="checkbox" name="selectAll" id="selectAll" onchange="vm.ChangeSelectAll(this)" class="checkboxAll" checked>
+                }
+                else
+                {
+                    <input type="checkbox" name="selectAll" id="selectAll" onchange="vm.ChangeSelectAll(this)" class="checkboxAll">
+                }
+            </th>
+            <th width="15%">
+                USDOT Number
+            </th>
+            <th width="15%">
+                City Name
+            </th>
+            <th width="15%">
+                State Code
+            </th>
+        </tr>
+        <tbody>
+            @if (Model.PagedListVM != null && Model.PagedListVM.Items.Count > 0)
+            {
+                foreach (var transportCompany in Model.PagedListVM.Items)
+                {
+                    <tr>
+                        <td align="center">
+                            @if (Model.IsAllCheck)
+                            {
+                                <input type="checkbox" class="checkbox" value="@transportCompany.USDOTNumber" name="USDOTNumber" onchange="vm.updateCheckboxState(this)" checked>
+                            }
+                            else
+                            {
+                                <input type="checkbox" class="checkbox" value="@transportCompany.USDOTNumber" name="USDOTNumber" onchange="vm.updateCheckboxState(this)">
+                            }
+
+                        </td>
+                        <td id="usdotnumber">
+                            @transportCompany.USDOTNumber
+                        </td>
+                        <td>
+                            @transportCompany.CityName
+                        </td>
+                        <td>
+                            @transportCompany.StateCode
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr><td class="text-center well" colspan="5">No Record(s) Found</td></tr>
+            }
+        </tbody>
+    </table>
+</div>
+@Html.Pager("vm.pageSort", "clean-company-monthly-list-partial", "user", null, Model.PagedListVM.Pagination, Model.PagedListVM.Sorting)
+
+

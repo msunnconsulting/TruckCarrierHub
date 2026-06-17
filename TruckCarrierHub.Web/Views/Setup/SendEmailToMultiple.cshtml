@@ -1,0 +1,33 @@
+﻿
+@{
+    ViewBag.Title = "Send Email To Multiple";
+    Layout = "~/Views/Shared/_SetupLayout.cshtml";
+}
+
+<div class="row">
+    <h2>@ViewBag.Title</h2>
+    <hr />
+</div>
+
+<div class="row">
+    <div class="col-sm-4">
+@using (Html.BeginForm("SendEmailToMultiple", "setup", FormMethod.Post))
+{
+    <div class="input-group">
+        <input class="form-control" data-val="true" data-val-required="Please enter Email" name="email" id="email"placeholder="Please enter only valid email address" type="text">
+        <span class="input-group-btn">
+            <button class="btn btn-primary" type="submit">Send</button>
+        </span>
+    </div>
+    <span class="text-danger field-validation-valid" data-valmsg-for="email" data-valmsg-replace="true"></span>
+}
+        @if (ViewBag.EmailSendingFailedMessage != null)
+        {
+            <p class="text-danger">@ViewBag.EmailSendingFailedMessage</p>
+        }
+        @if (ViewBag.EmailSendSuccessfullyMessage != null)
+        {
+            <p class="text-success">@ViewBag.EmailSendSuccessfullyMessage</p>
+        }
+    </div>
+</div>

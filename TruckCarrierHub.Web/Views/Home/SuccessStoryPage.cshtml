@@ -1,0 +1,14 @@
+﻿@using PartnerCarrier.ViewModels.Admin;
+@model SuccessStoriesVM
+@{
+    ViewBag.Title = "Success Story Page";
+}
+
+<div class="row">
+    <div class="col-md-12">
+
+        @Html.Raw(HttpUtility.HtmlDecode(Model.Content))
+
+    </div>
+</div>
+

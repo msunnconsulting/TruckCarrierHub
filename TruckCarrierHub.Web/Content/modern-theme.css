@@ -1,0 +1,390 @@
+/* ==========================================================================
+   Truck Carrier Hub — modern theme
+   Loaded after the existing Bootstrap 3 bundle so these rules override its
+   defaults. Bootstrap's grid (.row, .col-md-*, .container) is left alone on
+   purpose, since most pages on the site still depend on it; this file only
+   restyles shared chrome and base components (navbar, footer, buttons,
+   forms, dropdowns, typography) so every page gets the visual update at
+   once without anything else needing to change yet.
+   ========================================================================== */
+
+:root {
+    /* Ink — primary dark, used for the navbar and headings */
+    --ink-900: #0F2236;
+    --ink-700: #1B3A57;
+    /* Signal amber — the one accent color, used sparingly for emphasis */
+    --signal-500: #D98F2B;
+    --signal-600: #B8741C;
+    --signal-50: #FBF1E3;
+    /* Verified green — active / trustworthy status */
+    --verified-600: #2F7D52;
+    --verified-50: #E7F3EC;
+    /* Neutral surfaces and text */
+    --paper-50: #F7F5F1;
+    --steel-200: #DDE3E8;
+    --steel-300: #C7CFD6;
+    --steel-500: #5B6472;
+    --white: #FFFFFF;
+    --font-display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+    --font-body: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    --font-data: 'IBM Plex Mono', 'Consolas', monospace;
+}
+
+/* -------------------------------------------------------------------- */
+/* Base typography                                                       */
+/* -------------------------------------------------------------------- */
+
+body, p, div, span, td, th, li, a, label, input, button, select, textarea {
+    font-family: var(--font-body) !important;
+}
+
+body {
+    color: var(--ink-900);
+    background: var(--paper-50);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display) !important;
+    font-weight: 600;
+    color: var(--ink-900);
+    letter-spacing: -0.01em;
+}
+
+/* This h2 is used purely for SEO heading weight, not as a visual heading
+   (it's already forced to 13px elsewhere), so it should read as body
+   copy, not the display typeface. This is almost certainly why the
+   homepage article looked like a different font than the state page
+   article: the state page's equivalent text isn't wrapped in a heading
+   tag, so it was already getting the body font correctly. */
+.homepage-page-decription {
+    font-family: var(--font-body) !important;
+    font-weight: 400;
+    font-size: 14px;
+}
+
+    .homepage-page-decription p,
+    .homepage-page-decription div {
+        font-size: 14px;
+    }
+
+a {
+    color: var(--ink-700);
+}
+
+    a:hover,
+    a:focus {
+        color: var(--signal-600);
+    }
+
+    /* Visible keyboard focus everywhere, not just on inputs Bootstrap already styles */
+    a:focus-visible,
+    button:focus-visible,
+    input:focus-visible,
+    .btn:focus-visible {
+        outline: 2px solid var(--signal-500);
+        outline-offset: 2px;
+    }
+
+/* A small utility for official record numbers (USDOT, MC, zip, phone) —
+   used on the Company and City pages, set up here so the font is already
+   loaded and available site-wide. */
+.data-tag {
+    font-family: var(--font-data);
+    font-size: 0.95em;
+    letter-spacing: 0.01em;
+}
+
+/* Homepage / state / city article text blocks — normal paragraph spacing,
+   and force regular weight in case pasted admin content carries stray
+   bold formatting from whatever it was copied out of. */
+.home-article p,
+.homepage-page-decription p,
+.state-article p,
+.city-article p {
+    margin: 0 0 14px;
+    font-weight: 400 !important;
+}
+
+.home-article b,
+.home-article strong,
+.homepage-page-decription b,
+.homepage-page-decription strong,
+.state-article b,
+.state-article strong,
+.city-article b,
+.city-article strong {
+    font-weight: 400 !important;
+}
+
+/* -------------------------------------------------------------------- */
+/* Navbar                                                                 */
+/* -------------------------------------------------------------------- */
+
+.navbar.navbar-inverse {
+    background: var(--ink-900);
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    margin-bottom: 0;
+    /* the route-line: a thin amber bar under the whole header, the one
+     signature touch this layout carries */
+    border-bottom: 3px solid var(--signal-500);
+    min-height: 64px;
+}
+
+    .navbar.navbar-inverse .navbar-header {
+        min-height: 64px;
+    }
+
+    .navbar.navbar-inverse .navbar-brand {
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 20px;
+        letter-spacing: -0.01em;
+        color: var(--white);
+        height: 64px;
+        line-height: 64px;
+        padding: 0 15px;
+    }
+
+        .navbar.navbar-inverse .navbar-brand:hover,
+        .navbar.navbar-inverse .navbar-brand:focus {
+            color: var(--signal-500);
+        }
+
+    .navbar.navbar-inverse .navbar-toggle {
+        border-color: var(--steel-500);
+        margin-top: 15px;
+    }
+
+        .navbar.navbar-inverse .navbar-toggle .icon-bar {
+            background-color: var(--white);
+        }
+
+        .navbar.navbar-inverse .navbar-toggle:hover,
+        .navbar.navbar-inverse .navbar-toggle:focus {
+            background-color: var(--ink-700);
+        }
+
+    .navbar.navbar-inverse .navbar-nav > li > a,
+    .navbar.navbar-inverse .contact-us-link {
+        font-family: var(--font-body);
+        color: var(--steel-300);
+        line-height: 64px;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+        .navbar.navbar-inverse .navbar-nav > li > a:hover,
+        .navbar.navbar-inverse .navbar-nav > li > a:focus,
+        .navbar.navbar-inverse .contact-us-link:hover {
+            color: var(--white);
+            background: var(--ink-700);
+        }
+
+    .navbar.navbar-inverse .navbar-nav .dropdown-menu {
+        background: var(--white);
+        border: 1px solid var(--steel-200);
+        border-radius: 6px;
+        box-shadow: 0 4px 14px rgba(15, 34, 54, 0.12);
+        padding: 6px 0;
+    }
+
+        .navbar.navbar-inverse .navbar-nav .dropdown-menu > li > a {
+            color: var(--ink-900);
+            line-height: 1.4;
+            padding: 8px 16px;
+        }
+
+            .navbar.navbar-inverse .navbar-nav .dropdown-menu > li > a:hover {
+                background: var(--paper-50);
+                color: var(--ink-900);
+            }
+
+    /* "Now hiring" / "with reviews" filter checkboxes in the nav */
+    .navbar.navbar-inverse .city-filter-now-hiring-color,
+    .navbar.navbar-inverse li > a > input[type="checkbox"] {
+        accent-color: var(--signal-500);
+    }
+
+    .navbar.navbar-inverse li label {
+        color: var(--steel-300);
+        font-weight: 400;
+        margin-left: 4px;
+    }
+
+    /* Outbound link list in the nav — visually de-emphasized since it's
+   third-party content, not primary navigation */
+    .navbar.navbar-inverse .nav-outboundLink .outbound-links {
+        color: var(--steel-500);
+        font-size: 13px;
+    }
+
+/* -------------------------------------------------------------------- */
+/* Search form in the navbar                                             */
+/* -------------------------------------------------------------------- */
+
+.navbar-form.navbar-right {
+    margin-top: 12px;
+}
+
+.input-group-search .form-control,
+.input-group-search input.searchPlaceholder {
+    border: 1px solid var(--steel-200);
+    border-radius: 999px 0 0 999px;
+    height: 40px;
+    padding-left: 16px;
+    font-family: var(--font-body);
+    box-shadow: none;
+}
+
+    .input-group-search .form-control:focus {
+        border-color: var(--signal-500);
+        box-shadow: none;
+    }
+
+.input-group-search .btn-search.btn-primary {
+    background: var(--ink-900);
+    border: 1px solid var(--ink-900);
+    border-radius: 0;
+    height: 40px;
+}
+
+    .input-group-search .btn-search.btn-primary:hover {
+        background: var(--signal-600);
+        border-color: var(--signal-600);
+    }
+
+.input-group-search .dropdown-toggle.btn-primary {
+    background: var(--ink-900);
+    border: 1px solid var(--ink-900);
+    border-left: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 0 999px 999px 0;
+    height: 40px;
+}
+
+/* -------------------------------------------------------------------- */
+/* Buttons (site-wide)                                                    */
+/* -------------------------------------------------------------------- */
+
+.btn-primary {
+    background: var(--ink-900);
+    border-color: var(--ink-900);
+    font-family: var(--font-body);
+    font-weight: 500;
+    border-radius: 6px;
+}
+
+    .btn-primary:hover,
+    .btn-primary:focus-visible {
+        background: var(--signal-600);
+        border-color: var(--signal-600);
+    }
+
+/* List/Map toggle buttons specifically: the page's JS adds/removes
+   "btn-primary" on these same elements to mark which view is active,
+   but it never removes "btn-default" — both classes are present at once
+   when a button is active. A separate ".btn-default" rule for these same
+   elements would tie with this one in specificity and win by source
+   order, silently cancelling the active state back to white, which is
+   exactly what happened last time. The inactive (white) look is already
+   covered by the generic .btn-default rule above, since .btn-primary
+   simply isn't present then, so no second rule is needed here. */
+.list-toggle-button.btn-primary,
+.map-toggle-button.btn-primary {
+    background: var(--ink-900);
+    border-color: var(--ink-900);
+    color: var(--white);
+}
+
+.btn-default {
+    border-color: var(--steel-200);
+    color: var(--ink-900);
+    font-family: var(--font-body);
+    border-radius: 6px;
+    background: var(--white);
+}
+
+    .btn-default:hover {
+        border-color: var(--signal-500);
+        color: var(--ink-900);
+        background: var(--paper-50);
+    }
+
+.btn-warning {
+    background: var(--signal-500);
+    border-color: var(--signal-500);
+    color: var(--ink-900);
+}
+
+    .btn-warning:hover {
+        background: var(--signal-600);
+        border-color: var(--signal-600);
+    }
+
+/* -------------------------------------------------------------------- */
+/* Status badges — reused from here on for Active / Inactive labels      */
+/* -------------------------------------------------------------------- */
+
+.status-badge {
+    display: inline-block;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 6px;
+}
+
+    .status-badge.is-active {
+        background: var(--verified-50);
+        color: var(--verified-600);
+    }
+
+    .status-badge.is-inactive {
+        background: var(--steel-200);
+        color: var(--steel-500);
+    }
+
+/* -------------------------------------------------------------------- */
+/* Footer                                                                 */
+/* -------------------------------------------------------------------- */
+
+footer {
+    background: var(--ink-900);
+    color: var(--steel-300);
+    margin-top: 40px;
+    padding: 22px 0;
+    font-family: var(--font-body);
+    font-size: 13px;
+}
+
+    footer a {
+        color: var(--steel-300);
+    }
+
+        footer a:hover,
+        footer a:focus {
+            color: var(--signal-500);
+        }
+
+    footer u {
+        text-decoration: none;
+    }
+
+    footer .footer-line p,
+    footer p {
+        margin: 6px 0;
+        color: var(--steel-300);
+    }
+
+/* -------------------------------------------------------------------- */
+/* Loading overlay                                                       */
+/* -------------------------------------------------------------------- */
+
+#disabledpage {
+    background: rgba(15, 34, 54, 0.35);
+}
+
+.ajax-loader {
+    z-index: 1100;
+}

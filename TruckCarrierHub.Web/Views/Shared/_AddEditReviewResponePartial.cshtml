@@ -1,0 +1,76 @@
+﻿@using PartnerCarrier.ViewModels.User;
+@model AddEditReviewReplyVM
+
+<div class="p-4 text-center" style="font-family: Arial, sans-serif;">
+
+    @using (Html.BeginForm(null, null, FormMethod.Post, new { id = "responseAddEditForm" }))
+    {
+        @Html.HiddenFor(m => m.CompanyUSDOT)
+        @Html.HiddenFor(m => m.ReviewId)
+        @Html.HiddenFor(m => m.Id, new { id = "hdnResponseId" })
+
+        <div class="row">
+            <div class="col-md-12">
+                <p class="p-35-px text-center">
+                    <strong>@Model.CompanyName</strong><br />
+                    <span class="hidden-xs"> is responding to </span>
+                    <span class="visible-xs-block">is responding to</span>
+                    <strong>@Model.ReviewerName</strong>
+                </p>
+            </div>
+            <div class="row" id="dvNotification"></div>
+            <div class="col-md-12">
+                <p class="text-muted">
+                    Posting publicly across <br />
+                    <span>TruckCarrierHub.com</span>
+                </p>
+            </div>
+        </div>
+
+        <div class="row  margin-bottom-10">
+            <div class="col-md-12 p-35-px">
+                <!-- Textarea -->
+                <textarea class="form-control" id="Response" name="Response" rows="6"
+                          placeholder="Provide your response here">@Model.Response</textarea>
+                <div class="margin-top-20 pull-right">
+                    <button type="button" class="btn btn-light mr-10-px" id="btnCancel">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="btnPost"
+                            onclick="reviewVm.onSubmitPostResponse()">
+                        @(Model.Id > 0 ? "Update" : "Post")
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+
+
+<style>
+    .mr-10-px {
+        margin-right: 10px
+    }
+
+    .margin-top-20 {
+        margin-top: 20px;
+    }
+
+    textarea {
+        resize: vertical;
+        max-height: 180px;
+    }
+
+    @@media (max-width: 480px) {
+        textarea {
+            max-height: 125px;
+        }
+    }
+
+    .p-35-px {
+        padding: 40px
+    }
+</style>
+
+@section Scripts {
+    <script src="~/Content/User/add-edit-review.js"></script>
+}

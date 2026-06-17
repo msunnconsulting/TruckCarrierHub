@@ -1,0 +1,704 @@
+﻿@using PartnerCarrier.ViewModels.User;
+@using PartnerCarrier.Web.App_Start;
+@using PartnerCarrier.Infrastructure.Contracts.Admin.AdminManagement;
+@model CompanyInformationVM
+@{
+    ViewBag.Title = Model.PageTitle;
+    var canonicalUrl = Request.Url.GetLeftPart(UriPartial.Path);
+    int sortIndex = canonicalUrl.IndexOf("/sortby-", StringComparison.OrdinalIgnoreCase);
+    if (sortIndex >= 0)
+    {
+        canonicalUrl = canonicalUrl.Substring(0, sortIndex + 1);
+    }
+    ViewBag.CanonicalUrl = canonicalUrl;
+    var notAvailable = "N/A";
+
+    // Pre-format phone numbers (same logic as before, extracted once)
+    string officePhoneFmt = null;
+    if (!string.IsNullOrEmpty(Model.OfficeTelephoneNumber))
+    {
+        var p = Model.OfficeTelephoneNumber;
+        if (p.Length > 3) { p = p.Insert(3, "-"); }
+        if (Model.OfficeTelephoneNumber.Length >= 7) { p = p.Insert(7, "-"); }
+        officePhoneFmt = p;
+    }
+    string cellPhoneFmt = null;
+    if (!string.IsNullOrEmpty(Model.CellPhoneNumber))
+    {
+        var p = Model.CellPhoneNumber;
+        if (p.Length > 3) { p = p.Insert(3, "-"); }
+        if (Model.CellPhoneNumber.Length >= 7) { p = p.Insert(7, "-"); }
+        cellPhoneFmt = p;
+    }
+    string faxFmt = null;
+    if (!string.IsNullOrEmpty(Model.OfficeFaxPhoneNumber))
+    {
+        var p = Model.OfficeFaxPhoneNumber;
+        if (p.Length > 3) { p = p.Insert(3, "-"); }
+        if (Model.OfficeFaxPhoneNumber.Length >= 7) { p = p.Insert(7, "-"); }
+        faxFmt = p;
+    }
+
+    // Website href (protocol-relative if no scheme present)
+    string websiteHref = null;
+    if (!string.IsNullOrEmpty(Model.CompanysWebsiteName) && Model.WebsiteApproved == true)
+    {
+        websiteHref = (Model.CompanysWebsiteName.Contains("https://") || Model.CompanysWebsiteName.Contains("http://"))
+            ? Model.CompanysWebsiteName
+            : "//" + Model.CompanysWebsiteName;
+    }
+
+    // Physical address for map link
+    var address = Model.PhysicalAddressStreet + ", " + Model.PhysicalAddressCity + ", " + Model.PhysicalAddressStateCode + ", " + Model.PhysicalAddressZipCode;
+
+    // Star rating helpers
+    double hRating = Model.AverageRating;
+    int hFull = (int)Math.Floor(hRating);
+    double hFrac = hRating - hFull;
+    bool hHalf = hFrac >= 0.25 && hFrac < 0.75;
+    if (hFrac >= 0.75) { hFull++; }
+    int hEmpty = 5 - hFull - (hHalf ? 1 : 0);
+}
+
+@section AdditionalMeta {
+    <meta name="description" content="@Model.PageDescription" />
+    <link rel="canonical" href="@ViewBag.CanonicalUrl" />
+}
+
+@{
+    var _businessManagements = StructuremapMvc.StructureMapDependencyScope.CurrentNestedContainer.GetInstance<IBusinessMangementService>();
+    var IsShowOnCompanyPage = _businessManagements.GetCheckboxListForShowGetAQuoteControl()
+        .Where(a => a.Name.Contains("Show on Company page"))
+        .Select(a => a.ControlToShow)
+        .FirstOrDefault();
+}
+
+@Html.Partial("_ReviewModal")
+
+<style>
+    /* GetAQuote control override — same as before, needed for city/state/company pages */
+    .homepage-font-color { color: black !important; }
+
+    /* ---- Claim banner ---- */
+    .co-claim-banner {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        background: var(--signal-50);
+        border: 1px solid var(--signal-500);
+        border-radius: 8px;
+        padding: 14px 20px;
+        margin-bottom: 24px;
+    }
+    .co-claim-banner p { margin: 0; flex: 1; }
+
+    /* ---- Company header ---- */
+    .co-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        margin: 20px 0;
+        flex-wrap: wrap;
+    }
+    .co-header-left { flex: 1; min-width: 0; }
+    .co-name {
+        font-size: 26px;
+        line-height: 1.2;
+        margin: 0 0 10px;
+        word-break: break-word;
+    }
+    .co-name-aka {
+        display: block;
+        font-size: 14px;
+        font-weight: 400;
+        color: var(--steel-500);
+        margin-top: 4px;
+    }
+    .co-header-meta {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    .co-registered { font-size: 13px; color: var(--steel-500); }
+
+    /* ---- Rating block (header right) ---- */
+    .co-header-rating { text-align: right; flex-shrink: 0; }
+    .co-rating-score {
+        display: block;
+        font-size: 28px;
+        font-weight: 700;
+        font-family: var(--font-display);
+        color: var(--ink-900);
+        line-height: 1;
+    }
+    .co-rating-stars {
+        display: block;
+        color: var(--signal-500);
+        font-size: 15px;
+        margin: 5px 0 3px;
+    }
+    .co-rating-count { font-size: 13px; color: var(--steel-500); }
+    .co-rating-link { display: block; font-size: 13px; margin-top: 6px; }
+    .co-first-review { font-size: 13px; }
+
+    /* ---- Stats grid ---- */
+    .co-stats {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+    }
+    .co-stat {
+        flex: 1;
+        min-width: 120px;
+        background: var(--white);
+        border: 1px solid var(--steel-200);
+        border-radius: 8px;
+        padding: 14px 16px;
+    }
+    .co-stat-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--steel-500);
+        margin-bottom: 4px;
+    }
+    .co-stat-value {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--ink-900);
+    }
+
+    /* ---- Info cards (contact, safety, reviews) ---- */
+    .info-card {
+        background: var(--white);
+        border: 1px solid var(--steel-200);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 16px;
+    }
+    .info-card-title {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--steel-500);
+        padding-bottom: 10px;
+        margin: 0 0 14px;
+        border-bottom: 1px solid var(--steel-200);
+    }
+    .info-row {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+        align-items: baseline;
+    }
+    .info-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--steel-500);
+        min-width: 64px;
+        flex-shrink: 0;
+        padding-top: 2px;
+    }
+    .info-value { font-size: 14px; color: var(--ink-900); word-break: break-word; }
+    .info-value a { color: var(--ink-700); }
+    .info-value a:hover { color: var(--signal-600); text-decoration: underline; }
+    .map-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: var(--steel-500);
+        background: var(--paper-50);
+        border: 1px solid var(--steel-200);
+        border-radius: 6px;
+        padding: 8px 12px;
+        margin-bottom: 16px;
+        text-decoration: none;
+    }
+    .map-cta:hover { color: var(--ink-900); border-color: var(--steel-300); }
+
+    /* Safety snapshot */
+    .safety-empty { font-size: 13px; color: var(--steel-500); line-height: 1.6; margin: 0; }
+
+    /* Reviews card */
+    .review-card-body { text-align: center; padding: 4px 0; }
+    .review-card-score {
+        display: block;
+        font-size: 34px;
+        font-weight: 700;
+        font-family: var(--font-display);
+        color: var(--ink-900);
+        line-height: 1;
+    }
+    .review-card-stars {
+        display: block;
+        color: var(--signal-500);
+        font-size: 18px;
+        margin: 6px 0 4px;
+    }
+    .review-card-count { font-size: 13px; color: var(--steel-500); }
+    .review-card-link { display: block; font-size: 13px; margin-top: 8px; }
+    .review-empty { font-size: 13px; color: var(--steel-500); margin: 0 0 12px; }
+
+    /* ---- Section cards (operations, service/cargo, hiring) ---- */
+    .section-card {
+        background: var(--white);
+        border: 1px solid var(--steel-200);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 16px;
+    }
+    .section-card-title {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--steel-500);
+        padding-bottom: 10px;
+        margin: 0 0 16px;
+        border-bottom: 1px solid var(--steel-200);
+    }
+    .section-grid {
+        display: flex;
+        gap: 32px;
+        flex-wrap: wrap;
+    }
+    .section-col { flex: 1; min-width: 140px; }
+    .section-col-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--steel-500);
+        margin-bottom: 6px;
+    }
+    .section-col-value { font-size: 14px; color: var(--ink-900); }
+    .type-list { list-style: none; margin: 0; padding: 0; }
+    .type-list li { font-size: 13px; padding: 3px 0; color: var(--steel-500); }
+    .type-list li.supported { color: var(--verified-600); font-weight: 500; }
+    .hiring-contact {
+        margin-top: 12px;
+        padding: 12px 14px;
+        background: var(--signal-50);
+        border-left: 3px solid var(--signal-500);
+        border-radius: 0 6px 6px 0;
+        font-size: 13px;
+        line-height: 1.8;
+    }
+    .hiring-contact-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--steel-500);
+        margin-bottom: 6px;
+    }
+
+    /* ---- Disclaimer ---- */
+    .co-disclaimer {
+        border-top: 1px solid var(--steel-200);
+        padding: 20px 0 8px;
+        margin-top: 16px;
+        font-size: 13px;
+        color: var(--steel-500);
+    }
+    .co-disclaimer p { margin: 4px 0 0; }
+    .co-disclaimer a { color: var(--steel-500); text-decoration: underline; }
+
+    /* ---- Responsive ---- */
+    @@media (max-width: 767px) {
+        .co-header { flex-direction: column; }
+        .co-header-rating { text-align: left; }
+        .co-stat { min-width: calc(50% - 8px); flex: none; }
+        .section-grid { gap: 20px; }
+    }
+</style>
+
+<div class="container">
+
+    @* Breadcrumb *@
+    <ul class="breadcrumb">
+        <li><a href="@Url.Content("~/")">Home</a></li>
+        <li><a href="@Url.Content("~/" + Model.PhysicalAddressStateCode)">@Model.StateName</a></li>
+        <li><a href="@Url.Content("~/" + Model.PhysicalAddressStateCode + "/" + Model.PhysicalAddressCity.Replace(" ", "-"))">@Model.PhysicalAddressCity</a></li>
+        <li class="active">@Model.LegalName</li>
+    </ul>
+
+    @if (TempData["SuccesMessageAfterSubmitInformation"] != null)
+    {
+        <div class="alert alert-success alert-dismissible">
+            <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+            @TempData["SuccesMessageAfterSubmitInformation"]
+        </div>
+    }
+
+    @* Banner ad slot *@
+    @if (Model.OutboundBanner.IsShow)
+    {
+        <div class="text-center" style="margin-bottom:20px;">
+            @if (Model.OutboundBanner.IsFollow)
+            {
+                <a href="@Model.OutboundBanner.URL" class="banner-link" title="@Model.OutboundBanner.TitleText" target="_blank">
+                    <img src="/get-banner-image?fileName=@Model.OutboundBanner.FileName" style="max-width:100%;max-height:200px;" alt="@Model.OutboundBanner.AltText" />
+                </a>
+            }
+            else
+            {
+                <a href="@Model.OutboundBanner.URL" class="banner-link" rel="nofollow" title="@Model.OutboundBanner.TitleText" target="_blank">
+                    <img src="/get-banner-image?fileName=@Model.OutboundBanner.FileName" style="max-width:100%;max-height:200px;" alt="@Model.OutboundBanner.AltText" />
+                </a>
+            }
+        </div>
+    }
+
+    @* Claim banner — only for unclaimed listings *@
+    @if (Model.UsDOtNum == 0)
+    {
+        <div class="co-claim-banner">
+            <p><strong>This listing hasn't been claimed yet.</strong> Are you the owner?</p>
+            @Html.ActionLink("Claim this business", "CreateAccount", "Home", new { USDOTNumber = Model.USDOTNumber }, new { @class = "btn btn-warning btn-sm", rel = "nofollow" })
+        </div>
+    }
+
+    @* Company header *@
+    <div class="co-header">
+        <div class="co-header-left">
+            @if (string.IsNullOrEmpty(Model.DoingBusinessAsName))
+            {
+                <h1 class="co-name">@Model.LegalName</h1>
+            }
+            else
+            {
+                <h1 class="co-name">
+                    @Model.DoingBusinessAsName
+                    <span class="co-name-aka">aka @Model.LegalName</span>
+                </h1>
+            }
+            <div class="co-header-meta">
+                @if (Model.Status.ToLower() == "a")
+                {
+                    <span class="status-badge is-active">Active</span>
+                }
+                else
+                {
+                    <span class="status-badge is-inactive">Inactive</span>
+                }
+                @if (!string.IsNullOrEmpty(Model.DateInString))
+                {
+                    <span class="co-registered">Registered @Model.DateInString</span>
+                }
+            </div>
+        </div>
+
+        <div class="co-header-rating">
+            @if (Model.TotalReviews > 0)
+            {
+                <span class="co-rating-score">@Model.AverageRating</span>
+                <span class="co-rating-stars">
+                    @for (int i = 0; i < hFull; i++) { <i class="fa fa-star"></i> }
+                    @if (hHalf) { <i class="fa fa-star-half-o"></i> }
+                    @for (int i = 0; i < hEmpty; i++) { <i class="fa fa-star-o"></i> }
+                </span>
+                <span class="co-rating-count">@Model.TotalReviews review@(Model.TotalReviews == 1 ? "" : "s")</span>
+                <a href="javascript:void(0);" class="co-rating-link" onclick="reviewVm.openReviewOverlay(@Model.USDOTNumber)">Read reviews</a>
+            }
+            else if (Model.CanWriteReview)
+            {
+                <a href="javascript:void(0);" class="co-first-review" onclick="reviewVm.onAddReviewClick(@Model.USDOTNumber, true)">Be the first to write a review</a>
+            }
+        </div>
+    </div>
+
+    @* Stats grid *@
+    <div class="co-stats">
+        <div class="co-stat">
+            <div class="co-stat-label">USDOT</div>
+            <div class="co-stat-value data-tag">@Model.USDOTNumber</div>
+        </div>
+        <div class="co-stat">
+            <div class="co-stat-label">MC Number</div>
+            <div class="co-stat-value data-tag">@(Model.IccDocketNumberFirst.HasValue ? Model.IccDocketNumberFirst.ToString() : notAvailable)</div>
+        </div>
+        <div class="co-stat">
+            <div class="co-stat-label">Trucks / Tractors</div>
+            <div class="co-stat-value data-tag">@(Model.TrucksAndTractors.HasValue ? Model.TrucksAndTractors.ToString() : notAvailable)</div>
+        </div>
+        <div class="co-stat">
+            <div class="co-stat-label">Drivers</div>
+            <div class="co-stat-value data-tag">
+                @(Model.NNDriversGrandTotalInterstateAndIntrastate.HasValue && Model.NNDriversGrandTotalInterstateAndIntrastate > 0
+                    ? Model.NNDriversGrandTotalInterstateAndIntrastate.ToString()
+                    : notAvailable)
+            </div>
+        </div>
+    </div>
+
+    @* Two-column: Contact & location | Safety snapshot + Reviews *@
+    <div class="row">
+        <div class="col-md-7">
+            <div class="info-card">
+                <div class="info-card-title">Contact &amp; location</div>
+
+                <a href="https://www.google.com/maps/place/@address" target="_blank" rel="nofollow" class="map-cta">
+                    <i class="fa fa-map-marker" style="color:var(--signal-500);"></i>
+                    View on Google Maps
+                </a>
+
+                <div class="info-row">
+                    <span class="info-label">Address</span>
+                    <span class="info-value">
+                        <a href="https://www.google.com/maps/place/@address" target="_blank" rel="nofollow">@address</a>
+                    </span>
+                </div>
+
+                @if (Model.MailingAddressStreet != Model.PhysicalAddressStreet)
+                {
+                    <div class="info-row">
+                        <span class="info-label">Mailing</span>
+                        <span class="info-value">@Model.MailingAddressStreet, @Model.MailingAddressCity, @Model.MailingAddressStateCode, @Model.MailingAddressZipCode</span>
+                    </div>
+                }
+
+                <div class="info-row">
+                    <span class="info-label">Phone</span>
+                    <span class="info-value data-tag">
+                        @if (officePhoneFmt != null)
+                        {
+                            <a href="tel:+1-@officePhoneFmt">@officePhoneFmt</a>
+                        }
+                        else
+                        {
+                            @notAvailable
+                        }
+                    </span>
+                </div>
+
+                @if (cellPhoneFmt != null)
+                {
+                    <div class="info-row">
+                        <span class="info-label">Cell</span>
+                        <span class="info-value data-tag"><a href="tel:+1-@cellPhoneFmt">@cellPhoneFmt</a></span>
+                    </div>
+                }
+
+                @if (faxFmt != null)
+                {
+                    <div class="info-row">
+                        <span class="info-label">Fax</span>
+                        <span class="info-value data-tag">@faxFmt</span>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(Model.BusinessContactEmail))
+                {
+                    <div class="info-row">
+                        <span class="info-label">Email</span>
+                        <span class="info-value"><a href="javascript:void(0);">@Model.BusinessContactEmail</a></span>
+                    </div>
+                }
+
+                @if (websiteHref != null)
+                {
+                    <div class="info-row">
+                        <span class="info-label">Website</span>
+                        <span class="info-value"><a href="@websiteHref" rel="nofollow" target="_blank">@Model.CompanysWebsiteName</a></span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="col-md-5">
+            <div class="info-card">
+                <div class="info-card-title">Safety snapshot</div>
+                <p class="safety-empty">No FMCSA safety rating on file. Most small and mid-size carriers aren't formally rated unless they've undergone a compliance review.</p>
+            </div>
+
+            <div class="info-card">
+                <div class="info-card-title">Reviews</div>
+                @if (Model.TotalReviews > 0)
+                {
+                    double rRating = Model.AverageRating;
+                    int rFull = (int)Math.Floor(rRating);
+                    double rFrac = rRating - rFull;
+                    bool rHalf = rFrac >= 0.25 && rFrac < 0.75;
+                    if (rFrac >= 0.75) { rFull++; }
+                    int rEmpty = 5 - rFull - (rHalf ? 1 : 0);
+                    <div class="review-card-body">
+                        <span class="review-card-score">@Model.AverageRating</span>
+                        <span class="review-card-stars">
+                            @for (int i = 0; i < rFull; i++) { <i class="fa fa-star"></i> }
+                            @if (rHalf) { <i class="fa fa-star-half-o"></i> }
+                            @for (int i = 0; i < rEmpty; i++) { <i class="fa fa-star-o"></i> }
+                        </span>
+                        <span class="review-card-count">@Model.TotalReviews review@(Model.TotalReviews == 1 ? "" : "s")</span>
+                        <a href="javascript:void(0);" class="review-card-link" onclick="reviewVm.openReviewOverlay(@Model.USDOTNumber)">Read all reviews</a>
+                        @if (Model.CanWriteReview)
+                        {
+                            <a href="javascript:void(0);" class="review-card-link" onclick="reviewVm.onAddReviewClick(@Model.USDOTNumber, true)">Write a review</a>
+                        }
+                    </div>
+                }
+                else if (Model.CanWriteReview)
+                {
+                    <div class="review-card-body">
+                        <p class="review-empty">No reviews yet.</p>
+                        <a href="javascript:void(0);" class="btn btn-default btn-sm" onclick="reviewVm.onAddReviewClick(@Model.USDOTNumber, true)">Be the first to write a review</a>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @* Operations *@
+    <div class="section-card">
+        <div class="section-card-title">Operations</div>
+        <div class="section-grid">
+            <div class="section-col">
+                <div class="section-col-label">Hazardous Material</div>
+                <div class="section-col-value">
+                    @if (Model.HazmatIndicator == "Y") { <text>Yes</text> }
+                    else if (Model.HazmatIndicator == "N") { <text>No</text> }
+                    else { @notAvailable }
+                </div>
+            </div>
+            <div class="section-col">
+                <div class="section-col-label">Carrier Operation</div>
+                <div class="section-col-value">
+                    @if (Model.OperationCarrierInterstate == "A") { <text>Interstate</text> }
+                    else if (Model.OperationCarrierIntrastateHazmat == "B") { <text>Intrastate Hazmat</text> }
+                    else if (Model.OperationCarrierIntrastateNonHazmat == "C") { <text>Intrastate Non-Hazmat</text> }
+                    else { @notAvailable }
+                </div>
+            </div>
+            <div class="section-col">
+                <div class="section-col-label">Entity Type</div>
+                <div class="section-col-value">@(string.IsNullOrEmpty(Model.Entity) ? notAvailable : Model.Entity)</div>
+            </div>
+        </div>
+    </div>
+
+    @* Service & Cargo *@
+    @if (!string.IsNullOrEmpty(Model.ServiceInCommaSaperated) || !string.IsNullOrEmpty(Model.CargoInCommaSaperated))
+    {
+        <div class="section-card">
+            <div class="section-card-title">Service &amp; cargo</div>
+            <div class="section-grid">
+                @if (!string.IsNullOrEmpty(Model.ServiceInCommaSaperated))
+                {
+                    <div class="section-col">
+                        <div class="section-col-label">Service Types</div>
+                        <div class="section-col-value">@Model.ServiceInCommaSaperated</div>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(Model.CargoInCommaSaperated))
+                {
+                    <div class="section-col">
+                        <div class="section-col-label">Cargo Types</div>
+                        <div class="section-col-value">@Model.CargoInCommaSaperated</div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    @* Hiring *@
+    <div class="section-card">
+        <div class="section-card-title">Hiring</div>
+        <div class="section-grid">
+            <div class="section-col">
+                <div class="section-col-label">Truck Driver Jobs</div>
+                <div class="section-col-value">@(Model.NowHiring ? "Now hiring" : "Not currently hiring")</div>
+                @if (Model.NowHiring)
+                {
+                    <div class="hiring-contact">
+                        <div class="hiring-contact-label">Contact for driver jobs</div>
+                        @if (!string.IsNullOrEmpty(Model.JobContactEmail)) { <div>Email: @Model.JobContactEmail</div> }
+                        @if (!string.IsNullOrEmpty(Model.JobContactPhone)) { <div>Phone: @Model.JobContactPhone</div> }
+                        @if (!string.IsNullOrEmpty(Model.JobContactSMS)) { <div>SMS: @Model.JobContactSMS</div> }
+                    </div>
+                }
+            </div>
+
+            <div class="section-col">
+                <div class="section-col-label">Trailer Types</div>
+                @if (Model.TrailerType != null && Model.TrailerType.Count > 0)
+                {
+                    <ul class="type-list">
+                        @foreach (var trailer in Model.TrailerType)
+                        {
+                            bool ok = Model.CompanyTrailerType != null && Model.CompanyTrailerType.Contains(trailer);
+                            <li class="@(ok ? "supported" : "")">@trailer@(ok ? " ✓" : "")</li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <span class="section-col-value">@notAvailable</span>
+                }
+            </div>
+
+            <div class="section-col">
+                <div class="section-col-label">Driver Types</div>
+                @if (Model.DriverType != null && Model.DriverType.Count > 0)
+                {
+                    <ul class="type-list">
+                        @foreach (var driver in Model.DriverType)
+                        {
+                            bool ok = Model.CompanyDriverType != null && Model.CompanyDriverType.Contains(driver);
+                            <li class="@(ok ? "supported" : "")">@driver@(ok ? " ✓" : "")</li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <span class="section-col-value">@notAvailable</span>
+                }
+            </div>
+        </div>
+    </div>
+
+    @* Get a Quote (admin-controlled) *@
+    @if (IsShowOnCompanyPage == true)
+    {
+        <div class="homepage-font-color">
+            @Html.Partial("_GetAQuoteControl", Model.GetAQuoteVM)
+        </div>
+    }
+
+</div>@* /container *@
+
+<div class="co-disclaimer">
+    <div class="container">
+        <strong>Disclaimer:</strong>
+        <p>
+            TruckCarrierHub.com does not claim that @Model.CompanyName is an actual trucking company or broker.
+            @Model.CompanyName information is sourced from the DOT and is public information available through the
+            <a rel="nofollow" href="https://www.foia.gov/">FOIA</a>.<br />
+            Company Owner/Manager: If you see any incorrect information on this page, please
+            <a rel="nofollow" href="https://dataqs.fmcsa.dot.gov/">contact the DOT directly to make changes</a>
+            to correct your record.
+        </p>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/Content/User/add-edit-review.js"></script>
+    <script>
+        $(document).ready(function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const reviewId = urlParams.get("reviewId");
+            const open = urlParams.get("open");
+            if (open === "reviews") {
+                reviewVm.onReplyReview(reviewId, @Model.USDOTNumber);
+            }
+        });
+    </script>
+}

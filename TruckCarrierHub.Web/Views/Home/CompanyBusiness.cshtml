@@ -1,0 +1,161 @@
+﻿@using PartnerCarrier.ViewModels.User
+@model BusinessVM
+@{
+    ViewBag.Title = "Company Business";
+}
+
+<div class="row">
+    <div class="col-md-2"></div>
+    <div class="col-md-8">
+        @if (string.IsNullOrEmpty(Model.DoingBusinessAsName))
+        {
+            <h2 class="text-center">
+                @Model.LegalName
+            </h2>
+        }
+        else
+        {
+            var aka = " aka ";
+            <h2 class="text-center"><t class="legalName-font-color">@Model.DoingBusinessAsName</t> @aka @Model.LegalName </h2>
+        }
+        @*Append error message with HTML using jquery*@
+        <div class="row" id="dvNotification"></div>
+    </div>
+    <div class="col-md-2"></div>
+</div>
+
+<div class="row">
+    <div class="col-sm-3"></div>
+    <div class="col-sm-6">
+        <section id="loginForm">
+            @using (Ajax.BeginForm("Business", "Home", null, new AjaxOptions
+            {
+                HttpMethod = "POST",
+                OnSuccess = "vm.SaveCompanyBusinessOnSuccess",
+                OnFailure = "vm.SaveCompanyBusinessOnFailure"
+            }, new { @class = "form-horizontal", @id = "frmCompanyBusiness" }))
+            {
+                @Html.AntiForgeryToken()
+                @Html.HiddenFor(x => x.USDOTNumber)
+
+                @Html.HiddenFor(x => x.IsNowHiring)
+
+                <div class="row">
+                    <div class="col-xs-12 col-md-12 margin-top-10">
+                        <label>Website :</label>
+                        @Html.TextBoxFor(m => m.WebsiteName, new { @class = "form-control", autocomplete = "off" })
+                        @Html.ValidationMessageFor(m => m.WebsiteName, "", new { @class = "text-danger" })
+                    </div>
+                    <div class="col-xs-12 col-md-12 margin-top-10">
+                        <label>Email :</label>
+                        @Html.TextBoxFor(m => m.BusinessContactEmail, new { @class = "form-control", autocomplete = "off" })
+                        <small class="col-md-12">it is not recommended to use email address from your record in SAFER WEB</small>
+                        @Html.ValidationMessageFor(m => m.BusinessContactEmail, "", new { @class = "text-danger col-md-12" })
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-xs-12 col-md-6 margin-top-10" id="Hiring">
+                        <label>Now hiring :</label>
+                        <div id="facet-bar" class="col-md-12 nopadding-left facet-bar-wrap nopadding-right">
+                            <div class="affix-top facet-bar nopadding-left nopadding-right nomargin-left" id="" data-offset-top="30px">
+                                <div class="col-md-12 container facet-bar-container nopadding-left">
+                                    <div class="col-md-12 col-sm-12 col-xs-12 facet-bar facet-search-wrapper nopadding-left nopadding-right facetbar-0-margin">
+                                        <ul class="nav navbar-nav facet-options-list float-left filter-button col-xs-12 nomargin-left nopadding-right">
+                                            <!--Trailer Types-->
+                                            <li class="dropdown trailer-dropdown filter-dorpdown-padding">
+                                                <a href="#" class="dropdown-toggle text-center" id="trailertypeCheckboxlist" data-toggle="dropdown">Trailer Types <p class="pull-right filterApplyBtnForCargoType hidden-lg hidden-md hidden-sm" style="display:none">Apply</p></a>
+                                                <ul class="dropdown-menu dropdowntoggle-autoclose trailerType-dropdown-width">
+
+                                                    @for (int i = 0; i < Model.TrailerTypeList.Count; i++)
+                                                    {
+                                                        <div class="checkbox checkbox-primary">
+                                                            @if (Model.SelectedTrailerTypes != null && Model.SelectedTrailerTypes.Count() > 0 && Model.SelectedTrailerTypes.Any(x => x == Model.TrailerTypeList[i].Value))
+                                                            {
+                                                                <input id="SelectedTrailerTypes_@i" checked="checked" name="SelectedTrailerTypes" type="checkbox" value="@Model.TrailerTypeList[i].Value">
+                                                                <label class="check" for="SelectedTrailerTypes_@i">@Model.TrailerTypeList[i].Key</label>
+                                                            }
+                                                            else
+                                                            {
+                                                                <input id="SelectedTrailerTypes_@i" name="SelectedTrailerTypes" type="checkbox" value="@Model.TrailerTypeList[i].Value">
+                                                                <label class="check" for="SelectedTrailerTypes_@i">@Model.TrailerTypeList[i].Key</label>
+                                                            }
+                                                        </div>
+                                                    }
+                                                </ul>
+                                            </li>
+
+                                            <!--Driver Types-->
+                                            <li class="dropdown driver-dropdown filter-dorpdown-padding">
+                                                <a href="#" class="dropdown-toggle text-center" id="drivertypeCheckboxlist" data-toggle="dropdown">Driver Type <p class="pull-right filterApplyBtnForCargoType hidden-lg hidden-md hidden-sm" style="display:none">Apply</p></a>
+                                                <ul class="dropdown-menu dropdowntoggle-autoclose driverType-dropdown-width">
+                                                    @for (int i = 0; i < Model.DriverTypeList.Count; i++)
+                                                    {
+                                                        <div class="checkbox checkbox-primary">
+                                                            @if (Model.SelectedDriverTypes != null && Model.SelectedDriverTypes.Count() > 0 && Model.SelectedDriverTypes.Any(x => x == Model.TrailerTypeList[i].Value))
+                                                            {
+                                                                <input id="SelectedDriverTypes_@i" checked="checked" name="SelectedDriverTypes" type="checkbox" value="@Model.DriverTypeList[i].Value">
+                                                                <label class="check" for="SelectedDriverTypes_@i">@Model.DriverTypeList[i].Key</label>
+                                                            }
+                                                            else
+                                                            {
+                                                                <input id="SelectedDriverTypes_@i" name="SelectedDriverTypes" type="checkbox" value="@Model.DriverTypeList[i].Value">
+                                                                <label class="check" for="SelectedDriverTypes_@i">@Model.DriverTypeList[i].Key</label>
+                                                            }
+                                                        </div>
+                                                    }
+                                                </ul>
+                                            </li>
+
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="displayErrorMessage" class="text-danger">
+
+                        </div>
+                    </div>
+
+                    <div class="col-xs-12 col-md-6 margin-top-10">
+                        <div class="row">
+                            <div class="margin-top-10">
+                                <label>Email (Recruiting) :</label>
+                                @Html.TextBoxFor(m => m.JobContactEmail, new { @class = "form-control", autocomplete = "off" })
+                                @Html.ValidationMessageFor(m => m.JobContactEmail, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="margin-top-10">
+                                <label>Phone (Recruiting) :</label>
+                                @Html.TextBoxFor(m => m.JobContactPhone, new { @class = "form-control", autocomplete = "off" })
+                                @Html.ValidationMessageFor(m => m.JobContactPhone, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="margin-top-10">
+                                <label>SMS (Recruiting):</label>
+                                @Html.TextBoxFor(m => m.JobContactSMS, new { @class = "form-control", autocomplete = "off" })
+                                @Html.ValidationMessageFor(m => m.JobContactSMS, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row margin-top-15">
+                    <div class="col-xs-12 col-md-12">
+                        <button class="btn btn-primary text-center" type="button" onclick="vm.SubmitBusinessCompany();">Submit</button>
+                        <a href="@Url.Action("ChangePassword", "Home",new { USDOTNumber = Model.USDOTNumber})" title="Change Password" class="btn btn-primary"> Change Password</a>
+                    </div>
+                </div>
+            }
+        </section>
+    </div>
+    <div class="col-sm-3"></div>
+</div>
+
+@section Scripts{
+    <script src="~/Content/User/company-business.js"></script>
+    <script src="~/Scripts/expressive.annotations.validate.js"></script>
+}
+
+
+
+
+

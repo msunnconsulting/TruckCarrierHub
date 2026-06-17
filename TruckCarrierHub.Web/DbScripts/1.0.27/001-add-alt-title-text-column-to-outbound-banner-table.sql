@@ -1,0 +1,3 @@
+﻿ALTER TABLE [dbo].[OutboundBanner]
+ADD [AltText] NVARCHAR (256) NOT NULL DEFAULT '',
+	[TitleText] NVARCHAR (256) NOT NULL DEFAULT '';

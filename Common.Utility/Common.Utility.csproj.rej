@@ -1,0 +1,14 @@
+diff a/Common.Utility/Common.Utility.csproj b/Common.Utility/Common.Utility.csproj	(rejected hunks)
+@@ -196,6 +196,12 @@
+   <ItemGroup>
+     <None Include="packages.config" />
+   </ItemGroup>
++  <ItemGroup>
++    <ProjectReference Include="..\IngeniousCMS.ViewModels\IngeniousCMS.ViewModels.csproj">
++      <Project>{09ae8084-c87e-49ee-be2d-78ac94896a7d}</Project>
++      <Name>IngeniousCMS.ViewModels</Name>
++    </ProjectReference>
++  </ItemGroup>
+   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+   <!--<Import Project="$(ProgramFiles)\MSBuild\StyleCop\v4.7\StyleCop.targets" />-->
+   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />

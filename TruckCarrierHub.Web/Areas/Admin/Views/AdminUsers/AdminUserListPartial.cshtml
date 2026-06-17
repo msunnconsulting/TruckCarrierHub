@@ -1,0 +1,54 @@
+﻿@using Common.Utility.ViewModels;
+@using Common.Utility.Extensions;
+@using PartnerCarrier.ViewModels.Admin;
+@model PagedList<AdminUserVM>
+@{ int i = 1;}
+<div class="col-md-12">
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <tr>
+                <th width="5%">
+                    #
+                </th>
+                <th width="15%">
+                    @Html.SortLink("vm.pageSort", "Name", "Name", "AdminUserListPartial", "AdminUsers", null, Model.Sorting, Model.Pagination)
+                </th>
+                <th width="75%">
+                    @Html.SortLink("vm.pageSort", "Email", "Email", "AdminUserListPartial", "AdminUsers", null, Model.Sorting, Model.Pagination)
+                </th>
+                <th width="5%" class="text-center">
+                    Actions
+                </th>
+            </tr>
+            <tbody>
+                @if (Model.Items.Count > 0)
+                {
+                    foreach (var adminUser in Model.Items)
+                    {
+                        <tr>
+                            <td>@i</td>
+                            <td>
+                                @adminUser.Name
+                            </td>
+                            <td>
+                                @adminUser.Email
+                            </td>
+                            <td class="text-center">
+                                <a href="@Url.Action("edit/"+adminUser.AdminID, "user", new {  p = Model.Pagination.PageIndex, se = Model.Sorting.SortExpression, sd = Model.Sorting.SortDirectionString })" title="Edit"><i class="fa fa-edit font-14"></i></a>
+                                <a href="Javascript:;" onclick="vm.DeleteAdminUser(@adminUser.AdminID)" title="Delete"><i class="fa fa-trash"></i></a>
+                            </td>
+                        </tr>
+                        i++;
+                    }
+                }
+                else
+                {
+                    <tr><td class="text-center well" colspan="7">No Record(s) Found</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @Html.Pager("vm.pageSort", "AdminUserListPartial", "AdminUsers", null, Model.Pagination, Model.Sorting)
+</div>
+
+

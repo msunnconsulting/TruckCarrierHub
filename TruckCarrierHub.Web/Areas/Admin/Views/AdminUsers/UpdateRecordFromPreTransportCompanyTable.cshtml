@@ -1,0 +1,122 @@
+﻿@using PartnerCarrier.ViewModels.Admin
+@using PartnerCarrier.Web.App_Start;
+@using PartnerCarrier.Infrastructure;
+@using PartnerCarrier.Infrastructure.Contracts.Admin.AdminManagement;
+@using Common.Utility
+@model ProcessRecordsVM
+@{
+    ViewBag.Title = "Update Record";
+    bool isLogEnabled = false;
+    object isLogEnable = Session["IsDataLogEnabled"];
+    if (isLogEnable == null || !(bool)isLogEnable)
+    {
+        var userId = (long)FormsAuthService.Instance.LoggedInUser(Config.GetValue("AdminLoginAuthenticationName")).UserId;
+        var _adminService = StructuremapMvc.StructureMapDependencyScope.CurrentNestedContainer.GetInstance<IAdminManagementService>();
+        isLogEnabled = _adminService.EditAdminById(userId).IsDataMigrationLogEnabled;
+    }
+    else if ((bool)isLogEnable)
+    {
+        isLogEnabled = true;
+    }
+}
+
+<h2>Update Record From PreTransportCompany Table</h2>
+<hr class="small" />
+<div class="row" id="dvNotification"></div>
+@using (Ajax.BeginForm("update-record", "user", null, new AjaxOptions
+{
+    HttpMethod = "POST",
+    OnSuccess = "vmUpdateRecord.onProcessStarted"
+}, new { id = "updateRecordForm" }))
+{
+    <div id="dvNotInProgress" style="display:none">
+        <div class="row form-group" id="update-record-textbox">
+            <div class="col-md-4 text-right">
+                <label>Number Of Companies To Process:</label>
+            </div>
+            <div class="col-md-4">
+                @Html.TextBoxFor(m => m.RecordsToProcess, new { @id = "recordsToProcess", @class = "form-control form-group" })
+                @Html.ValidationMessageFor(m => m.RecordsToProcess, "", new { @class = "text-danger" })
+                <p class="form-group"><strong>Note</strong> :For Google API Usage / Billing Guide <a href="https://developers.google.com/maps/pricing-and-plans/" target="_blank">Click Here</a></p>
+            </div>
+            <div class="col-md-1">
+                <button type="submit" id="updateButton" class="btn btn-primary form-group" value="Update" title="Update"><i class="fa fa-save"></i> Start Update</button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-4 text-right">
+            </div>
+            <div class="col-md-4">
+                <label for="logEnable">Is Data Log Enabled ?:</label>
+                @Html.CheckBox("IsDataMigrationLogEnabled", isLogEnabled, new { @id = "logEnable" })
+            </div>
+        </div>
+    </div>
+}
+<div id="dvInProgress" style="display:none">
+
+    <div class="row" id="dvbtnCancel">
+        <div class="col-md-12 text-right margin-bottom-10">
+            @using (Ajax.BeginForm("cancel-update", "user", null, new AjaxOptions
+            {
+                HttpMethod = "POST",
+                OnSuccess = "vmUpdateRecord.cancelUpdateOnSuccess"
+            }, new { id = "cancelRecordForm" }))
+            {
+                <button type="submit" id="cancelButton" class="btn btn-primary form-group" value="Cancel" title="Cancel"><i class="fa fa-close"></i> Cancel Update</button>
+            }
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-3">
+
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="progress">
+                <div class="progress-bar progress-bar-striped bg-danger " role="progressbar" style="width: 0%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">0%</div>
+            </div>
+            <div class="row">
+                <div class="col-md-8">
+                    <label class="form-group">Processed:&nbsp;</label><text class="records-processed">0</text><text> / </text><text class="records-to-process">0</text>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <label class="form-group">Success:&nbsp;</label><text class="records-success">0</text>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <p class="form-group"><label>Failed During Calculation:&nbsp;</label><text class="records-failed">0</text></p>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <p class="form-group"><label>Failed To Fetch Data From Db:&nbsp;</label><text class="records-could-not-fetch">0</text></p>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4">
+            <input id="btnGoBack" type="button" class="btn btn-primary" value="Back" onclick="vmUpdateRecord.showStartProcessSection()" />
+        </div>
+    </div>
+</div>
+<div class="error-info">
+    <h4>Detailed Error For Records Failed During Calculation</h4>
+    <hr />
+    <div class="row">
+        <div class="col-md-12" id="dvErrorNotification">
+
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script src="~/Areas/Admin/Content/PageScript/AdminUsers/update-record-from-premain-table.js"></script>
+}

@@ -1,0 +1,46 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.pidb
+*.booproj
+
+# NuGet
+packages/
+*.nupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Uploaded files / local data / runtime logs
+Uploads/
+app-log.txt
+DbFiles/
+EFSQLLog/
+
+# Rider / ReSharper
+_ReSharper*/
+*.DotSettings.user
+.idea/
+
+# SQL Server data tools lock files
+*.dbmdl
+*.jfm
+
+# Bromium / HP Sure Click sandbox artifacts
+~BROMIUM/

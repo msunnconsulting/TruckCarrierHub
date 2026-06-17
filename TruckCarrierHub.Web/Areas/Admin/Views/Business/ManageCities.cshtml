@@ -1,0 +1,149 @@
+﻿@using PartnerCarrier.ViewModels.Admin
+@model ManageCitiesVM
+@{
+    ViewBag.Title = "Manage Cities";
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>ManageCities</title>
+</head>
+<body>
+    <div class="row">
+        <div class="col-md-10">
+            <h2> @ViewBag.Title</h2>
+        </div>
+    </div>
+    <hr class="small" />
+    <div class="row" id="dvNotification"></div>
+
+    <div class="row">
+        <div class="col-md-1"> </div>
+        <div class="col-md-10">
+
+            <div class="row">
+                <div class="col-md-12 col-sm-12 text-center margin-bottom-20">
+                    <button type="button" class="btn btn-default" title="start cities update" id="startCitiesUpdateBtn()" onclick="onStartCitiesUpdateButtonClick()">
+                        Start Cities Update
+                    </button>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-1 col-sm-1"> </div>
+                <div class="col-md-10 col-sm-10">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th width="12%">Country</th>
+                                <th width="18%">State</th>
+                                <th width="15%">City Name</th>
+                                <th width="25%">Number of Companies</th>
+                                <th width="30%"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.List.Count > 0)
+                            {
+                                foreach (var city in Model.List)
+                                {
+                                    <tr>
+                                        <td>@city.Country</td>
+                                        <td>@city.State</td>
+                                        <td>
+                                            <a href="/@city.CityURL" target="_blank">@city.City</a>
+                                        </td>
+                                        <td>@city.NoCompanies</td>
+                                        <td></td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr><td class="text-center well" colspan="5">No Record(s) Found</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col-md-1 col-sm-1"> </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12 col-sm-12 text-center">
+                    <button type="button" class="btn btn-primary" value="Save" title="save article" id="finishCitiesUpdate()" onclick="onFinishCitiesUpdateButtonClick()">
+                        Finish Cities Update
+                    </button>
+                </div>
+            </div>
+
+        </div>
+        <div class="col-md-1"> </div>
+    </div>
+    
+    @section Scripts {
+        <script type="text/javascript">
+            $(document).ready(function () {
+            });
+
+            /**
+             * To get the list of new cities which are not in cities table.
+             * */
+            function onStartCitiesUpdateButtonClick() {
+                $.ajax({
+                    url: "/admin/business/get-city-list-for-manage-city",
+                    type: "GET",
+                    success: function (response) {
+                        if (response && response.length > 0) {
+                            // Clear the existing rows in the table except the header
+                            var tbody = $('table tbody');
+                            tbody.empty();  // Clears previous table rows
+
+                            // Loop through the response and generate the table rows
+                            response.forEach(function (city) {
+                                var row = `<tr>
+                                                   <td>${city.Country}</td>
+                                                   <td>${city.State}</td>
+                                                   <td><a href="/${city.CityURL}" target="_blank">${city.City}</a></td>
+                                                   <td>${city.NoCompanies}</td>
+                                                   <td></td> <!-- Empty column, you can populate if needed -->
+                                                   </tr>`;
+                                tbody.append(row);
+                            });
+                        } else {
+                            // If no data is returned, display "No Record(s) Found"
+                            var tbody = $('table tbody');
+                            tbody.empty(); // Clear previous rows
+                            tbody.append('<tr><td class="text-center well" colspan="5">No Record(s) Found</td></tr>');
+                        }
+                    },
+                    error: function (request, status, error) {
+                        console.log(error);
+                    }
+                });
+            }
+
+            /**
+             * To update the cities table with new cities.
+             * */
+            function onFinishCitiesUpdateButtonClick() {
+                $.ajax({
+                    url: "/admin/business/finish-cities-update",
+                    type: "GET",
+                    success: function (response) {
+                        if (response) {
+                            showAlertMessage("#dvNotification", response.split(":")[0].toLowerCase(), response.split(":")[1]);
+                        }
+                    },
+                    error: function (request, status, error) {
+                        console.log(error);
+                    }
+                });
+            }
+
+        </script>
+    }
+</body>
+</html >

@@ -1,0 +1,95 @@
+﻿@model PartnerCarrier.ViewModels.Setup.SqlQueryVM
+@using System.Data;
+@{
+    ViewBag.Title = "SQL";
+    Layout = "~/Views/Shared/_SetupLayout.cshtml";
+}
+<div class="row">
+    <h2>@ViewBag.Title</h2>
+    <hr />
+</div>
+@using (Html.BeginForm("SqlSample", "setup", FormMethod.Post))
+{
+    <div class="row">
+        <div class="col-sm-12">
+            <button type="submit" style="margin-bottom:5px;" name="submitButton" value="Execute Select" class="btn btn-success pull-right"><span class="glyphicon glyphicon-play"></span></button>
+            <input type="text" style="max-width:90%;margin-bottom:5px;" name="dbConnectionString" value="@ViewBag.ConnectionString" class="form-control" />
+            @if (ViewBag.Query != null)
+            {
+                <textarea  style="max-width:100%;"class="form-control" cols="150" id="Query" name="Query" rows="15">@ViewBag.Query</textarea>
+            }
+            else
+            {
+                <textarea style="max-width:100%;" class="form-control" cols="2000"  placeholder="Enter Query...." id="Query" name="Query" rows="15"></textarea>
+            }
+        </div>
+    </div>
+    <br />
+    <label><u>Note:</u></label><br />
+    <div>- Different query like Select and (Insert/Update/Delete),both cannot be run at  same time.</div>
+    <hr>
+    <br />
+    <br />
+    <div class="row">
+        <div class="col-sm-12">
+            @*<h2><u>Output:</u></h2>*@
+            <div>
+                <br />
+                @if (@ViewBag.QueryErrorMessage != null)
+                {
+                    <p>@ViewBag.QueryErrorMessage</p>
+                }
+                else
+                               if ((Model != null && Model.ExecuteSelectQueryDataSet != null && Model.ExecuteSelectQueryDataSet.Tables != null) || (Model != null && Model.ExecuteSelectQueryDataSet == null))
+                {
+                    if (Model != null && Model.ExecuteSelectQueryDataSet == null)
+                    {
+                        if (@ViewBag.SpExecuteSuccessfulMessage != null)
+                        {
+                            <p>@ViewBag.SpExecuteSuccessfulMessage</p>
+                        }
+                        else
+                        {
+                            <div>(@ViewBag.NoOfRows row(s) affected)</div>
+                        }
+                    }
+                    else if (Model != null && Model.ExecuteSelectQueryDataSet.Tables != null)
+                    {
+                        for (int i = 0; i < Model.ExecuteSelectQueryDataSet.Tables.Count; i++)
+                        {
+                            int j = (i + 1);
+                            <p><strong>@j.</strong>@ViewBag.TotalQuery[i];</p><br />
+                            //foreach (DataTable item in Model.ExecuteSelectQueryDataSet.Tables)
+                            //{
+                            <div class="table" style="width:100%;overflow-x:scroll;overflow-x:scroll;">
+                                <table class="table table-responsive table-bordered table-condensed table-hover" border="1" cellpadding="5" style="overflow:hidden">
+                                    <thead>
+                                        <tr>
+                                            @foreach (DataColumn col in Model.ExecuteSelectQueryDataSet.Tables[i].Columns)
+                                            {
+                                                <th>@col.Caption</th>
+                                            }
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (DataRow row in Model.ExecuteSelectQueryDataSet.Tables[i].Rows)
+                                        {
+                                            <tr>
+                                                @foreach (var cell in row.ItemArray)
+                                                {
+                                                    <td>@cell.ToString()</td>
+                                                }
+                                            </tr>
+                                        }
+
+                                    </tbody>
+                                </table>
+                            </div><br /><br />
+                        }
+                    }
+                }
+            </div>
+            @*<input type="text" value="@ViewBag.Result" class="form-control" />*@
+        </div>
+    </div>
+}

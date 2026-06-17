@@ -1,0 +1,62 @@
+﻿<html>
+<head>
+    <style>
+        .panel {
+            width: 98%;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border: 1px solid #EBEEF0;
+            font-family: 'Open Sans', Arial, Helvetica, sans-serif;
+        }
+
+        .panel-title {
+            background-color: #0070c9;
+            line-height: 50px;
+            padding-left: 20px;
+            font-size: 18px;
+            color: #ffffff;
+            font-weight: normal;
+            margin: 0;
+        }
+
+        .message-body {
+            padding: 15px 20px;
+            font-size: 16px;
+            color: #333333;
+            line-height: 1.5;
+        }
+
+        @media (min-width: 768px) and (max-width: 992px) {
+            .message-body {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="panel">
+        <h3 class="panel-title">Business Verification</h3>
+
+        <div class="message-body">
+            <p>
+                You are receiving this message because a verification request was submitted for your email address.
+            </p>
+
+            <p>
+                To complete the verification process, please confirm your email address by using the link below:
+            </p>
+
+            <p>
+                <a href="{VerifyLink}">Confirm email address</a>
+            </p>
+
+            
+
+            <p>
+                Thank you,<br />
+                TruckCarrierHub Administration
+            </p>
+        </div>
+    </div>
+</body>
+</html>

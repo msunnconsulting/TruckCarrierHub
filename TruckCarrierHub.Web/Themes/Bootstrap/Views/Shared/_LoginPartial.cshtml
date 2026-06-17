@@ -1,0 +1,34 @@
+﻿@using PartnerCarrier.Infrastructure
+
+
+@*@if (FormsAuthService.Instance.IsAuthenticated)
+{*@
+    @using (Html.BeginForm("LogOff", "Account", FormMethod.Post, new { id = "logoutForm", @class = "navbar-right" }))
+    {
+        @Html.AntiForgeryToken()
+    }
+           <ul class="nav navbar-nav navbar-right">
+            <li class="dropdown">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">@*@userInfo.EmailAddress*@ Email<span class="fa fa-cog"></span></a>
+                <ul class="dropdown-menu">
+                    <li>
+                        @Html.ActionLink("Edit Profile", "EditProfile", "Account", new { }, htmlAttributes: new { id = "profileLink" })
+                    </li>
+                    <li>
+                        @Html.ActionLink("Change password", "ChangePassword", "Account", new { }, htmlAttributes: new { id = "changepassword" })
+                    </li>
+                    <li>
+                        <a href="javascript:document.getElementById('logoutForm').submit()">Log Out</a>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+   
+@*}
+else
+{*@
+    @*<ul class="nav navbar-nav navbar-right">
+        <li>@Html.ActionLink("Log in", "Login", "Account", routeValues: null, htmlAttributes: new { id = "loginLink" })</li>
+    </ul>*@
+@*}*@
+

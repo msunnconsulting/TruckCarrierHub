@@ -1,0 +1,51 @@
+﻿@using PartnerCarrier.ViewModels.Admin;
+@model GlobalHiringVM
+@{
+    ViewBag.Title = "Manage Global Hiring";
+}
+
+<h2>Manage Global Hiring</h2>
+
+@*Append error message with HTML using jquery*@
+<div class="row" id="dvNotification"></div>
+
+@using (Ajax.BeginForm("save-global-hiring", "business", null, new AjaxOptions
+{
+    HttpMethod = "POST",
+    OnSuccess = "vm.OnSuccessGlobalHiring",
+    OnFailure = "vm.OnFailureGlobalHiring"
+}, new { id = "SaveGlobalHiringForm" }))
+{
+
+    @Html.AntiForgeryToken()
+
+    <div class="row margin-top-10">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-3 col-md-3">
+                    <label class="">Global Hiring :  </label>
+                </div>
+                <div class="col-md-8">
+                    @Html.DropDownListFor(x=>x.GlobalHire, EnumHelper.GetSelectList(typeof(GLobalHiring)), new { @class = "form-control" })
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <hr />
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-md-6">
+                    <button type="submit" class="btn btn-primary" value="Save" title="Save"><i class="fa fa-save"></i> Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+
+@section Scripts {
+    <script src="~/Areas/Admin/Content/PageScript/AdminUsers/global-hiring.js"></script>
+}
+

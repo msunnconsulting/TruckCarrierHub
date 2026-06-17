@@ -1,0 +1,1175 @@
+﻿
+/* Set padding to keep content from hitting the edges */
+.body-content {
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+.nav-search-input-group {
+    background-color: rgba(255,255,255,0.9);
+}
+
+/*Home Search Input box*/
+.home-search-inputbox {
+    height: 44px;
+    background-color: transparent;
+}
+
+/*Home Search button*/
+.home-search-button {
+    height: 44px;
+    border-radius: 0%;
+    width: 102%;
+}
+
+/***
+City Page css
+***/
+
+.facet-bar {
+    background-color: #fff;
+    /*margin-top: 15px;*/
+}
+
+    /*Searching Filter for city page*/
+    .facet-bar .facet-search-wrapper {
+        /*margin: 8px 15px 8px 0;*/
+        margin: 0px 0px 8px 0;
+        position: relative;
+        background-color: #fff;
+        margin-top: 25px;
+    }
+
+.float-left {
+    float: left;
+}
+
+.affix {
+    top: -24px;
+    width: 100%;
+    position: fixed !important;
+}
+
+/* City Page Div Border and Padding*/
+.div-border {
+    border: 1px solid #ccc;
+    padding-bottom: 15px;
+}
+/*Space after div*/
+.div-border {
+    margin-top: 10px;
+}
+
+/*search Input box size for city page*/
+.input-group-search {
+    /*width: 290px;
+    margin: 7px;*/
+}
+
+div.navbar.navbar-inverse {
+    margin-bottom: 0%;
+}
+
+/*Toggle Button For List/Map in city page*/
+.srp-view-toggle a.active {
+    background-color: #333333;
+    border-color: #333333;
+    color: #fff;
+}
+
+/*List/Map Button styling*/
+.srp-view-list-toggle.active:hover {
+    background-color: #333333;
+    color: #fff;
+}
+
+/*Toggle Button for List & Map*/
+.srp-view-toggle {
+    right: -93.2%;
+}
+
+.homepage-page-decription {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 16px;
+}
+
+.h5-font-size {
+    font-size: 22px;
+    font-family: 'Times New Roman', Times, serif;
+}
+
+.h5-margin-top {
+    margin-top: -40px;
+}
+
+.margin-bottom-10 {
+    margin-bottom: 10px;
+}
+
+/*Home page font Link size*/
+.link-font-size {
+    font-size: 17px;
+}
+
+/*Display Inline showing total page after pager*/
+.display-inline-flex {
+    display: inline-flex;
+}
+/*Diplasy Result for page beside pager*/
+.margin-top-25-left-20 {
+    margin-top: 25px;
+    margin-left: 20px;
+}
+
+.padding-row {
+    padding-top: 15px;
+}
+
+.cargo-dropdown-width {
+    width: 300px !important;
+    height: 300px;
+    overflow: auto;
+}
+
+.serviceType-dropdown-width {
+    height: 300px;
+    overflow: auto;
+}
+
+.driverType-dropdown-width {
+    height: 200px;
+    width: 200px;
+    overflow: auto;
+}
+
+.trailerType-dropdown-width {
+    height: 300px;
+    width: 210px;
+    overflow: auto;
+}
+
+/*Pager Styling*/
+.btn-default-pager {
+    color: white;
+    background-color: #0070c9;
+    border-color: #2e6da4;
+    border-radius: 40px;
+}
+
+/*****Home Page New Styling********/
+/*vissiblity hidden for checkbox for Search in Home page*/
+.searchFromHomepage {
+    visibility: hidden;
+}
+/*Backgroung Image for Truck on Home Page*/
+.home-background-image {
+    background: url('../../../Images/trucksOn20-59.jpg') no-repeat center center fixed;
+    margin-right: -15px;
+    margin-left: -15px;
+    /* margin-top: 50px;*/
+    height: 50%;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    position: relative;
+}
+
+/*Display Tabs in single row*/
+.search-tab {
+    display: flex;
+    margin-bottom: 10px;
+}
+
+    /*Diplay Hover dark for tabs in home page*/
+    .search-tab .radios input[type="radio"]:checked + label, .radios label:hover {
+        background-color: black;
+        border-color: #0070c9;
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+
+/*This custom styling for Search lable on home*/
+.radios label {
+    border-radius: 2px;
+    background-color: rgba(0,0,0,0.55);
+    display: block;
+    position: relative;
+    color: #fff;
+    padding: 15px 0 10px;
+    cursor: pointer;
+    border-bottom: 5px solid transparent;
+    float: left;
+    width: 100%;
+    margin-right: 5px;
+    text-align: center;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+/*Width for Tab label on Home Page*/
+div.radios {
+    width: 33.3333%;
+    padding-right: 5px;
+}
+/*Autocomplete hand pointer while auto complete shows values*/
+.auto-complete:hover {
+    cursor: pointer;
+}
+
+/*Padding before list display in auto complete*/
+.ui-menu .ui-menu-item a {
+    padding: 6px;
+    padding-left: 15px;
+}
+
+/*Add vertical scrollbar to auto complete*/
+.ui-autocomplete {
+    overflow-y: auto;
+    max-height: 50%;
+}
+
+/*Auto complete corner radius set to zero*/
+.ui-corner-all, .ui-corner-bottom, .ui-corner-right, .ui-corner-br, .ui-corner-bottom, .ui-corner-left, .ui-corner-br {
+    -webkit-border-bottom-right-radius: 0px;
+    border-bottom-right-radius: 0px;
+    -webkit-border-bottom-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    -webkit-border-top-left-radius: 0px;
+    border-top-left-radius: 0px;
+    -webkit-border-top-right-radius: 0px;
+    border-top-right-radius: 0px;
+}
+
+/*Keyboad key navigation and mouse hover on autocomplete it shows theme color*/
+.ui-state-focus {
+    background-color: #0070c9 !important;
+    color: black !important;
+}
+
+/*marging for filter*/
+.filter-margin {
+    margin-left: 84px;
+}
+
+.radio {
+    padding-left: 20px;
+}
+
+    .radio label {
+        display: inline-block;
+        position: relative;
+        padding-left: 5px;
+    }
+
+        .radio label::before {
+            content: "";
+            display: inline-block;
+            position: absolute;
+            width: 17px;
+            height: 17px;
+            left: 0;
+            margin-left: -20px;
+            border: 1px solid #cccccc;
+            border-radius: 50%;
+            background-color: #fff;
+            -webkit-transition: border 0.15s ease-in-out;
+            -o-transition: border 0.15s ease-in-out;
+            transition: border 0.15s ease-in-out;
+        }
+
+        .radio label::after {
+            display: inline-block;
+            position: absolute;
+            content: " ";
+            width: 11px;
+            height: 11px;
+            left: 3px;
+            top: 3px;
+            margin-left: -20px;
+            border-radius: 50%;
+            background-color: #555555;
+            -webkit-transform: scale(0, 0);
+            -ms-transform: scale(0, 0);
+            -o-transform: scale(0, 0);
+            transform: scale(0, 0);
+            -webkit-transition: -webkit-transform 0.1s cubic-bezier(0.8, -0.33, 0.2, 1.33);
+            -moz-transition: -moz-transform 0.1s cubic-bezier(0.8, -0.33, 0.2, 1.33);
+            -o-transition: -o-transform 0.1s cubic-bezier(0.8, -0.33, 0.2, 1.33);
+            transition: transform 0.1s cubic-bezier(0.8, -0.33, 0.2, 1.33);
+        }
+
+    .radio input[type="radio"] {
+        opacity: 0;
+    }
+
+        .radio input[type="radio"]:focus + label::before {
+            outline: thin dotted;
+            outline: 5px auto -webkit-focus-ring-color;
+            outline-offset: -2px;
+        }
+
+        .radio input[type="radio"]:checked + label::after {
+            -webkit-transform: scale(1, 1);
+            -ms-transform: scale(1, 1);
+            -o-transform: scale(1, 1);
+            transform: scale(1, 1);
+        }
+
+        .radio input[type="radio"]:disabled + label {
+            opacity: 0.65;
+        }
+
+            .radio input[type="radio"]:disabled + label::before {
+                cursor: not-allowed;
+            }
+
+    .radio.radio-inline {
+        margin-top: 0;
+    }
+
+.radio-primary input[type="radio"] + label::after {
+    background-color: #428bca;
+}
+
+.homepage-font-color {
+    color: white;
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    font-size: 16px !important;
+    margin-top: 15px;
+}
+
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    margin: 0;
+}
+
+.total-found-companies-padding {
+    padding-top: 25px;
+}
+
+.clear-filter-button {
+    margin-right: 5px !important;
+    height: 28px !important;
+    border-radius: 3px !important;
+    padding: 2px;
+    padding-right: 8px;
+    padding-left: 3px;
+    font-family: helvetica;
+}
+
+.tag > a {
+    padding: 2px;
+}
+
+.tagsinput {
+    overflow-y: initial;
+    display: inline;
+}
+/*form input Clear Button in search textbox*/
+input[type="search"]::-webkit-search-cancel-button {
+    -webkit-appearance: searchfield-cancel-button;
+}
+
+#mapView {
+    height: 900px;
+}
+
+.text-xs-center {
+    text-align: center;
+}
+
+.nopadding-left {
+    padding-left: 0 !important;
+}
+
+.nopadding-right {
+    padding-right: 0 !important;
+}
+
+.nomargin-left {
+    margin-left: 0px !important;
+}
+
+.divcitylistheader {
+    display: contents;
+}
+
+.city-link-font-size {
+    font-size: 15px;
+}
+
+.contact-us-link {
+    border: 0px !important;
+}
+
+@media only screen and (max-width:1400px) {
+    .filter-dorpdown-padding {
+        margin-bottom: 7px;
+        border: 2px solid #f2f2f2 !important;
+        padding-top: 0px !important;
+        padding-bottom: 0px !important;
+    }
+}
+
+.checkbox {
+    padding-left: 25px;
+}
+
+
+
+@media only screen and (max-width: 766px),(max-width:1400px) {
+    .input-group[class*="col-"] {
+        padding-left: 15px;
+        padding-right: 20px;
+    }
+
+    .facet-bar {
+        margin-left: 10px;
+    }
+
+    .facet-options-list {
+        margin-left: 2.5px;
+    }
+
+    .checkbox {
+        padding-left: 25px;
+    }
+
+    .radio {
+        padding-left: 20px;
+    }
+
+    .dropdown {
+        border: 1px solid #f2f2f2;
+        border-radius: 2px;
+        padding: 2px;
+    }
+
+    .filter-dorpdown-padding {
+        padding: 5px;
+    }
+
+    .cargo-dropdown-width {
+        width: 350px !important;
+    }
+
+
+    .radio {
+        padding-left: 25px;
+    }
+
+    .checkbox {
+        padding-left: 25px;
+    }
+
+    .serviceType-dropdown-width {
+        width: 30px;
+    }
+
+    .input-group .form-control {
+        width: 100%;
+    }
+    /*Searching Filter for city page*/
+    .facet-bar .facet-search-wrapper {
+        margin: 0px 0px 0px 0;
+        position: relative;
+        background-color: #fff;
+        margin-top: 25px;
+    }
+}
+
+.serviceType-dropdown-width {
+    width: 300px;
+}
+
+.radio {
+    padding-left: 25px;
+}
+
+.checkbox {
+    padding-left: 25px;
+}
+
+
+/*Xs-device*/
+@media (max-width : 480px) {
+
+    /*This custom styling for Search lable on home*/
+    .radios label {
+        border-radius: 2px;
+        background-color: rgba(0,0,0,0.55);
+        display: block;
+        position: relative;
+        color: #fff;
+        padding: 15px 0 10px;
+        cursor: pointer;
+        border-bottom: 5px solid transparent;
+        float: left;
+        width: 100%;
+        margin-right: 5px;
+        text-align: center;
+        font-size: 11px !important;
+        text-transform: uppercase;
+        height: 53px;
+    }
+
+    .input-group-search {
+        width: 100%;
+    }
+
+    .homepage-font-color {
+        color: white;
+        font-family: Georgia, 'Times New Roman', Times, serif;
+        /*font-size: 17px !important;*/
+    }
+
+    .affix-top {
+        position: static !important;
+        width: auto !important;
+        top: 0 !important;
+    }
+
+    .smallDevice {
+        color: black;
+    }
+
+    #dropdown-change {
+        background-color: white;
+    }
+
+    .font-color-in-smallDevice {
+        color: black !important;
+    }
+
+    .homepage-page-decription, .h5-font-size {
+        font-size: 15px !important;
+    }
+
+    .pageDescription-cityPage {
+        font-size: 12px !important;
+        margin-top: 0px;
+    }
+
+    .navbar-nav > li > a {
+        padding-top: 3px !important;
+        padding-bottom: 3px !important;
+        line-height: 20px;
+    }
+
+    .cityNameText {
+        font-size: 23px !important;
+        margin-top: 0px !important;
+        margin-bottom: 10px !important;
+    }
+
+    .filter-tag-row {
+        margin-bottom: 0px !important;
+    }
+
+    .cityName-row {
+        margin-bottom: 0px !important;
+    }
+
+    .form-group .facet-search-wrapper {
+        margin-top: 0px !important;
+    }
+
+    .found-result-companies-row {
+        margin-bottom: 0px !important;
+    }
+
+    .breadcrumb {
+        margin-bottom: 15px !important;
+    }
+
+    .state-pageDescription {
+        font-size: 15px !important;
+    }
+
+    .homepage-title-font {
+        font-size: 14px !important;
+    }
+}
+
+/*sm-device -ipad*/
+@media (min-width: 768px)and (max-width: 992px) {
+    #mainnav {
+        padding-left: 0px !important;
+        margin-left: 0px !important;
+    }
+
+    .affix-top {
+        position: static !important;
+        width: auto !important;
+        top: 0 !important;
+    }
+
+    .navbar-nav > li > a {
+        padding: 5px;
+        border: 0px solid #f2f2f2 !important;
+        padding-right: 10px;
+        margin-left: 0px !important;
+        font-size: 12px;
+    }
+}
+
+#contact_us {
+    border: 0px !important;
+    margin-top: 6px !important;
+}
+
+/*ipad pro*/
+@media only screen and (min-device-width: 1024px) and (max-device-width: 1366px) and (-webkit-min-device-pixel-ratio: 1.5) {
+
+    #mainnav {
+        padding-left: 0px !important;
+        margin-left: 0px !important;
+    }
+
+    .affix-top {
+        position: static !important;
+        width: auto !important;
+        top: 0 !important;
+    }
+
+    .navbar-nav > li > a {
+        padding: 7px;
+        border: 0px solid #f2f2f2 !important;
+        padding-right: 10px;
+        margin-left: 0px !important;
+    }
+
+    .navbar-nav > li > a {
+        border: 0px solid #f2f2f2 !important;
+        padding-right: 5px !important;
+        padding-top: 7px !important;
+        padding-bottom: 4px !important;
+        margin-left: 2px !important;
+    }
+
+    #contact_us {
+        border: 0px !important;
+        margin-top: 0px !important;
+        padding-top: 15px !important;
+    }
+}
+/*Md device*/
+@media only screen and (min-width : 1200px) {
+    .navbar-nav > li > a:not(.setup-Topmenu-Link) {
+        /*border: 1px solid #f2f2f2 !important;*/
+        padding-top: 8px !important;
+        padding-bottom: 6px !important;
+        font-size: 15px;
+    }
+
+    .filter-dorpdown-padding {
+        border: 1px solid #f2f2f2 !important;
+    }
+}
+
+/*Ajax loader when request ajax*/
+.ajax-loader {
+    margin-left: -28px;
+    margin-top: -28px;
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    display: block;
+    z-index: 2000;
+}
+
+.disablescreen {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background-color: transparent;
+    opacity: .5;
+    filter: alpha(opacity=50);
+    z-index: 2000;
+}
+
+div.tagsinput {
+    padding: 0px !important;
+}
+
+.breadcrumb {
+    margin-top: 10px;
+}
+
+.legalName-font-color {
+    color: red;
+}
+
+.business-name-margin {
+    margin-top: 5px !important;
+}
+
+
+#contact_us_textarea {
+    resize: none;
+}
+
+.ui-dialog {
+    width: auto !important;
+}
+
+.footer-menu {
+    margin-bottom: 10px;
+}
+
+.privacy_link {
+    margin-right: 10px;
+    margin-left: 10px;
+}
+
+/*Display Text Light for class applied in LabelFor to display text lighter */
+.display-text-lighter {
+    font-weight: normal;
+}
+
+.margin-top-10 {
+    margin-top: 10px;
+}
+
+.facetbar-0-margin {
+    margin-top: 0px !important;
+}
+
+.margin-top-15 {
+    margin-top: 15px;
+}
+
+.margin-top-35 {
+    margin-top: 35px;
+}
+
+.background-color-yellow {
+    background-color: yellow;
+}
+
+
+.font-24 {
+    font-size: 24px;
+}
+
+
+.top-menus-margin-top-6 {
+    border: 0px !important;
+    margin-top: 6px !important;
+}
+
+.no-hiring-disabled {
+    color: black;
+    pointer-events: none;
+}
+
+.city-filter-now-hiring-color {
+    background-color: #E2EFD9;
+}
+
+.quote {
+    border: none;
+    background-color: transparent;
+}
+
+*:focus {
+    outline: none;
+}
+
+input {
+    border-top-style: hidden;
+    border-right-style: hidden;
+    border-left-style: hidden;
+    border-bottom-style: groove;
+    background-color: #eee;
+}
+
+.no-outline:focus {
+    outline: none;
+}
+
+
+
+.test {
+    border: 2px;
+    border-color: white;
+    border-style: solid;
+}
+
+/*.bordered [class*='col-'] + [class*='col-'] {
+    border-left: 1px solid #fff;
+}*/
+
+/*input:focus,
+select:focus,
+textarea:focus,
+button:focus {
+    outline: none;
+}*/
+
+/*input:focus, textarea:focus, select:focus {
+    outline: none;
+}*/
+
+.form-control:focus {
+    border-color: transparent;
+    outline: 0;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102, 175, 233, 0.6);
+    box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102, 175, 233, 0.6);
+}
+
+/*#pickupLocation:focus {
+    outline: none;
+}*/
+
+.bgTransperancy {
+    background-color: rgba(0,0,0,0.55);
+}
+
+
+.form-control:focus {
+    border-color: #666666;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+}
+
+
+#hero select option {
+    color: black
+}
+
+
+
+.home-get-a-quote-btn {
+    height: 50px;
+    border-radius: 4%;
+}
+
+
+
+.bordered {
+    border: 1px solid #fff;
+    border-collapse: collapse;
+    border-radius: 4px;
+}
+
+    .bordered [class*='col-'] + [class*='col-'] {
+        border-left: 1px solid #fff;
+    }
+
+#hero .mui-select {
+    margin: 15px 0;
+    padding-top: 24px;
+}
+
+.mui-select > label {
+    position: absolute;
+    top: 0;
+    display: block;
+    width: 100%;
+    color: rgba(0, 0, 0, 0.54);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 15px;
+    overflow-x: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+
+#hero .mui-select > select {
+    border-bottom: 0;
+    background-image: none;
+}
+
+#hero input, #hero select {
+    color: #fff;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.mui-select > select {
+    display: block;
+    height: 32px;
+    width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    outline: none;
+    border: none;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.26);
+    border-radius: 0px;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+    background-color: transparent;
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iNiIgd2lkdGg9IjEwIj48cG9seWdvbiBwb2ludHM9IjAsMCAxMCwwIDUsNiIgc3R5bGU9ImZpbGw6cmdiYSgwLDAsMCwuMjQpOyIvPjwvc3ZnPg==);
+    background-repeat: no-repeat;
+    background-position: right center;
+    cursor: pointer;
+    color: rgba(0, 0, 0, 0.87);
+    font-size: 16px;
+    font-family: inherit;
+    line-height: inherit;
+    padding: 0 25px 0 0;
+}
+
+/*This is used for handle V shape  is display twice in load type  UI. Remove native arrows by applying this css*/
+select::-ms-expand {
+    display: none;
+}
+
+/* We applied this to show V shape in Load Type similar to freightera site*/
+#hero .mui-select:before {
+    bottom: 6px;
+    content: "";
+    color: #fff;
+    display: inline-block;
+    font-family: FontAwesome;
+    font-size: smaller;
+    position: absolute;
+    right: 0;
+    pointer-events: none;
+}
+
+#hero .hero-btn {
+    padding: 18px 0;
+}
+
+.btn-solid {
+    border-radius: 4px;
+    border-width: 1px;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 15px 20px;
+    text-align: center;
+    text-transform: uppercase;
+    -webkit-transition-duration: 0.3s;
+    -o-transition-duration: 0.3s;
+    transition-duration: 0.3s;
+    -webkit-transition-property: color, background-color, border-color;
+    -o-transition-property: color, background-color, border-color;
+    transition-property: color, background-color, border-color;
+    vertical-align: middle;
+    background-color: #6fbc2e;
+    border-color: #6fbc2e;
+    color: #fff;
+}
+
+.mui--text-center {
+    text-align: center !important;
+}
+
+.mui-select {
+    display: block;
+    padding-top: 15px;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.mui-textfield {
+    margin: 15px 0;
+    padding-top: 24px;
+    display: block;
+    position: relative;
+}
+
+    .mui-textfield > label {
+        color: #fff;
+    }
+
+#hero label {
+    color: #fff;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 300;
+    letter-spacing: 0;
+    line-height: normal;
+    text-transform: capitalize;
+}
+
+.mui-textfield > label {
+    position: absolute;
+    top: 0;
+    display: block;
+    width: 100%;
+    color: rgba(0, 0, 0, 0.54);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 15px;
+    overflow-x: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#hero .mui-textfield > input {
+    border-bottom: 0;
+}
+
+#hero input, #hero select {
+    color: #fff;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.mui-textfield > input {
+    height: 32px;
+}
+
+.mui-textfield > input, .mui-textfield > textarea {
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+    display: block;
+    background-color: transparent;
+    color: rgba(0, 0, 0, 0.87);
+    border: none;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.26);
+    outline: none;
+    width: 100%;
+    padding: 0;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+    border-radius: 0px;
+    font-size: 16px;
+    font-family: inherit;
+    line-height: inherit;
+    background-image: none;
+}
+
+
+
+.ui-autocomplete {
+    z-index: 50 !important;
+}
+
+.input-group-addon {
+    cursor: pointer;
+}
+
+.inline-column {
+    display: inline-block;
+    float: left;
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+.divided-field {
+    display: inline-block;
+    font-size: 0;
+    white-space: nowrap;
+}
+
+    .divided-field > .form-group .form-control {
+        border-left-width: 0;
+        border-radius: 0;
+        /* font-size: 18px;
+        height: 39px;*/
+        width: 100%;
+    }
+
+    .divided-field > .form-group:first-child > .form-control {
+        border-left-width: 1px;
+        border-top-left-radius: 4px;
+        border-bottom-left-radius: 4px;
+    }
+
+.panel .panel-close {
+    padding-right: 5px !important;
+    padding-top: 5px !important;
+}
+
+.no-link-style a {
+    text-decoration: none;
+}
+
+.divided-field > .form-group {
+    display: inline-block;
+    margin-bottom: 0;
+    vertical-align: middle;
+}
+
+.removeSection {
+    padding-right: 10px;
+    padding-top: 5px;
+}
+
+.form-group.required label:after {
+    content: '*';
+    color: #f00;
+    display: inline;
+    font-size: 140%;
+    line-height: 0;
+}
+
+.confirmation {
+    font-size: 15px;
+}
+
+.getaquote {
+    font-size: 14px !important;
+}
+
+.inactive-status {
+    color: #FF0000 !important;
+}
+
+/*CCS for outbound links*/
+.nav-outboundLink {
+    margin-top: 5px !important;
+    float: none !important;
+    margin: 0 auto;
+    display: table;
+    table-layout: fixed;
+}
+
+#outboundLinkHeader {
+    font-weight: bold;
+   
+}
+
+    #outboundLinkHeader > a {
+        color: #ffff00;
+    }
+
+#outboundLinkFormSubmit {
+    margin-top: 24px;
+}
+
+div.outboundLinkForm {
+    margin-bottom: 40px;
+}
+
+@media (max-width: 768px) {
+    .nav-outboundLink {
+        margin-left: -10px !important;
+    }
+}
+
+/********* Style for city article *********/
+.truncated-text {
+    cursor: pointer;
+    color: #333;
+    opacity: 1;
+    white-space: pre-line;
+}
+
+.truncated-text:hover {
+    color: #0070c9;
+    text-decoration: underline;
+}
+/********* Ends *********/
+
+/********* Style for state article *********/
+.state-article-text {
+    cursor: pointer;
+    color: #333;
+    opacity: 1;
+    white-space: pre-line;
+}
+

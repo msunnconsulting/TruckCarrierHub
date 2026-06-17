@@ -1,0 +1,104 @@
+﻿@using PartnerCarrier.ViewModels.Admin
+@model CityArticlesAvailabilityVM
+@{
+    ViewBag.Title = "Availability";
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>CityArticlesAvailability</title>
+</head>
+<body>
+    <div class="row">
+        <div class="col-md-10">
+            <h2> @ViewBag.Title</h2>
+        </div>
+    </div>
+    <hr class="small" />
+    <div id="dvNotification"></div>
+
+
+    <form id="cityArticlesAvailabilityForm">
+        <div class="row">
+            <div class="col-sm-6 col-md-8">
+                <div class="form-group">
+                    <div class="col-md-11">
+                        <label>@Html.CheckBoxFor(m => m.IsCityArticlesAllowed) Check to make City Articles available for viewers.</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-6 col-md-8">
+                <div class="form-group">
+                    <div class="col-sm-4 col-md-4">
+                        <label class="">Number of words to display : </label>
+                    </div>
+                    <div class="col-md-2 col-sm-2">
+                        @Html.TextBoxFor(m => m.NumberOfWords, new { @class = "form-control" })
+                    </div>
+                    <div class="col-md-10 col-sm-10">
+                        @Html.ValidationMessageFor(m => m.NumberOfWords, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </form>
+
+    <hr />
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-md-6">
+                    <button type="button" class="btn btn-primary" value="Save" title="Save" onclick="saveAvailability()"><i class="fa fa-save"></i> Save</button>
+                    <a href="@Url.Action("email", "business")" title="Back" class="btn btn-default"><i class="fa fa-arrow-left"></i> Cancel</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    @section Scripts {
+        <script type="text/javascript">
+            $(document).ready(function () {
+                $.validator.unobtrusive.parse($("#cityArticlesAvailabilityForm"));
+            })
+
+            /**
+             * Called when save button gets clicked
+             */
+            function saveAvailability() {
+
+                // Add custom validation rule for NumberOfWords
+                $.validator.addMethod("minWords", function (value, element) {
+                    return this.optional(element) || value >= 50;
+                }, "Please enter a number of words greater than or equal to 50");
+
+                if ($("#cityArticlesAvailabilityForm").valid()) {
+
+                    var availabilityVM = {
+                        IsCityArticlesAllowed: $("#IsCityArticlesAllowed").prop("checked"),
+                        NumberOfWords: parseInt($("#NumberOfWords").val()),
+                    }
+
+                    $.ajax({
+                        url: "/admin/business/save-city-articles-availability",
+                        type: "POST",
+                        data: availabilityVM,
+                        success: function (response) {
+                            if (response == true) {
+                                location.reload();
+                            }
+                        },
+                        error: function (request, status, error) {
+                            alert(request.responseText);
+                        }
+                    });
+                }
+            }
+        </script>
+    }
+</body>
+</html>

@@ -1,0 +1,16 @@
+﻿@using PartnerCarrier.ViewModels.Admin;
+@using PartnerCarrier.Infrastructure;
+@using Common.Utility
+@{
+    var user = FormsAuthService.Instance.LoggedInUser(Config.GetValue("SetupLoginAuthenticationName"));
+    ViewBag.Title = "Error";
+    if (user!=null && user.Role == UserRole.SetupAdmin)
+    {
+        Layout = "~/Views/Shared/_SetupLayout.cshtml";
+    }
+
+}
+
+<h3 class="text-danger">@ViewBag.ErrorTitle</h3>
+<hr />
+<h4 class="text-danger">@ViewBag.ErrorMessage</h4>

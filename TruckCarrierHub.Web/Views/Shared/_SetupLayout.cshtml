@@ -1,0 +1,56 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>@ViewBag.Title</title>
+    @Scripts.Render("~/bundles/modernizr")
+    @Styles.Render("~/Content/css-frontend")
+    @RenderSection("HeaderScripts", required: false)
+    <style>
+        h2 {
+            margin-top: 60px !important;    
+        }
+    </style>
+</head>
+<body>
+    <img src="~/images/ajax-loader.gif" id="al" class="ajax-loader" style="display:none;" />
+    <div id="disabledpage"></div>
+    <div class="navbar navbar-inverse navbar-fixed-top" style="top:0px!important">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                @Html.ActionLink("Truck Carrier Hub", "Index", "Home", new { area = "" }, new { @class = "navbar-brand" })
+            </div>
+            <div class="navbar-collapse collapse">
+                @Html.Partial("_SetupTopMenu")
+            </div>
+        </div>
+    </div>
+    <div class="container body-content">
+        <div class="container">
+            @RenderBody()
+            <hr />
+            <footer>
+                <div class="row">
+                    <div class="col-md-6 col-sm-4 col-xs-12">
+                        <p>&copy; @DateTime.Now.Year</p>
+                    </div>
+                    <div class="col-md-6 col-sm-4 col-xs-12">
+
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    @Scripts.Render("~/bundles/jquery-frontend")
+    @Scripts.Render("~/bundles/bootstrap-frontend")
+    @Scripts.Render("~/bundles/common-ajax-frontend")
+    @RenderSection("scripts", required: false)
+
+</body>
+</html>

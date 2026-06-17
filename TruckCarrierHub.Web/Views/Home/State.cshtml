@@ -1,0 +1,223 @@
+﻿@using PartnerCarrier.ViewModels.User
+@using PartnerCarrier.ViewModels.Admin;
+@using PartnerCarrier.ViewModels.User
+@using PartnerCarrier.Web.App_Start;
+@using PartnerCarrier.Infrastructure.Contracts.Admin.AdminManagement;
+@using PartnerCarrier.Web.SessionManager;
+@using System.Text.RegularExpressions;
+
+@model CityVM
+@{
+    ViewBag.Title = Model.PageTitle;
+    var _businessManagements = StructuremapMvc.StructureMapDependencyScope.CurrentNestedContainer.GetInstance<IBusinessMangementService>();
+    var globalHiring = _businessManagements.GetGlobalHiring();
+    var reviewsFilter = _businessManagements.GetReviewsFilter();
+    var IsShowOnStatePage = _businessManagements.GetCheckboxListForShowGetAQuoteControl().Where(a => a.Name.Contains("Show on State/Province page")).Select(a => a.ControlToShow).FirstOrDefault();
+
+
+    if (globalHiring.GlobalHire == (int)GLobalHiring.HomeStateAndCityPage || globalHiring.GlobalHire == (int)GLobalHiring.StateAndCityPage)
+    {
+        ViewBag.IsShowGlobalHiringCheckbox = true;
+    }
+
+    if (reviewsFilter.SelectedFilterValue == (int)ManageReviewEnum.HomeStateAndCityPage || reviewsFilter.SelectedFilterValue == (int)ManageReviewEnum.StateAndCityPage)
+    {
+        ViewBag.IsShowReviewsCheckbox = true;
+    }
+
+    ViewBag.IsHiringCheckboxIsChecked = SessionManager.Instance.IsHiringCheckboxIsChecked;
+    ViewBag.IsReviewsFilterCheckboxIsChecked = SessionManager.Instance.IsReviewsFilterCheckboxIsChecked;
+
+    ViewBag.CanonicalUrl = Request.Url.GetLeftPart(UriPartial.Path);
+    String metaDescription;
+    var firstParagraphMatch = Regex.Match(
+        Model.PageDescription ?? "",
+        @"<p>(.*?)</p>",
+        RegexOptions.Singleline | RegexOptions.IgnoreCase
+    );
+    if (firstParagraphMatch.Success == false)
+    {
+        metaDescription = Model.PageDescription;
+    }
+    else
+    {
+        metaDescription = firstParagraphMatch.Success
+            ? Regex.Replace(firstParagraphMatch.Groups[1].Value, "<.*?>", "")
+            : "";
+        metaDescription = metaDescription.Replace("\"", "'");
+    }
+
+
+}
+@section AdditionalMeta
+{
+    <meta name="description" content="@metaDescription" />
+    <link rel="canonical" href="@ViewBag.CanonicalUrl" />
+}
+
+<style>
+    /*Apply style to Get a quote control to overwrite style for only city,state and company page otherwise it disturb UI of Homepage*/
+    .homepage-font-color {
+        color: black !important;
+    }
+</style>
+
+<!-- We had taken this hidden field for identify in js if this is State page or City page for redirection -->
+<input type="hidden" id="fromStatePage" value="true">
+<div class="container">
+    <ul class="breadcrumb">
+        <li><a href="@Url.Action("Index","home")">Home</a></li>
+        <li class="active">@Model.StateName</li>
+    </ul>
+    <div class="row form-group">
+        <div class="col-md-12 col-sm-12">
+            <p id="cityArticle" class="state-article-text">
+                @Html.Raw(Model.PageDescription)
+            </p>
+        </div>
+    </div>
+
+    <div class="row form-group">
+        <div>
+            @* Show Get A Quote Control on this page or not which is set from admin website *@
+            @if (IsShowOnStatePage == true)
+            {
+                @Html.Partial("_GetAQuoteControl", Model.GetAQuoteVM)
+            }
+        </div>
+
+        <div class="col-md-12 text-center">
+            <!-- Banner Section -->
+            @if (Model.OutboundBanner.IsShow)
+            {
+                if (Model.OutboundBanner.IsFollow)
+                {
+
+                    <a href="@Model.OutboundBanner.URL" class="banner-link" title="@Model.OutboundBanner.TitleText" target="_blank">
+                        <img src="get-banner-image?fileName=@Model.OutboundBanner.FileName" style="max-width: 100%; max-height: 200px;" alt="@Model.OutboundBanner.AltText" />
+                    </a>
+
+                }
+                else
+                {
+                    <a href="@Model.OutboundBanner.URL" class="banner-link" title="@Model.OutboundBanner.TitleText" rel="nofollow" target="_blank">
+                        <img src="get-banner-image?fileName=@Model.OutboundBanner.FileName" style="max-width: 100%; max-height: 200px;" alt="@Model.OutboundBanner.AltText" />
+                    </a>
+                }
+            }
+        </div>
+
+        <div class="col-md-12">
+            <h2 class="text-center">Most popular cities</h2>
+            <hr />
+            @if (Model.popularcities.Count > 0)
+            {
+                foreach (var city in Model.popularcities)
+                {
+                    var cityName = city.CityName;
+                    if (city.CityName.Contains(" "))
+                    {
+                        city.CityName = city.CityName.Replace(" ", "-");
+                    }
+                    var action = city.StateCode + "/" + city.CityName;
+                    <div class="col-md-4 col-sm-6 col-xs-12 form-group">
+                        <a class="city-link-font-size" onClick="$('#al').show();" href="@Url.Content("~/" + city.StateCode + "/" + city.CityName)">
+                            @cityName Trucking Companies (@city.CompanyCount)
+                        </a>
+                    </div>
+                }
+            }
+            else
+            {
+                <h4 class="text-center well" colspan="7">No Most Popular City(s) Found</h4>
+            }
+        </div>
+    </div>
+
+
+
+    @if (Model.Cities.Count > 0)
+    {
+        <div class="row form-group">
+            <div class="col-md-12 col-sm-12 text-center margin-bottom-10">
+                <div class="pagination">
+                    <a href="#A" class="btn btn-default btn-default-pager btn-pager">A</a>
+                    <a href="#B" class="btn btn-default btn-default-pager btn-pager">B</a>
+                    <a href="#C" class="btn btn-default btn-default-pager btn-pager">C</a>
+                    <a href="#D" class="btn btn-default btn-default-pager btn-pager">D</a>
+                    <a href="#E" class="btn btn-default btn-default-pager btn-pager">E</a>
+                    <a href="#F" class="btn btn-default btn-default-pager btn-pager">F</a>
+                    <a href="#G" class="btn btn-default btn-default-pager btn-pager">G</a>
+                    <a href="#H" class="btn btn-default btn-default-pager btn-pager">H</a>
+                    <a href="#I" class="btn btn-default btn-default-pager btn-pager">I</a>
+                    <a href="#J" class="btn btn-default btn-default-pager btn-pager">J</a>
+                    <a href="#K" class="btn btn-default btn-default-pager btn-pager">K</a>
+                    <a href="#L" class="btn btn-default btn-default-pager btn-pager">L</a>
+                    <a href="#M" class="btn btn-default btn-default-pager btn-pager">M</a>
+                </div>
+
+                <div class="">
+                    <a href="#N" class="btn btn-default btn-default-pager btn-pager">N</a>
+                    <a href="#O" class="btn btn-default btn-default-pager btn-pager">O</a>
+                    <a href="#P" class="btn btn-default btn-default-pager btn-pager">P</a>
+                    <a href="#Q" class="btn btn-default btn-default-pager btn-pager">Q</a>
+                    <a href="#R" class="btn btn-default btn-default-pager btn-pager">R</a>
+                    <a href="#S" class="btn btn-default btn-default-pager btn-pager">S</a>
+                    <a href="#T" class="btn btn-default btn-default-pager btn-pager">T</a>
+                    <a href="#U" class="btn btn-default btn-default-pager btn-pager">U</a>
+                    <a href="#V" class="btn btn-default btn-default-pager btn-pager">V</a>
+                    <a href="#W" class="btn btn-default btn-default-pager btn-pager">W</a>
+                    <a href="#X" class="btn btn-default btn-default-pager btn-pager">X</a>
+                    <a href="#Y" class="btn btn-default btn-default-pager btn-pager">Y</a>
+                    <a href="#Z" class="btn btn-default btn-default-pager btn-pager">Z</a>
+                </div>
+            </div>
+        </div>
+        for (char charater = 'A'; charater <= 'Z'; charater++)
+        {
+            var avalaibleCity = new List<CityVM>();
+            avalaibleCity = Model.Cities.Where(b => b.CityName.ToUpper().StartsWith(@charater.ToString())).ToList();
+            if (avalaibleCity.Count > 0)
+            {
+                <div class="row form-group">
+                    <div class="col-md-12 divcitylistheader" id="A">
+                        <h4 id="@charater" class="text-center h2backcolor well">CITIES AND TOWNS BEGINNING WITH (@charater) <a><i class="fa fa-arrow-up pull-right up-arrow-citypage"></i></a></h4>
+                        @foreach (var city in avalaibleCity)
+                        {
+                            var cityName = city.CityName;
+                            if (city.CityName.Contains(" "))
+                            {
+                                city.CityName = city.CityName.Replace(" ", "-");
+                            }
+                            <div class="col-md-4 col-sm-6 col-xs-12 form-group">
+                                <a class="city-link-font-size" onClick="$('#al').show();" href="@Url.Content("~/"+ city.StateCode + "/" + city.CityName)">
+                                    @cityName Trucking Companies (@city.CompanyCount)
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    }
+    else
+    {
+        <div class="row form-group">
+            <div class="col-md-12">
+                <h4 class="text-center well" colspan="7">No City(s) Found</h4>
+            </div>
+        </div>
+    }
+</div>
+<script src="~/Themes/Bootstrap/plugins/jquery-1.10.2/jquery-1.10.2.js"></script>
+<script>
+    $(".up-arrow-citypage").click(function () {
+        window.scrollTo(document.body.scrollHeight, 0);
+    });
+    // Here, hiding the loader which is being displayed when navigate from City page to state page by browser navigation
+    // And this loader is not being hidden so hide this programmatically
+    setTimeout(() => {
+        $("#al").hide();
+    }, 100);
+
+</script>

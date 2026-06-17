@@ -1,0 +1,85 @@
+﻿@using PartnerCarrier.ViewModels.Admin
+@model BusinessSearchVM
+@{
+    ViewBag.Title = "Manage Business";
+}
+<div class="row">
+    <div class="col-md-12">
+        <h2> @ViewBag.Title</h2>
+    </div>
+</div>
+<hr class="small" />
+
+@*Append error message with HTML using jquery*@
+<div class="row" id="dvNotification"></div>
+
+@using (Ajax.BeginForm("delete-business", "business", new { Area = "admin" }, new AjaxOptions
+{
+    HttpMethod = "POST",
+    OnSuccess = "vm.OnSuccessDeleteBusinessById",
+    OnFailure = "vm.OnFailureDeleteBusinessById",
+    UpdateTargetId = "businessSearchList"
+}, new { id = "deleteBusinessForm" }))
+{
+    <input type="hidden" name="BusinessId" id="BusinessId" value="" />
+}
+
+@using (Ajax.BeginForm("business-reset-password", "business", new { Area = "admin" }, new AjaxOptions
+{
+    HttpMethod = "POST",
+    OnSuccess = "vm.OnSuccessResetPasswordBusiness",
+    OnFailure = "vm.OnFailureResetPasswordBusiness"
+}, new { id = "resetPasswordBusinessForm" }))
+{
+    <input type="hidden" name="usDOTNumberForResetPassword" id="usDOTNumberForResetPassword" value="" />
+}
+
+@using (Ajax.BeginForm("BusinessSearchListPartial", "Business", null, new AjaxOptions
+{
+    HttpMethod = "GET",
+    OnSuccess = "vm.OnSuccessBindBusinessSearchList",
+    OnFailure = "vm.OnFailureBusinessSearchList",
+    UpdateTargetId = "businessSearchList"
+}, new { id = "businessSearchListForm" }))
+{
+    <div class="row">
+        <div class="col-sm-12 col-md-3 form-group">
+            @Html.TextBoxFor(x => x.USDOTNumber, new { maxlength = "50", onkeypress = "return vm.isNumberKey(event)", placeholder = "USDOT Number", @class = "form-control", id = "searchedUSDOTNumber" })
+            @Html.ValidationMessageFor(m => m.USDOTNumber, "", new { @class = "text-danger" })
+
+        </div>
+        <div class="col-sm-12 col-md-3 form-group">
+            @Html.TextBoxFor(x => x.BusinessContactEmail, new { maxlength = "256", placeholder = "Email Address", @class = "form-control", id = "searchedBusinessContactEmail" })
+            @Html.ValidationMessageFor(m => m.BusinessContactEmail, "", new { @class = "text-danger" })
+        </div>
+        <div class="col-sm-12 col-md-3 form-group">
+            @Html.TextBoxFor(x => x.UpdatedAfter, new { maxlength = "256", placeholder = "Updated After", @class = "form-control datepicker",autocomplete = "off" })
+            @Html.ValidationMessageFor(m => m.UpdatedAfter, "", new { @class = "text-danger" })
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12 col-md-9">
+            <label class="radio-inline"> @Html.RadioButtonFor(model => model.ApprovedWebsite, "Default", new { @checked = "checked" }) Default </label>
+            <label class="radio-inline"> @Html.RadioButtonFor(model => model.ApprovedWebsite, "Approved") Only records with approved websites </label>
+            <label class="radio-inline"> @Html.RadioButtonFor(model => model.ApprovedWebsite, "NotApproved") Only records with not approved websites </label>
+        </div>
+        <div class="col-sm-12 col-md-3 form-group text-right">
+            <button type="submit" class="btn btn-primary form-group" title="Search"><i class="fa fa-search" aria-hidden="true"></i> Search</button>
+            <button type="button" class="btn btn-primary" onclick="vm.clearsearch()"><i class="fa fa-refresh" title="Clear"></i> Clear</button>
+        </div>
+    </div>
+}
+
+
+
+<div class="row">
+    <div class="col-md-12">
+        <div id="businessSearchList">
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/Areas/Admin/Content/PageScript/AdminUsers/business-search-list.js"></script>
+
+}

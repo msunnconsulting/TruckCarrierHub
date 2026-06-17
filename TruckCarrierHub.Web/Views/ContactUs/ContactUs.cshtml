@@ -1,0 +1,75 @@
+﻿@using Common.Utility.GoogleCaptchaHelper;
+@using PartnerCarrier.ViewModels.User;
+@model ContactUsVM
+@{
+    ViewBag.Title = "ContactUs";
+}
+<div id="contactus-bg-img">
+    <section class="content">
+        <div class="container">
+            <div class="row">
+                <div class="col-sm-2"></div>
+                <div class="col-sm-8 contact-form">
+                    <h2 class="text-center">Contact Us</h2>
+                    @if (TempData["SuccesMessageAfterSubmitInformation"] != null)
+                    {
+                        <p class="text-center text-success">@TempData["SuccesMessageAfterSubmitInformation"]</p>
+                    }
+                    @if (TempData["EmailErrorMesaage"] != null)
+                    {
+                        <p class="text-center text-danger">@TempData["EmailErrorMesaage"]</p>
+                    }
+                    @using (Html.BeginForm(Url.Content("~/contact_us"), "", FormMethod.Post))
+                    {
+                        <div class="row">
+                            <div class="col-xs-12 col-md-12 form-group">
+                                <label>Name</label>
+                                @Html.TextBoxFor(m => m.Name, new { placeholder = "Enter Name", @class = "form-control", autocomplete = "off" })
+                                @Html.ValidationMessageFor(m => m.Name, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="col-xs-12 col-md-6 form-group">
+                                <label>Email Address</label>
+                                @Html.TextBoxFor(m => m.Email, new { placeholder = "Enter Email", @class = "form-control", autocomplete = "off" })
+                                @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="col-xs-12 col-md-6 form-group">
+                                <label>Phone</label>
+                                @Html.TextBoxFor(m => m.Phone, new { placeholder = "Enter Phone", @class = "form-control", autocomplete = "off" })
+                                @Html.ValidationMessageFor(m => m.Phone, "", new { @class = "text-danger" })
+                            </div>
+                            <div class="col-xs-12 col-md-12 form-group">
+                                <label>Subject</label>
+                                @Html.TextBoxFor(m => m.Subject, new { placeholder = "Enter Subject", @class = "form-control", autocomplete = "off" })
+                                @Html.ValidationMessageFor(m => m.Subject, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-xs-12 form-group">
+                                <label>Message</label>
+                                @Html.TextAreaFor(m => m.Message, new { placeholder = "Enter Message", @class = "form-control", autocomplete = "off", @id = "contact_us_textarea" })
+                                @Html.ValidationMessageFor(m => m.Message, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group">
+                                <div class="col-md-12 col-xs-12 col-sm-12">
+                                    @Html.GoogleCaptcha()
+                                    @Html.InvalidGoogleCaptchaLabel("Captcha is not valid !")
+                                </div>
+                            </div>
+                        </div>
+
+                        <br />
+                        <div class="row">
+                            <div class="col-xs-12 col-md-12 form-group">
+                                <button class="btn btn-primary text-center" type="submit">Submit</button>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="col-sm-2"></div>
+            </div>
+        </div>
+    </section>
+</div>
+ 

@@ -1,0 +1,69 @@
+﻿@using Common.Utility.ViewModels;
+@using Common.Utility.Extensions;
+@using PartnerCarrier.ViewModels.Admin;
+@model CommonCarrierAndPagelistVM
+
+<div class="table-responsive">
+    <table class="table table-bordered">
+        <tr>
+            <th width="15%">
+                @Html.SortLink("vm.pageSort", "Company Name", "CompanyName", "carrier-list-partial", "business", null, Model.PagedListVM.Sorting, Model.PagedListVM.Pagination)
+            </th>
+            <th width="15%">
+                @Html.SortLink("vm.pageSort", "Email Addess", "ContactEmail1", "carrier-list-partial", "business", null, Model.PagedListVM.Sorting, Model.PagedListVM.Pagination)
+            </th>
+            <th width="15%">
+                @Html.SortLink("vm.pageSort", "Phone Number", "ContactPhone1", "carrier-list-partial", "business", null, Model.PagedListVM.Sorting, Model.PagedListVM.Pagination)
+            </th>
+            <th width="15%">
+                @Html.SortLink("vm.pageSort", "Website", "Website", "carrier-list-partial", "business", null, Model.PagedListVM.Sorting, Model.PagedListVM.Pagination)
+            </th>
+            <th width="5%" class="text-center">
+                Actions
+            </th>
+        </tr>
+        <tbody>
+            @if (Model.PagedListVM.Items.Count > 0)
+            {
+                foreach (var carrier in Model.PagedListVM.Items)
+                {
+                    <tr>
+                        <td>
+                            @carrier.CompanyName
+                        </td>
+                        <td>
+                            @carrier.ContactEmail1
+                        </td>
+                        <td>
+                            @carrier.ContactPhone1
+                        </td>
+                        <td>
+                            @carrier.Website
+                        </td>
+                        <td class="text-center">
+                            @* For Edit Carrier Operation *@
+                            <a href="@Url.Action("edit-carrier/"+carrier.Id, "business", new {  p = Model.PagedListVM.Pagination.PageIndex, se = Model.PagedListVM.Sorting.SortExpression, sd = Model.PagedListVM.Sorting.SortDirectionString })" title="Edit"><i class="fa fa-edit font-14"></i></a>
+
+                            @* For Activate and Deactivate Carrier Operation *@
+                            @if (carrier.CarrierActive)
+                            {
+                                <a href="javascript:void(0);" title="InActivate Carrier" class="deactivateuser" onclick="vm.InactivateCarrier(@carrier.Id);"><i class="fa fa-times"></i></a>
+                            }
+                            else
+                            {
+                                <a href="javascript:void(0);" title="Activate Carrier" class="activateuser" onclick="vm.ActivateCarrier(@carrier.Id);"> <i class="fa fa-check"></i></a>
+                            }
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr><td class="text-center well" colspan="5">No Record(s) Found</td></tr>
+            }
+        </tbody>
+    </table>
+</div>
+@Html.Pager("vm.pageSort", "carrier-list-partial", "business", null, Model.PagedListVM.Pagination, Model.PagedListVM.Sorting)
+
+

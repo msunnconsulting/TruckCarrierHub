@@ -1,0 +1,142 @@
+﻿@using PartnerCarrier.ViewModels.User
+@using Common.Utility.Extensions;
+@using Common.Utility.Helpers.MVC.Extensions;
+@model CompanyVM
+@{
+    ViewBag.Title = Model.PageTitle;
+    var cityName = "";
+    var legalName = "";
+    var state = "";
+    var companyNameForUrl = "";
+}
+<div class="row hidden-sm hidden-xs">
+    <div class="col-md-5 col-sm-12 hidden-xs nopadding-left">
+        @Html.Pager("vm.OnPageChange", "City", "home", new { stateCode = Model.StateCode, city = Model.City}, Model.Companies.Pagination, Model.Companies.Sorting)
+    </div>
+    <div class="col-md-4 col-sm-12">
+        <h2 class="pull-left">@Model.hdnCityName</h2>
+    </div>
+    <div class="col-md-3" style="display:none">
+        @if (Model.Companies.Pagination.TotalCount > 0)
+            {
+            <h4 class="total-found-companies-padding pull-right">Found @Model.Companies.Pagination.TotalCount Results</h4>
+        }
+    </div>
+
+</div>
+@Html.HiddenFor(m=>m.Companies.Pagination.PageIndex,new { id="pageIndex"})
+@Html.HiddenFor(m => m.Companies.Sorting.SortDirection, new { id = "sortDirection" })
+@Html.HiddenFor(m => m.Companies.Sorting.SortExpression, new { id = "sortExpression" })
+    @if (Model.Companies.Items.Count > 0)
+    {
+        for (int i = 0; i < Model.Companies.Items.Count; i++)
+        {
+            var company = Model.Companies.Items[i];
+            state = company.PhysicalAddressStateCode;
+            cityName = company.City;
+            
+            if (company.City.Contains(" "))
+            {
+                company.City = company.City.Replace(" ", "-");
+            }
+
+            <div class="row">
+                <div class="col-md-12 col-sm-12 div-border">
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <a class="" href="@Url.Content("~/"+state+"/USDOT-"+@company.USDOTNumber)">
+                                    <h4>
+                                        @company.CompanyName
+                                        @if (company.Status.ToLower() == "i")
+                                        {
+                                            <b class="inactive-status">- Inactive</b>
+                                        }
+                                    </h4>
+                                </a>
+                            </div>
+                            <div class="col-md-12">
+                                <div>
+                                    @company.PhysicalAddressStreet @cityName<text>,</text> @company.StateCode @company.PhysicalAddressZipCode
+                                </div>
+                                <div>
+                                    @if (@company.TruckOrTractor.HasValue)
+                                    {
+                                        <strong>Trucks/Tractors : </strong>@company.TruckOrTractor
+                                    }
+                                    else
+                                    {
+                                        var notAvailable = "N/A";
+                                        <strong>Trucks/Tractors : </strong>@notAvailable
+                                    }
+
+                                    @if (@company.NNDriversGrandTotalInterstateAndIntrastate.HasValue)
+                                    {
+                                        <strong>Drivers : </strong>@company.NNDriversGrandTotalInterstateAndIntrastate
+                                    }
+                                    else
+                                    {
+                                        var notAvailable = "N/A";
+                                        <strong>Drivers : </strong>@notAvailable
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="row padding-row">
+                            <div class="col-md-3">
+                                <strong>USDOT : </strong>@company.USDOTNumber
+                            </div>
+                            <div class="col-md-3">
+                                @if (@company.IccDocketNumberFirst.HasValue)
+                                {
+                                    <strong>MC : </strong>@company.IccDocketNumberFirst
+                                }
+                                else
+                                {
+                                    var notAvailable = "N/A";
+                                    <strong>MC :</strong>@notAvailable
+                                }
+
+                            </div>
+                            <div class="col-md-3 nopadding-right">
+                                @if (!string.IsNullOrEmpty(@company.OfficeTelephoneNumber))
+                                {
+                                    var phone = @company.OfficeTelephoneNumber.Insert(3, "-");
+                                    phone = phone.Insert(7, "-");
+                                    <strong> <i class="fa fa-phone"></i> </strong>
+                                    <a href='tel:+1-@phone'>@phone</a>
+                                }
+                                else if (!string.IsNullOrEmpty(@company.CellPhoneNumber))
+                                {
+                                    var phone = @company.CellPhoneNumber.Insert(3, "-");
+                                    phone = phone.Insert(7, "-");
+                                    <strong> <i class="fa fa-phone"></i> </strong>
+                                    <a href='tel:+1-@phone'>@phone</a>
+                                }
+                                else
+                                {
+                                    <text>N/A</text>
+                                }
+                            </div>
+                            <div class="col-md-3">
+                                <a class="btn btn-primary pull-right" href="@Url.Content("~/"+state+"/USDOT-"+@company.USDOTNumber)"> View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <p class="text-center well" colspan="7">No trucking company matched your search criteria.</p>
+    }
+
+    <div class="row">
+        <div class="col-md-12 nopadding-left">
+            @Html.Pager("vm.OnPageChange", "City", "home", new { stateCode = state, city = cityName}, Model.Companies.Pagination, Model.Companies.Sorting)
+        </div>
+    </div>
+@*<script src="~/Content/User/search-filter-on-company.js"></script>*@

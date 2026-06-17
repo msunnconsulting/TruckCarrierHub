@@ -1,0 +1,12 @@
+﻿@using Common.Utility;
+@{
+    var theme = Config.GetValue("AdminThemeName");
+    if (!string.IsNullOrEmpty(theme))
+    {
+        Layout = "~/Areas/Admin/Themes/"+ theme + "/Views/Shared/_Layout.cshtml";
+    }
+    else
+    {
+        Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+    }
+}

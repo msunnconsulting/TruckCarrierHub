@@ -1,0 +1,31 @@
+﻿@using PartnerCarrier.Infrastructure
+@using PartnerCarrier.ViewModels.Admin;
+@using Common.Utility
+@{
+    var userInfo = FormsAuthService.Instance.LoggedInUser(Config.GetValue("SetupLoginAuthenticationName"));
+}
+@if (userInfo != null && userInfo.Role == UserRole.SetupAdmin)
+{
+    using (Html.BeginForm("LogOff", "Setup", FormMethod.Post, new { id = "logoutFormss", @class = "navbar-right" }))
+    {
+        @Html.AntiForgeryToken()
+    }
+        <ul class="nav navbar-nav navbar-right">
+            <li class="dropdown">
+                <a class="dropdown-toggle setup-Topmenu-Link" data-toggle="dropdown" href="#">@userInfo.EmailAddress <span class="fa fa-cog"></span></a>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a href="javascript:document.getElementById('logoutFormss').submit()">Log Out</a>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+     
+}
+else
+{
+    <ul class="nav navbar-nav navbar-right">
+        <li>@Html.ActionLink("Log in", "LogIn", "Setup", routeValues: null, htmlAttributes: new { id = "loginLink" })</li>
+    </ul>
+}
+

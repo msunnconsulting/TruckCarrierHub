@@ -1,0 +1,319 @@
+﻿@using PartnerCarrier.ViewModels.Admin
+@model CreatCityArticlesVM
+
+@{
+    ViewBag.Title = "Create City Article";
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>CreateCityArticle</title>
+</head>
+<body>
+    <div class="row">
+        <div class="col-md-10">
+            <h2> @ViewBag.Title</h2>
+        </div>
+    </div>
+    <hr class="small" />
+    <div class="row" id="dvNotification"></div>
+
+    <div class="row">
+        <form id="createCityArticlesForm">
+            @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+            <div class="col-md-10">
+                <div class="row">
+                    <div class="col-md-3 col-sm-3">
+                        @Html.DropDownListFor(c => c.Country, new SelectList(Model.CountryList, "Value", "Text"), "-- Select  Country --", new { @class = "form-control", id = "country" })
+                    </div>
+                    <div class="col-md-3 col-sm-3">
+                        @Html.DropDownListFor(s => s.State, new SelectList(Model.StateList, "Value", "Text"), "-- Select  State --", new { @class = "form-control", id = "state" })
+                    </div>
+                    <div class="col-md-3 col-sm-3">
+                        @Html.DropDownListFor(c => c.City, new SelectList(Model.CityList, "Value", "Text"), "-- Select  City --", new { @class = "form-control", id = "city" })
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-10 margin-top-15">
+                <div class="row display-flex">
+                    <div class="col-md-3 col-sm-3 text-nowrap align-self-center">
+                        Cities with number of companies between
+                    </div>
+                    <div class="col-md-1 col-sm-1 margin-left-25">
+                        @Html.TextBoxFor(model => model.NumberOfCompaniesFrom, new { @class = "form-control", id = "numberOfCompaniesFrom" })
+                    </div>
+                    <div class="col-md-1 col-sm-1 padding0 text-center width-30 align-self-center">
+                        to
+                    </div>
+                    <div class="col-md-1 col-sm-1">
+                        @Html.TextBoxFor(model => model.NumberOfCompaniesTo, new { @class = "form-control", id = "numberOfCompaniesTo" })
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-10 margin-top-15">
+                <label class="font-weight-normal">@Html.CheckBoxFor(m => m.IsCitiesWithoutArticles, new { id = "isCitiesWithoutArticles" }) Only Cities without articles should be affected.</label>
+            </div>
+
+            <div class="col-md-10 margin-top-15">
+                <div class="row">
+                    <div class="col-md-3 col-sm-3">
+                        <button type="button" class="btn btn-primary"  onclick="onHowManyCitiesSelectedButtonClick()" title="Save">How many cities selected ?</button>
+                    </div>
+                    <div class="col-md-2 col-sm-2">
+                        @Html.TextBoxFor(model => model.NumberOfCitiesSelected, new { @class = "form-control", @type = "number", @readonly = "readonly" })
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-10 margin-top-15">
+                <label class="font-weight-normal">Enter your chatGPT prompt :</label>
+                @Html.TextAreaFor(model => model.Prompt, new { @class = "form-control", @cols = 10, @rows = 5, id = "prompt" })
+                @Html.ValidationMessageFor(model => model.Prompt, "", new { @class = "text-danger" })
+            </div>
+        </form>
+    </div>
+
+    <hr />
+    <div class="row form-group">
+        <div class="col-sm-10 col-md-10">
+            <div class="form-group">
+                <div class="row">
+                    <div class="col-md-4"></div>
+                    <div class="col-md-4 display-flex justify-content-space-around">
+                        <button type="button" class="btn btn-primary" value="Save" title="Save" id="createArticleButton" onclick="onCreateArticaleButtonClick()" disabled><i class="fa fa-save"></i> Create article</button>
+                        <a href="@Url.Action("email", "business")" title="Back" class="btn btn-default"><i class="fa fa-arrow-left"></i> Cancel</a>
+                    </div>
+                    <div class="col-md-4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @section Scripts {
+        <script type="text/javascript">
+            $(document).ready(function () {
+
+                $.validator.unobtrusive.parse($("#createCityArticlesForm"));
+
+                // Initialize the dropdowns
+                disablePlaceholder('country');
+                disablePlaceholder('state');
+                disablePlaceholder('city');
+
+                // Disable Prompt textarea and Create Article button by default
+                $('#prompt').prop('disabled', true);
+                $('#createArticleButton').prop('disabled', true);
+
+                // Disable the state and city dropdowns initially
+                $('#state').prop('disabled', true);
+                $('#city').prop('disabled', true);
+
+                // Bind the change event to country dropdown
+                $('#country').change(function () {
+                    var countryId = $(this).val();
+                    if (countryId) {
+                        enableDropdown('#state');
+                        loadStatesByCountry(countryId);
+                    } else {
+                        disableDropdown('#state');
+                        disableDropdown('#city');
+                    }
+                });
+
+                // Bind the change event to state dropdown
+                $('#state').change(function () {
+                    var countrycode = $("#country").val();
+                    var stateCode = $(this).val();
+                    if (stateCode && countrycode) {
+                        enableDropdown('#city');
+                        loadCitiesByState(countrycode,stateCode);
+                    } else {
+                        disableDropdown('#city');
+                    }
+                });
+
+                $('#country, #state, #city, #numberOfCompaniesFrom, #numberOfCompaniesTo, #isCitiesWithoutArticles').on('change', function () {
+                    $('#prompt').prop('disabled', true);
+                    $('#createArticleButton').prop('disabled', true);
+                });
+
+            })
+
+            /**
+             * To make placeholder for 3 of dropdown disabled.
+             **/
+            function disablePlaceholder(dropdownId) {
+                var dropdown = $("#" + dropdownId);
+                dropdown.change(function () {
+                    if (dropdown.val() !== "") {
+                        dropdown.find("option[value='']").prop("disabled", true);
+                    } else {
+                        dropdown.find("option[value='']").prop("disabled", false);
+                    }
+                });
+            }
+
+            /**
+             * This method will be called to get how many cities will be affected.
+             **/
+            function onHowManyCitiesSelectedButtonClick() {
+
+                var numberOfCitiesSelected = $("#numberOfCitiesSelected").val();
+
+                if (parseInt(numberOfCitiesSelected) > 0) {
+                    $("#promptTextarea").prop('disabled', false);
+                    $("#createArticleButton").prop('disabled', false);
+                } else {
+                    $("#promptTextarea").prop('disabled', true);
+                    $("#createArticleButton").prop('disabled', true);
+                }
+            }
+
+            /**
+             * This function used to get state list on selecting country.
+             **/
+            function loadStatesByCountry(countryId) {
+                $.ajax({
+                    url: "/admin/business/get-state-list/" + countryId,
+                    type: 'GET',
+                    success: function (data) {
+                        var stateDropdown = $('#state');
+                        stateDropdown.empty();
+                        stateDropdown.append('<option value="">-- Select State --</option>');
+                        var cityDropdown = $('#city');
+                        cityDropdown.empty();
+                        cityDropdown.append('<option value="">-- Select City --</option>');
+                        if (data && data.length > 0) {
+                            $.each(data, function (index, state) {
+                                stateDropdown.append('<option value="' + state.Value + '">' + state.Text + '</option>');
+                            });
+                        }
+                        // Reset city dropdown
+                        disableDropdown('#city');
+                    },
+                    error: function (xhr, status, error) {
+                        console.error(error);
+                    }
+                });
+            }
+
+            /**
+             * This function used to get city list on selecting state.
+             **/
+            function loadCitiesByState(countryCode,stateCode) {
+                $.ajax({
+                    url: "/admin/business/get-city-list/" + countryCode + "/"+ stateCode,
+                    type: 'GET',
+                    success: function (data) {
+                        var cityDropdown = $('#city');
+                        cityDropdown.empty();
+                        cityDropdown.append('<option value="">-- Select City --</option>');
+                        if (data && data.length > 0) {
+                            $.each(data, function (index, city) {
+                                cityDropdown.append('<option value="' + city.Value + '">' + city.Text + '</option>');
+                            });
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error(error);
+                    }
+                });
+            }
+
+            // Function to disable a dropdown by clearing its options and setting it as disabled
+            function disableDropdown(selector) {
+                var dropdown = $(selector);
+                dropdown.prop('disabled', true);
+            }
+
+            // Function to enable a dropdown
+            function enableDropdown(selector) {
+                var dropdown = $(selector);
+                dropdown.prop('disabled', false);
+            }
+
+            /**
+             * Called when save button gets clicked
+             */
+            function onCreateArticaleButtonClick() {
+
+                if ($("#createCityArticlesForm").valid()) {
+                    var selecteCitiesCriteria = {
+                        CountryCode: $("#country").val(),
+                        StateCode: $("#state").val(),
+                        CityName: $("#city").val(),
+                        FromNumberCompany: $("#numberOfCompaniesFrom").val(),
+                        ToNumberCompany: $("#numberOfCompaniesTo").val(),
+                        OnlyAffectNullArticleCities: $("#isCitiesWithoutArticles").prop("checked")
+                    };
+                    var promptText = $('#prompt').val();
+
+                    $.ajax({
+                        url: "/admin/business/create-article",
+                        type: "POST",
+                        data: {
+                            selectCitiesCriteria: selecteCitiesCriteria,
+                            promptText: promptText
+                        },
+                        success: function (response) {
+                            if (response) {
+                                showAlertMessage("#dvNotification", response.split(":")[0].toLowerCase(), response.split(":")[1]);
+                                if (response.split(":")[0].toLowerCase() == "success") {
+                                    location.reload();
+                                }
+                            }
+                        },
+                        error: function (request, status, error) {
+                            console.log(error);
+                        }
+                    });
+                }
+            }
+
+            /**
+             * To get city count, on which article will be affected.
+             * */
+            function onHowManyCitiesSelectedButtonClick() {
+
+                var formData = {
+                    CountryCode: $("#country").val(),
+                    StateCode: $("#state").val(),
+                    CityName: $("#city").val(),
+                    FromNumberCompany: $("#numberOfCompaniesFrom").val() || null,
+                    ToNumberCompany: $("#numberOfCompaniesTo").val() || null,
+                    OnlyAffectNullArticleCities: $("#isCitiesWithoutArticles").prop("checked"),
+                }
+
+                $.ajax({
+                    url: "/admin/business/get-selected-cities-for-create-article",
+                    type: "GET",
+                    data: formData,
+                    success: function (response) {
+
+                        $('#NumberOfCitiesSelected').val(response);
+
+                        // Check if the response is greater than 0
+                        if (response > 0) {
+                            // Enable the prompt textarea and the create article button
+                            $('#prompt').prop('disabled', false);
+                            $('#createArticleButton').prop('disabled', false);
+                        } else {
+                            // Disable the prompt textarea and the create article button
+                            $('#prompt').prop('disabled', true);
+                            $('#createArticleButton').prop('disabled', true);
+                        }
+                    },
+                    error: function (request, status, error) {
+                        console.log(error);
+                    }
+                });
+            }
+
+        </script>
+    }
+
+</body>
+</html>

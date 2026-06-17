@@ -1,0 +1,2 @@
+﻿ALTER TABLE [Admin] ADD  [CityArticlesAllowed]  BIT NOT NULL DEFAULT 0;
+ALTER TABLE [Admin] ADD  [NumberOfWords] INT NOT NULL DEFAULT 50;

@@ -1,0 +1,40 @@
+﻿@using Common.Utility.ViewModels;
+@model PageSortPara
+@{
+    ViewBag.Title = "Manage Emails";
+}
+<div class="row">
+    <div class="col-md-12">
+        <h2>Manage Emails</h2>
+    </div>
+</div>
+<hr class="small" />
+
+@*Append error message with HTML using jquery*@
+<div class="row" id="dvNotification"></div>
+
+@using (Ajax.BeginForm("email", "business", new { Area = "admin" }, new AjaxOptions
+{
+    HttpMethod = "GET",
+    OnSuccess = "vm.OnSuccessEmailList",
+    OnFailure = "vm.OnFailureEmailList",
+    UpdateTargetId = "emailList"
+}, new { id = "emailForm" }))
+{
+
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <div id="emailList">
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+ 
+
+    
+<script src="~/Areas/Admin/Content/PageScript/AdminUsers/emails-list.js"></script>
+}

@@ -1,0 +1,276 @@
+﻿@using PartnerCarrier.ViewModels.User
+
+@model BusinessVM
+@{
+    ViewBag.Title = "Create Account";
+}
+
+<div id="contactus-bg-img">
+    <section class="content">
+        <div class="container">
+            @if (!string.IsNullOrEmpty(Model.CompanyEmailAddress))
+            {
+                <div class="row">
+                    <div class="col-sm-3"></div>
+
+                    <div class="col-sm-6 contact-form">
+
+                        <h2 class="text-center">Create Account</h2>
+
+                        @*Append error message with HTML using jquery*@
+                        <div class="row" id="dvNotification"></div>
+                        @using (Ajax.BeginForm("CreateAccount", "Home", null, new AjaxOptions
+                        {
+                            HttpMethod = "POST",
+                            OnSuccess = "vm.CreateAccountOnSuccess",
+                            OnFailure = "vm.CreateAccountOnFailure"
+                        }, new { @class = "form-horizontal" }))
+                        {
+                            @Html.AntiForgeryToken()
+
+                            @Html.HiddenFor(x => x.CompanyEmailAddress)
+                            @Html.HiddenFor(x => x.IsNowHiring, new { @value = "false" })
+                            <div class="row">
+                                <p>You may wish to create an account on TruckCarrierHub.com in order to:</p>
+                                <ul style="list-style-type:disc;">
+                                    <li>Post and manage your job openings - free of charge</li>
+                                    <li>Place link to your website on your company's page - free of charge</li>
+                                </ul>
+                                <p>We are continuously adding new functionalities, stay tuned!</p>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-xs-12 col-md-12 form-group">
+                                    <label>Password (at least six characters that are a combination of letters and numbers):</label>
+                                    @Html.PasswordFor(m => m.Password, new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger" })
+                                </div>
+                                <div class="col-xs-12 col-md-12 form-group">
+                                    <label>Confirm Password :</label>
+                                    @Html.PasswordFor(m => m.ConfirmPassword, new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(m => m.ConfirmPassword, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+                            <br />
+
+                            <div class="row">
+                                <div class="col-xs-12 col-md-12 form-group">
+                                    @{
+                                        var email = Model.CompanyEmailAddress;
+                                        string appendEmailwithDashed = "";
+                                        string firstpart = "";
+                                        string secondpart = "";
+                                        string lastpart = "";
+
+                                        if (!email.Contains("@"))
+                                        {
+                                            var first = email.Substring(0, (int)(email.Length / 2));
+                                            var last = email.Substring((int)(email.Length / 2), (int)(email.Length / 2));
+
+
+                                            if (first.Length >= 3)
+                                            {
+                                                first = first.Substring(0, 3);
+                                                last = last.Substring(0, 3);
+                                                appendEmailwithDashed = CreateEmailwithDashedForNotValidEmail(first, last);
+                                            }
+
+                                            else if (first.Length >= 2)
+                                            {
+                                                first = first.Substring(0, 2);
+                                                last = last.Substring(0, 2);
+                                                appendEmailwithDashed = CreateEmailwithDashedForNotValidEmail(first, last);
+
+                                            }
+                                            else if (first.Length >= 1)
+                                            {
+                                                first = first.Substring(0, 2);
+                                                last = last.Substring(0, 2);
+                                                appendEmailwithDashed = CreateEmailwithDashedForNotValidEmail(first, last);
+                                            }
+                                            else
+                                            {
+                                                first = first.Substring(0, 2);
+                                                last = last.Substring(0, 2);
+
+                                                appendEmailwithDashed = first + "---" + last + "---";
+                                            }
+                                        }
+                                        else
+                                        {
+                                            var firstSplitPart = email.Split('@')[0];
+                                            var SecondSplitPart = email.Split('@')[1];
+
+                                            if (firstSplitPart.Length >= 3)
+                                            {
+                                                firstpart = firstSplitPart.Substring(0, 3);
+                                                secondpart = SecondSplitPart.Substring(0, SecondSplitPart.IndexOf(".") >= 3 ? 3 : SecondSplitPart.IndexOf("."));
+
+                                                int indexOfAt = email.IndexOf('@');
+                                                var domain = email.Substring(indexOfAt + 1);
+                                                int indexOfDot = domain.IndexOf('.');
+                                                lastpart = domain.Substring(indexOfDot + 1);
+
+                                                appendEmailwithDashed = CreateEmailwithDashed(firstpart, secondpart, lastpart);
+                                            }
+                                            else if (firstSplitPart.Length >= 2)
+                                            {
+                                                firstpart = firstSplitPart.Substring(0, 2);
+                                                secondpart = SecondSplitPart.Substring(0, SecondSplitPart.IndexOf(".") >= 3 ? 3 : SecondSplitPart.IndexOf("."));
+
+                                                int indexOfAt = email.IndexOf('@');
+                                                var domain = email.Substring(indexOfAt + 1);
+                                                int indexOfDot = domain.IndexOf('.');
+                                                lastpart = domain.Substring(indexOfDot + 1);
+
+                                                appendEmailwithDashed = CreateEmailwithDashed(firstpart, secondpart, lastpart);
+
+                                            }
+                                            else if (firstSplitPart.Length >= 1)
+                                            {
+                                                firstpart = firstSplitPart.Substring(0, 1);
+                                                secondpart = SecondSplitPart.Substring(0, SecondSplitPart.IndexOf(".") >= 3 ? 3 : SecondSplitPart.IndexOf("."));
+
+                                                int indexOfAt = email.IndexOf('@');
+                                                var domain = email.Substring(indexOfAt + 1);
+                                                int indexOfDot = domain.IndexOf('.');
+                                                lastpart = domain.Substring(indexOfDot + 1);
+
+                                                appendEmailwithDashed = CreateEmailwithDashed(firstpart, secondpart, lastpart);
+                                            }
+                                            else
+                                            {
+                                                firstpart = firstSplitPart;
+                                                secondpart = SecondSplitPart.Substring(0, SecondSplitPart.IndexOf(".") >= 3 ? 3 : SecondSplitPart.IndexOf("."));
+                                                lastpart = email.Split('.')[1];
+
+                                                appendEmailwithDashed = firstpart + "---@" + secondpart + "---." + lastpart;
+                                            }
+                                        }
+                                        @functions{
+                                            public string CreateEmailwithDashed(string firstpart, string secondpart, string lastpart)
+                                            {
+                                                var appendEmailwithDashed = "";
+                                                if (firstpart.Length == 1 && secondpart.Length == 3)
+                                                {
+                                                    appendEmailwithDashed = firstpart + "--@" + secondpart + "---." + lastpart;
+                                                }
+                                                else if (firstpart.Length == 3 && secondpart.Length == 2)
+                                                {
+                                                    appendEmailwithDashed = firstpart + "---@" + secondpart + "-." + lastpart;
+                                                }
+                                                else if (firstpart.Length == 3 && secondpart.Length == 1)
+                                                {
+                                                    appendEmailwithDashed = firstpart + "---@" + secondpart + "--." + lastpart;
+                                                }
+                                                else if (firstpart.Length == 2 && secondpart.Length == 3)
+                                                {
+                                                    appendEmailwithDashed = firstpart + "-@" + secondpart + "---." + lastpart;
+                                                }
+                                                else if (firstpart.Length == 2 && secondpart.Length == 2)
+                                                {
+                                                    appendEmailwithDashed = firstpart + "-@" + secondpart + "-." + lastpart;
+                                                }
+                                                else if (firstpart.Length == 2 && secondpart.Length == 1)
+                                                {
+                                                    appendEmailwithDashed = firstpart + "-@" + secondpart + "--." + lastpart;
+                                                }
+                                                else if (firstpart.Length == 3 && secondpart.Length == 3)
+                                                {
+                                                    appendEmailwithDashed = firstpart + "---@" + secondpart + "---." + lastpart;
+                                                }
+                                                else if (firstpart.Length == 1 && secondpart.Length == 1)
+                                                {
+                                                    appendEmailwithDashed = firstpart + "--@" + secondpart + "--." + lastpart;
+                                                }
+                                                else if (firstpart.Length == 1 && secondpart.Length == 2)
+                                                {
+                                                    appendEmailwithDashed = firstpart + "--@" + secondpart + "-." + lastpart;
+                                                }
+                                                else
+                                                {
+                                                    appendEmailwithDashed = firstpart + "---@" + secondpart + "---." + lastpart;
+                                                }
+
+                                                return appendEmailwithDashed;
+                                            }
+
+                                            public string CreateEmailwithDashedForNotValidEmail(string firstpart, string secondpart)
+                                            {
+                                                var appendEmailwithDashed = "";
+                                                if (firstpart.Length == 1 && secondpart.Length == 3)
+                                                {
+                                                    appendEmailwithDashed = firstpart + "--" + secondpart + "---";
+                                                }
+                                                else if (firstpart.Length == 3 && secondpart.Length == 2)
+                                                {
+                                                    appendEmailwithDashed = firstpart + "---" + secondpart + "-";
+                                                }
+                                                else if (firstpart.Length == 3 && secondpart.Length == 1)
+                                                {
+                                                    appendEmailwithDashed = firstpart + "---" + secondpart + "--";
+                                                }
+                                                else if (firstpart.Length == 2 && secondpart.Length == 3)
+                                                {
+                                                    appendEmailwithDashed = firstpart + "-" + secondpart + "---";
+                                                }
+                                                else if (firstpart.Length == 2 && secondpart.Length == 2)
+                                                {
+                                                    appendEmailwithDashed = firstpart + "-" + secondpart + "-";
+                                                }
+                                                else if (firstpart.Length == 2 && secondpart.Length == 1)
+                                                {
+                                                    appendEmailwithDashed = firstpart + "-" + secondpart + "--";
+                                                }
+                                                else if (firstpart.Length == 3 && secondpart.Length == 3)
+                                                {
+                                                    appendEmailwithDashed = firstpart + "---" + secondpart + "---";
+                                                }
+                                                else if (firstpart.Length == 1 && secondpart.Length == 1)
+                                                {
+                                                    appendEmailwithDashed = firstpart + "--" + secondpart + "--";
+                                                }
+                                                else if (firstpart.Length == 1 && secondpart.Length == 2)
+                                                {
+                                                    appendEmailwithDashed = firstpart + "--" + secondpart + "-";
+                                                }
+                                                else
+                                                {
+                                                    appendEmailwithDashed = firstpart + "---" + secondpart + "---";
+                                                }
+
+                                                return appendEmailwithDashed;
+                                            }
+                                        }
+                                    }
+
+                                    <button class="btn btn-primary text-center" type="submit">Submit</button> <span>and wait for TruckCarrierHub email on @appendEmailwithDashed and follow its instruction. This step is required for your authentication and authorization.</span><br />
+                                </div>
+                            </div>
+                                        }
+
+
+
+                    </div>
+                    <div class="col-sm-3"></div>
+                </div>
+                                        }
+            @if (string.IsNullOrEmpty(Model.CompanyEmailAddress))
+            {
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="margin-top-10 pageDescription-cityPage h5-font-size">
+                            TruckCarrierHub.com offers a free of charge option to post and manage your job openings and to expand the information about your business by placing link to your website on your company’s page.
+                            <br />
+                            <br />
+                            In order to qualify, please submit email address of your company to the United States Department of Transportation. Once your record is updated (usually takes 2-4 weeks) you will be able to use that email address to authenticate and create your account on our website.
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </section>
+</div>
+@section Scripts{
+    <script src="~/Content/User/login.js"></script>
+}

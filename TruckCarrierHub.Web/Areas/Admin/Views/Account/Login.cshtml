@@ -1,0 +1,68 @@
+﻿@using PartnerCarrier.ViewModels.Admin
+@model LoginInfoVM
+@{
+    ViewBag.Title = "Log In";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <h2>@ViewBag.Title</h2>
+    </div>
+</div>
+<hr class="small" />
+
+<div id="dvNotification"></div>
+
+<div class="row">
+    <div class="col-md-6 col-sm-8 col-md-offset-4 col-sm-offset-4">
+        <section id="loginForm">
+            @using (Ajax.BeginForm("Login", "Account", new { returnUrl = ViewBag.ReturnUrl }, new AjaxOptions
+            {
+                HttpMethod = "POST",
+                OnSuccess = "vm.LoginOnSuccess",
+                OnFailure = "vm.LoginOnFailure"
+            }, new { @class = "form-horizontal" }))
+            {
+                @Html.AntiForgeryToken()
+                <div class="row">
+                    <div class="col-sm-7 col-md-8">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.Email, new { @class = "col-md-12" })
+                            <div class="col-md-12">
+                                @Html.TextBoxFor(m => m.Email, new { @class = "form-control" })
+                                @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-7 col-md-8">
+                        <div class="form-group">
+                            @Html.LabelFor(m => m.Password, new { @class = "col-md-12" })
+                            <div class="col-md-12">
+                                @Html.PasswordFor(m => m.Password, new { @class = "form-control" })
+                                @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger" })
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-7 col-md-8">
+                        <div class="form-group">
+                            <div class="col-md-12">
+                                <input type="submit" value="Log in" class="btn btn-primary" /> &nbsp; | &nbsp;
+                                @Html.ActionLink("Forgot your password?", "ForgotPassword")
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            }
+        </section>
+    </div>
+</div>
+@section Scripts{
+    <script src="~/Areas/Admin/Content/PageScript/Account/login.js"></script>
+}
+
+

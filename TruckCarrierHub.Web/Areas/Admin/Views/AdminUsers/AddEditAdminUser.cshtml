@@ -1,0 +1,102 @@
+﻿@using PartnerCarrier.ViewModels.Admin;
+@model AddEditAdminUserVM
+
+@{
+    ViewBag.Title = "Admin Details";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <h2>@ViewBag.Title</h2>
+    </div>
+</div>
+<hr class="small" />
+
+<div class="row" id="dvNotification"></div>
+
+@using (Ajax.BeginForm("AddUpdateAdminUser", "AdminUsers", null, new AjaxOptions
+{
+    HttpMethod = "POST",
+    OnSuccess = "vm.OnSuccessAddUpdateAdmin",
+    OnFailure = "vm.OnFailureAddUpdateAdmin"
+}, new { id = "AddUpdateForm" }))
+{
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m=>Model.AdminID)
+    @Html.HiddenFor(m => m.AdminID, new { id = "adminID" })
+    @Html.HiddenFor(m => m.pageSortPara.p)
+    @Html.HiddenFor(m => m.pageSortPara.se)
+    @Html.HiddenFor(m => m.pageSortPara.sd)
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-2">
+                    <label class="">Name: <span></span></label>
+                </div>
+                <div class="col-md-6">
+                    @Html.TextBoxFor(m => m.Name, new { @class = "form-control", maxlength = "50" })
+                    @Html.ValidationMessageFor(m => m.Name, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-2">
+                    <label class="">E-mail: <span></span></label>
+                </div>
+                <div class="col-md-6">
+                    @Html.TextBoxFor(m => m.Email, new { @class = "form-control", maxlength = "100" })
+                    @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+    if (!Model.AdminID.HasValue)
+    { 
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-2">
+                    <label class="">Password: <span></span></label>
+                </div>
+                <div class="col-md-6">
+                    @Html.PasswordFor(m => m.Password, new { id = "password", @class = "form-control", maxlength = "15" })
+                    @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-2">
+                    <label class="">Confirm Password</label>
+                </div>
+                <div class="col-md-6">
+                    @Html.PasswordFor(m => m.ConfirmPassword, new { @id = "confirmPassword", @class = "form-control", maxlength = "15" })
+                    @Html.ValidationMessageFor(m => m.ConfirmPassword, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+    }
+    <hr />
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-2">
+                </div>
+                <div class="col-md-6">
+                    <button type="submit" class="btn btn-primary" value="Save" title="Save"><i class="fa fa-save"></i> Save</button>
+                    <a href="@Url.Action("AdminUserList", "AdminUsers", Model.pageSortPara)" title="Back" class="btn btn-default"><i class="fa fa-arrow-left"></i> Back</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+}
+@section Scripts {
+    <script src="~/Areas/Admin/Content/PageScript/AdminUsers/add-edit-adminuser.js"></script>
+}

@@ -1,0 +1,196 @@
+﻿@using PartnerCarrier.ViewModels.User;
+@using PartnerCarrier.Web.App_Start;
+@using PartnerCarrier.ViewModels.Admin;
+@using PartnerCarrier.Infrastructure.Contracts.Admin.AdminManagement;
+@using PartnerCarrier.Web.SessionManager;
+@model StateVM
+@{
+    ViewBag.Title = Model.PageTitle;
+    var _businessManagements = StructuremapMvc.StructureMapDependencyScope.CurrentNestedContainer.GetInstance<IBusinessMangementService>();
+    var globalHiring = _businessManagements.GetGlobalHiring();
+    var reviewsFilter = _businessManagements.GetReviewsFilter();
+
+    var IsShowOnHome = _businessManagements.GetCheckboxListForShowGetAQuoteControl().Where(a => a.Name.Contains("Show on homepage")).Select(a => a.ControlToShow).FirstOrDefault();
+
+    if (globalHiring.GlobalHire == (int)GLobalHiring.HomeStateAndCityPage)
+    {
+        ViewBag.IsShowGlobalHiringCheckbox = true;
+
+    }
+
+    if (reviewsFilter.SelectedFilterValue == (int)ManageReviewEnum.HomeStateAndCityPage)
+    {
+        ViewBag.IsShowReviewsCheckbox = true;
+    }
+
+    ViewBag.IsHiringCheckboxIsChecked = SessionManager.Instance.IsHiringCheckboxIsChecked;
+    ViewBag.IsReviewsFilterCheckboxIsChecked = SessionManager.Instance.IsReviewsFilterCheckboxIsChecked;
+
+}
+@section AdditionalMeta
+{
+    <meta name="description" content="@Model.PageDescription" />
+    <link rel="canonical" href="https://truckcarrierhub.com" />
+    <style>
+        .popover {
+            max-width: 300px !important;
+            height: 250px !important;
+        }
+    </style>
+}
+<div class="home-background-image">
+
+    @* Show Get A Quote Control on this page or not which is set from admin website *@
+    @if (IsShowOnHome == true)
+    {
+        <div class="container">
+            @Html.Partial("~/Views/Shared/_GetAQuoteControl.cshtml", @Model.GetAQuoteVM)
+        </div>
+
+    }
+    else
+    {
+        <div style="margin-top:50px">
+        </div>
+    }
+
+    <div class="col-md-12 col-sm-12 col-xs-12">
+        <p class="text-center homepage-font-color homepage-title-font">Find your carrier with the most complete source of US and Canada trucking companies - Van, Reefer, Flatbed, HazMat, Cross border and Domestics Freight Carriers.</p>
+    </div>
+    <div class="jumbotron margin-top">
+        @using (Ajax.BeginForm("search", null, new AjaxOptions
+        {
+            HttpMethod = "POST",
+            OnSuccess = "vmHome.OnSuccessSearchResult",
+            OnFailure = "vmHome.OnFailureSearchResult",
+        }, new { id = "searchCompanyForm" }))
+        {
+            <input type="hidden" value="" name="selectedValue" id="selectedValueForHomepage" />
+            <div class="row">
+                <div class="col-xs-12 search-tab">
+                    <div class="radios">
+                        <input type="radio" name="selectedValue" class="searchFromHomepage" id="for_city" value="City" checked="">
+                        <label for="for_city">City</label>
+                    </div>
+                    <div class="radios">
+                        <input type="radio" name="selectedValue" class="searchFromHomepage" id="for_company" value="Company Name">
+                        <label for="for_company">Company Name</label>
+                    </div>
+                    <div class="radios">
+                        <input type="radio" name="selectedValue" class="searchFromHomepage" id="for_usdot_number" value="USDOT Number">
+                        <label for="for_usdot_number">USDOT Number</label>
+                    </div>
+                    <div class="radios">
+                        <input type="radio" name="selectedValue" class="searchFromHomepage" id="mc_number" value="MC Number">
+                        <label for="mc_number">MC Number</label>
+                    </div>
+                </div>
+                <div class="home-input-box col-sm-12 col-xs-12 col-md-12">
+                    <div class="input-group nav-search-input-group">
+                        <div class="form-group">
+                            <input type="search" class="form-control home-search-inputbox" name="searchText" id="searchText" placeholder="Search by City">
+                        </div>
+                        <span class="input-group-btn">
+                            <button type="button" onclick="vmHome.GetSearchResult()" class="btn btn-primary home-search-button"><span class="glyphicon glyphicon-search"></span> Search</button>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <h2 class="homepage-page-decription">
+            <p>@Html.Raw(Model.PageDescription)</p>
+            <div class="home-article">@Html.Raw(Model.HomeArticle)</div>
+        </h2>
+    </div>
+</div>
+
+
+<!-- Banner Section -->
+<div class="row">
+    <div class="col-md-12 text-center">
+        @if (Model.OutboundBanner.IsShow)
+        {
+            if (Model.OutboundBanner.IsFollow)
+            {
+                <a href="@Model.OutboundBanner.URL" class="banner-link" title="@Model.OutboundBanner.TitleText" target="_blank">
+                    <img src="get-banner-image?fileName=@Model.OutboundBanner.FileName" style="max-width: 100%; max-height: 200px;" alt="@Model.OutboundBanner.AltText" />
+                </a>
+            }
+            else
+            {
+                <a href="@Model.OutboundBanner.URL" class="banner-link" title="@Model.OutboundBanner.TitleText" rel="nofollow" target="_blank">
+                    <img src="get-banner-image?fileName=@Model.OutboundBanner.FileName" style="max-width: 100%; max-height: 200px;" alt="@Model.OutboundBanner.AltText" />
+                </a>
+            }
+        }
+    </div>
+</div>
+
+<div class="row">
+    <h2 class="text-center">Browse by State/Province and City or <a tabindex="0" role="button" data-toggle="popover" data-trigger="focus" data-container="body" data-placement="bottom" data-content="To search on the map please open any City and click the Map button. Then you can move the map and zoom in/zoom out.">Search on the Map</a> </h2>
+    <div class="row">
+        <div class="container">
+            <div class="col-md-12 col-sm-12 col-xs-12">
+                <h3 class="h4backcolor text-center">USA Trucking Companies</h3>
+                <hr />
+            </div>
+            @if (Model.USStates != null && Model.USStates.Count > 0)
+            {
+                foreach (var state in Model.USStates)
+                {
+                    var action = @state.StateCode;
+                    <div class="col-md-4 col-sm-6 col-xs-12 form-group">
+                        <a href="@Url.Content("~/"+@action)" class="link-font-size">
+                            @state.State Trucking Companies (@state.StateCount)
+                        </a>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="col-md-12">
+                    <p class="text-center">No Record(s) Found</p>
+                </div>
+            }
+
+        </div>
+    </div>
+    <div class="row">
+        <div class="container">
+            <div class="col-md-12 col-sm-12 col-xs-12">
+                <h3 class="h4backcolor text-center">Canada Trucking Companies</h3>
+                <hr />
+            </div>
+            @if (Model.CAStates != null && Model.CAStates.Count > 0)
+            {
+                foreach (var state in Model.CAStates)
+                {
+                    var action = @state.StateCode;
+                    <div class="col-md-4 col-sm-6 col-xs-12 form-group">
+                        <a href="@Url.Content("~/"+@action)" class="link-font-size">
+                            @state.State Trucking Companies (@state.StateCount)
+                        </a>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="col-md-12">
+                    <p class="text-center">No Record(s) Found</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+@section scripts
+{
+    <script src="~/Content/User/search-from-home.js"></script>
+    <script>
+        $('[data-toggle="popover"]').popover()
+    </script>
+}

@@ -1,0 +1,16 @@
+﻿
+@{
+    ViewBag.Title = "Test Exception Email";
+    Layout = "~/Views/Shared/_SetupLayout.cshtml";
+}
+
+<div class="row">
+    <h2>@ViewBag.Title</h2>
+    <hr />
+</div>
+@using (Html.BeginForm("TestExceptionEmail", "setup", FormMethod.Post))
+{
+    <input type="submit" class="btn btn-primary" />
+}
+
+

@@ -1,0 +1,24 @@
+﻿@using PartnerCarrier.ViewModels.Admin;
+@using PartnerCarrier.Infrastructure;
+@using Common.Utility
+@{
+    var userInfo = FormsAuthService.Instance.LoggedInUser(Config.GetValue("SetupLoginAuthenticationName"));
+}
+@if (userInfo != null && userInfo.Role == UserRole.SetupAdmin)
+{
+    <ul class="nav navbar-nav">
+        <li>@Html.ActionLink("Upgrade Db", "UpgradeDb", "Setup", new { @class = "setup-Topmenu-Link" })</li>
+        <li>@Html.ActionLink("Sql Sample", "SqlSample", "Setup", new { @class = "setup-Topmenu-Link" })</li>
+        <li>@Html.ActionLink("Send Email To Multiple", "SendEmailToMultiple", "Setup", new { @class = "setup-Topmenu-Link" })</li>
+        <li>@Html.ActionLink("Test Exception Email", "TestExceptionEmail", "Setup", new { @class = "setup-Topmenu-Link" })</li>
+    </ul>
+    @Html.Partial("_SetupLoginPartial")
+}
+else
+{
+    <ul class="nav navbar-nav navbar-right">
+        <li>@Html.ActionLink("Log in", "login", "setup", routeValues: null, htmlAttributes: new { id = "loginLink" })</li>
+    </ul>
+}
+
+

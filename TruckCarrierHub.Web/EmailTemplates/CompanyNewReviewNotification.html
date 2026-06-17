@@ -1,0 +1,88 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .panel {
+            height: auto;
+            width: 98%;
+            margin: auto;
+            background-color: white;
+            border: 1px solid #EBEEF0;
+            margin-top: 20px;
+        }
+
+        .panel-heading {
+            padding-top: 0px;
+        }
+
+        .panel-title {
+            background-color: #0070c9;
+            margin-bottom: 0px;
+            margin-top: 0px;
+            line-height: 50px;
+            font-weight: normal;
+            padding-left: 20px;
+            font-size: large;
+            color: white;
+            font-family: 'Open Sans' Arial, Helvetica, sans-serif;
+        }
+
+        .message-body {
+            padding: 15px;
+            font-size: 20px;
+        }
+
+        @media (min-width: 768px)and (max-width: 992px) {
+            body > .panel {
+                width: 98%;
+            }
+
+            .message-body {
+                font-size: 30px;
+            }
+        }
+
+        @media only screen and (min-device-width: 1024px) and (max-device-width: 1366px) and (-webkit-min-device-pixel-ratio: 1.5) {
+            body > .panel {
+                width: 98%;
+            }
+
+            .message-body {
+                font-size: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="panel">
+        <div class="panel-heading">
+            <h3 class="panel-title">
+                {emailHeader}
+            </h3>
+        </div>
+        <div class="message-body">
+            <p>Hello {CompanyName},</p>
+            <p>
+                You got a <b>{Rating}-star review</b> from {ReviewerName} (USDOT {ReviewerUSDOT}):
+            </p>
+            <blockquote>
+                <b>
+                    {ReviewComment}
+                </b>
+            </blockquote>
+            <br />
+            <p>
+                <a target="_blank" href="{ReplyLink}">Reply to this Review</a>
+            </p>
+            <br />
+            <p>
+                Replying to reviews shows customers you value their feedback, and gives you the chance to publicly address any comments.
+            </p>
+            <br />
+            <p>
+                We’ll let {ReviewerName} know when you’ve replied.
+            </p>
+        </div>
+        </div>       
+</body>
+</html>

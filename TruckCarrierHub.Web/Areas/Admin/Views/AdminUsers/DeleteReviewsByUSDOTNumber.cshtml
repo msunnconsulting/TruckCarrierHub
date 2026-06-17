@@ -1,0 +1,51 @@
+﻿@using PartnerCarrier.ViewModels.Admin;
+@model DeleteReviewsByUSDOTNumberVM
+@{
+    ViewBag.Title = "Delete Reviews";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <h2>Delete Reviews By USDOT Number</h2>
+    </div>
+</div>
+
+<hr class="small" />
+<div class="row" id="dvNotification"></div>
+
+@using (Ajax.BeginForm("DeleteReviewsByUSDOTNumber", "AdminUsers", null, new AjaxOptions
+{
+    HttpMethod = "POST",
+    OnSuccess = "vm.OnSuccessDeleteReviews",
+    OnFailure = "vm.OnFailureDeleteReviews"
+}, new { id = "DeleteReviewsForm" }))
+{
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-2">
+                    <label class="">Name: <span></span></label>
+                </div>
+                <div class="col-md-6">
+                    @Html.TextBoxFor(m => m.USDOTNumber, new { @id = "usdotNumber-textbox", @type = "number", @class = "form-control", maxlength = "50" })
+                    @Html.ValidationMessageFor(m => m.USDOTNumber, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-2">
+                </div>
+                <div class="col-md-6">
+                    <button type="submit" class="btn btn-primary" value="Delete" title="Delete"><i class="fa fa-trash"></i> Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+@section Scripts {
+    <script src="~/Areas/Admin/Content/PageScript/AdminUsers/delete-reviews-by-usdotnumber.js"></script>
+}
+

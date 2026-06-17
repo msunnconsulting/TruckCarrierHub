@@ -1,0 +1,35 @@
+﻿@using PartnerCarrier.ViewModels.User
+@model EmailverifyVM
+@{
+    ViewBag.Title = "Email verify";
+}
+
+<div id="contactus-bg-img">
+    <section class="content">
+        <div class="container">
+            <div class="row">
+                <div class="col-sm-2"></div>
+                <div class="col-sm-8 contact-form">
+                    @*<h2 class="text-center">Email verified</h2>*@
+                    <br />
+                    @if (ViewBag.SuccesMessageAfteEmailVerified != null)
+                    {
+                        var successMessage = ViewBag.SuccesMessageAfteEmailVerified;
+                        var lines = successMessage.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+                        foreach (var line in lines)
+                        {
+                            <p class="text-center text-success">@Html.Raw(line)</p>
+                        }
+                    }
+                    @if (ViewBag.EmailVerifiedFailureErrorMesaage != null)
+                    {
+                        <p class="text-center text-danger">@ViewBag.EmailVerifiedFailureErrorMesaage</p>
+                    }
+                </div>
+                <div class="col-sm-2"></div>
+            </div>
+        </div>
+    </section>
+</div>
+

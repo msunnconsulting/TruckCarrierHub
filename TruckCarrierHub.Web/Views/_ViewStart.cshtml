@@ -1,0 +1,14 @@
+﻿@using Common.Utility;
+@{
+
+    var theme = Config.GetValue("FrontEndThemeName");
+    if (!string.IsNullOrEmpty(theme))
+    {
+        Layout = "~/Themes/" + theme + "/Views/Shared/_Layout.cshtml";
+    }
+    else
+    {
+        Layout = "~/Views/Shared/_Layout.cshtml";
+    }
+
+}

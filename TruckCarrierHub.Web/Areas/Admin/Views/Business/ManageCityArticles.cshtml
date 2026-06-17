@@ -1,0 +1,525 @@
+﻿@using PartnerCarrier.ViewModels.Admin
+@model ManageCityArticleVM
+
+@{
+    ViewBag.Title = "Manage City Articles";
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>ManageCityArticles</title>
+</head>
+<body>
+    <div class="row">
+        <div class="col-md-10">
+            <h2> @ViewBag.Title</h2>
+        </div>
+    </div>
+    <hr class="small" />
+    <div class="row" id="dvNotification"></div>
+
+    <div class="row">
+        <form id="managecityArticleForm">
+            @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+            <div class="col-md-10">
+                <div class="row ">
+                    <div class="col-md-3 col-sm-3 width-22">
+                        <label for="showCitiesWithArticles">Show cities with articles :</label>
+                    </div>
+                    <div class="col-md-2 col-sm-2 width-12">
+                        <label class="form-check-label" for="allowed">
+                            @Html.RadioButtonFor(model => model.ShowCitiesWithArticle, "Allowed", new { @class = "form-check-input", id = "allowed" }) Allowed
+                        </label>
+                    </div>
+                    <div class="col-md-2 col-sm-2 width-15">
+                        <label class="form-check-label" for="notAllowed">
+                            @Html.RadioButtonFor(model => model.ShowCitiesWithArticle, "NotAllowed", new { @class = "form-check-input", id = "notAllowed" }) Not Allowed
+                        </label>
+                    </div>
+                    <div class="col-md-2 col-sm-2">
+                        <label class="form-check-label" for="all">
+                            @Html.RadioButtonFor(model => model.ShowCitiesWithArticle, "All", new { @class = "form-check-input", id = "all" }) All
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-10 margin-top-15">
+                <div class="row">
+                    <div class="col-md-3 col-sm-3">
+                        @Html.DropDownListFor(c => c.Country, new SelectList(Model.CountryList, "Value", "Text"), "-- Select Country --", new { @class = "form-control", id = "country" })
+                    </div>
+                    <div class="col-md-3 col-sm-3">
+                        @Html.DropDownListFor(s => s.State, new SelectList(Model.StateList, "Value", "Text"), "-- Select  State --", new { @class = "form-control", id = "state" })
+                    </div>
+                    <div class="col-md-3 col-sm-3">
+                        @Html.DropDownListFor(c => c.City, new SelectList(Model.CityList, "Value", "Text"), "-- Select  City --", new { @class = "form-control", id = "city" })
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-10 margin-top-15">
+                <button type="button" id="showArticlebtn" title="Show Article" class="btn btn-default" onclick="onShowArticleBtnClick()">
+                    Show Article
+                </button>
+                <button type="button" id="editArticlebtn" title="Edit Article" class="btn btn-default margin-left-10" onclick="onEditArticleBtnClick()">
+                    Edit Article
+                </button>
+                <button type="button" id="allowArticlebtn" title="Allow Article" class="btn btn-default margin-left-10" onclick="onAllowArticaleButtonClick()">
+                    Allow Article
+                </button>
+                <button type="button" id="removeArticlebtn" title="Remove Article" class="btn btn-default margin-left-10" onclick="onRemoveArticleButtonClick()">
+                    Remove Article
+                </button>
+                <button type="button" id="allowArticleForSelectedStatebtn" title="Allow Article for Selected State" class="btn btn-default margin-left-10" onclick="onAllowArticleForSelectedStatebtnClick()">
+                    Allow Article for Selected State
+                </button>
+            </div>
+
+            <div id="cityArticleDiv" class="col-md-10 margin-top-15">
+                <div class="row">
+                    <div class="col-md-12 col-sm-12">
+                        @Html.TextAreaFor(model => model.CityArticle, new { @class = "form-control", @cols = 10, @rows = 20, id = "cityArticle" })
+                        @Html.ValidationMessageFor(model => model.CityArticle, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+                <div class="row margin-top-15" id="updateArticleBtnRow">
+                    <div class="col-md-4"></div>
+                    <div class="col-md-4 display-flex justify-content-space-around">
+                        <button type="button" class="btn btn-primary" value="Save" title="save article" id="saveArticleButton" onclick="onSaveArticaleButtonClick()"><i class="fa fa-save"></i> Save Article</button>
+                        <button type="button" class="btn btn-default" value="Cancel" title="cancel" id="cancelArticleButton" onclick="onCancelArticaleButtonClick()">Cancel</button>
+                    </div>
+                    <div class="col-md-4"></div>
+                </div>
+            </div>
+
+        </form>
+    </div>
+
+    @section Scripts {
+        <script type="text/javascript">
+            $(document).ready(function () {
+
+                $.validator.unobtrusive.parse($("#managecityArticleForm"));
+
+                // Initialize the dropdowns
+                disablePlaceholder('country');
+                disablePlaceholder('state');
+                disablePlaceholder('city');
+
+                // Disable all button by default
+                disableButtonById("showArticlebtn");
+                disableButtonById("editArticlebtn");
+                disableButtonById("allowArticlebtn");
+                disableButtonById("removeArticlebtn");
+                disableButtonById("allowArticleForSelectedStatebtn");
+
+                // Disable the state and city dropdowns initially
+                $('#state').prop('disabled', true);
+                $('#city').prop('disabled', true);
+
+                // Bind the change event to country dropdown
+                $('#country').change(function () {
+                    var countryId = $(this).val();
+                    if (countryId) {
+                        enableDropdown('#state');
+                        disableButtonById("allowArticleForSelectedStatebtn");
+                        loadStatesByCountry(countryId);
+                    } else {
+                        disableDropdown('#state');
+                        disableDropdown('#city');
+                    }
+                });
+
+                // Bind the change event to state dropdown
+                $('#state').change(function () {
+                    var countrycode = $("#country").val();
+                    var isAllowed = $('input[name="ShowCitiesWithArticle"]:checked').val();
+                    var stateCode = $(this).val();
+                    if (stateCode && countrycode) {
+                        enableDropdown('#city');
+                        disableButtonById("showArticlebtn");
+                        disableButtonById("editArticlebtn");
+                        disableButtonById("allowArticlebtn");
+                        disableButtonById("removeArticlebtn");
+                        enableButtonById("allowArticleForSelectedStatebtn");
+                        loadCitiesByState(countrycode, stateCode, isAllowed);
+                    } else {
+                        disableDropdown('#city');
+                    }
+                });
+
+                // Bind the change event to city dropdown
+                $('#city').change(function () {
+                    hideCityArticleDiv();
+                    var cityId = $(this).val();
+                    if (cityId) {
+                        isCityHasArticle();
+                    }
+                });
+                
+                // To hide city article textarea initially
+                hideCityArticleDiv();
+                $("#updateArticleBtnRow").hide();
+
+                // Disable the Save button when the page loads and store the initial content
+                const cityArticleTextarea = document.getElementById('cityArticle');
+                const saveButton = document.getElementById('saveArticleButton');
+
+                // Store the initial content of the textarea
+                let originalContent = cityArticleTextarea.value.trim();
+
+                // Initially disable the save button
+                saveButton.disabled = true;
+
+                // Add the change event listener for the textarea
+                cityArticleTextarea.addEventListener('input', function () {
+                    // Check if the current content is different from the original content
+                    if (cityArticleTextarea.value.trim() !== originalContent) {
+                        saveButton.disabled = false; // Enable button if content has changed
+                    } else {
+                        saveButton.disabled = true;  // Disable button if no content change
+                    }
+                });
+
+                // Add the onchange event listener
+                cityArticleTextarea.addEventListener('change', function () {
+                    // Optionally, handle logic when the user leaves the textarea (after making changes)
+                    if (cityArticleTextarea.value.trim() !== originalContent) {
+                        saveButton.disabled = false; // Enable button if content has changed
+                    }
+                });
+
+            })
+
+            /**
+             * To make placeholder for 3 of dropdown disabled.
+             **/
+            function disablePlaceholder(dropdownId) {
+                var dropdown = $("#" + dropdownId);
+                dropdown.change(function () {
+                    if (dropdown.val() !== "") {
+                        dropdown.find("option[value='']").prop("disabled", true);
+                    } else {
+                        dropdown.find("option[value='']").prop("disabled", false);
+                    }
+                });
+            }
+
+            function hideCityArticleDiv() {
+                $("#cityArticleDiv").hide();
+            }
+
+            function showCityArticleDiv() {
+                $("#cityArticleDiv").val("");
+                $("#cityArticleDiv").show();
+            }
+
+            /**
+             * This method is used to disable a dropdown.
+             **/
+            function disableDropdown(selector) {
+                var dropdown = $(selector);
+                dropdown.prop('disabled', true);
+            }
+
+            /**
+            * This method is used to enable a dropdown.
+            **/
+            function enableDropdown(selector) {
+                var dropdown = $(selector);
+                dropdown.prop('disabled', false);
+            }
+
+            /**
+             * Disable a button by its ID
+             */
+            function disableButtonById(buttonId) {
+                $("#" + buttonId).prop('disabled', true);
+            }
+
+            /**
+             * Enable a button by its ID
+             */
+            function enableButtonById(buttonId) {
+                $("#" + buttonId).prop('disabled', false);
+            }
+
+            /**
+             * This function used to get state list on selecting country.
+             **/
+            function loadStatesByCountry(countryId) {
+                $.ajax({
+                    url: "/admin/business/get-state-list/" + countryId,
+                    type: 'GET',
+                    success: function (data) {
+                        var stateDropdown = $('#state');
+                        stateDropdown.empty();
+                        stateDropdown.append('<option value="">-- Select State --</option>');
+                        var cityDropdown = $('#city');
+                        cityDropdown.empty();
+                        cityDropdown.append('<option value="">-- Select City --</option>');
+                        if (data && data.length > 0) {
+                            $.each(data, function (index, state) {
+                                stateDropdown.append('<option value="' + state.Value + '">' + state.Text + '</option>');
+                            });
+                        }
+                        // Reset city dropdown
+                        disableDropdown('#city');
+                    },
+                    error: function (xhr, status, error) {
+                        console.error(error);
+                    }
+                });
+            }
+
+            /**
+             * This function used to get city list on selecting state.
+             **/
+            function loadCitiesByState(countryCode, stateCode, isAllowed) {
+                $.ajax({
+                    url: "/admin/business/get-city-list-for-manage-city-article/" + countryCode + "/" + stateCode + "/" + isAllowed,
+                    type: 'GET',
+                    success: function (data) {
+                        var cityDropdown = $('#city');
+                        cityDropdown.empty();
+                        cityDropdown.append('<option value="">-- Select City --</option>');
+                        if (data && data.length > 0) {
+                            $.each(data, function (index, city) {
+                                cityDropdown.append('<option value="' + city.Value + '">' + city.Text + '</option>');
+                            });
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error(error);
+                    }
+                });
+            }
+
+            /**
+             * This method is used to set city articles allowed flag true to all cities where article field is not null.
+             */
+            function onAllowArticleForSelectedStatebtnClick() {
+                var result = confirm("Are you sure you want to allow all existing articles for the selected state ?");
+                if (result) {
+
+                    $.ajax({
+                        url: "/admin/business/allow-article-for-selected-state",
+                        type: "POST",
+                        data: {
+                          countryCode: $("#country").val(),
+                          stateCode: $("#state").val()
+                        },
+                        success: function (response) {
+                            if (response) {
+                                showAlertMessage("#dvNotification", response.split(":")[0].toLowerCase(), response.split(":")[1])
+                            }
+                        },
+                        error: function (request, status, error) {
+                            console.log(error);
+                        }
+                    });
+                }
+            }
+
+            /**
+             * This method is used to get, if the city has an article.
+             * */
+            function isCityHasArticle() {
+                var countryId = $('#country').val();
+                var stateId = $('#state').val();
+                var cityId = $('#city').val();
+
+                $.ajax({
+                    url: "/admin/business/is-city-article-available/" + countryId + "/" + stateId + "/" + cityId,
+                    type: "GET",
+                    success: function (response) {
+                        // if Response is true , enable below buttons
+                        if (response) {
+                            enableButtonById("showArticlebtn");
+                            enableButtonById("editArticlebtn");
+                            enableButtonById("allowArticlebtn");
+                            enableButtonById("removeArticlebtn");
+                        }
+                    },
+                    error: function (request, status, error) {
+                        console.log(error);
+                    }
+                });
+            }
+
+            /**
+             * This method is used to show city articles for selected city.
+             * */
+            function onShowArticleBtnClick() {
+                var countryId = $('#country').val();
+                var stateId = $('#state').val();
+                var cityId = $('#city').val();
+
+                if (cityId) {
+                    $.ajax({
+                        url: "/admin/business/get-article-for-selected-city/" + countryId + "/" + stateId + "/" + cityId,
+                        type: "GET",
+                        success: function (response) {
+                            console.log(response);
+                            if (response) {
+                            $("#updateArticleBtnRow").hide();
+                            $("#cityArticle").prop("readonly", true);
+                            $("#cityArticle").val(response);
+                            showCityArticleDiv();
+                            }
+                        },
+                        error: function (request, status, error) {
+                            console.log(error);
+                        }
+                    });
+                }
+            }
+
+            /**
+             * This method is used to edit city articles for selected city.
+             * */
+            function onEditArticleBtnClick() {
+                var countryId = $('#country').val();
+                var stateId = $('#state').val();
+                var cityId = $('#city').val();
+                var cityArticle = $("#cityArticle").val();
+
+                if (cityId) {
+                    $.ajax({
+                        url: "/admin/business/get-article-for-selected-city/" + countryId + "/" + stateId + "/" + cityId,
+                        type: "GET",
+                        success: function (response) {
+                            console.log(response);
+                            if (response) {
+                                
+                                showCityArticleDiv();
+                                $("#updateArticleBtnRow").show();
+                                $("#cityArticle").prop("readonly",false);
+                                $("#cityArticle").val(response);
+                            }
+                        },
+                        error: function (request, status, error) {
+                            console.log(error);
+                        }
+                    });
+                }
+            }
+
+            /**
+             * This method is used to save city article.
+             * */
+            function onSaveArticaleButtonClick() {
+                if ($("#managecityArticleForm").valid()) {
+
+                    var countryId = $('#country').val();
+                    var stateId = $('#state').val();
+                    var cityId = $('#city').val();
+                    var cityArticle = $("#cityArticle").val();
+
+                    if (cityId) {
+                        $.ajax({
+                            url: "/admin/business/set-article-for-seleceted-city/" + countryId + "/" + stateId + "/" + cityId,
+                            data: {
+                                article: cityArticle
+                            },
+                            type: "POST",
+                            success: function (response) {
+                                if (response) {
+                                    showAlertMessage("#dvNotification", response.split(":")[0].toLowerCase(), response.split(":")[1]);
+                                    onShowArticleBtnClick();
+                                }
+                            },
+                            error: function (request, status, error) {
+                                console.log(error);
+                            }
+                        });
+                    }
+                }
+            }
+
+            /**
+             * This method is used to cancel edit city article.
+             * */
+            function onCancelArticaleButtonClick() {
+                location.reload();
+            }
+
+            /**
+             * This method is used to save city article.
+             * */
+            function onAllowArticaleButtonClick() {
+                if ($("#managecityArticleForm").valid()) {
+
+                    var countryId = $('#country').val();
+                    var stateId = $('#state').val();
+                    var cityId = $('#city').val();
+
+                    if (cityId) {
+                        $.ajax({
+                            url: "/admin/business/allow-article-for-seleceted-city",
+                            data: {
+                                countryCode: countryId,
+                                stateCode: stateId,
+                                cityName: cityId ,
+                            },
+                            type: "POST",
+                            success: function (response) {
+                                if (response) {
+                                    showAlertMessage("#dvNotification", response.split(":")[0].toLowerCase(), response.split(":")[1]);
+                                    onShowArticleBtnClick();
+                                }
+                            },
+                            error: function (request, status, error) {
+                                console.log(error);
+                            }
+                        });
+                    }
+                }
+            }
+
+            /**
+             * This method is used to remove article from the city.
+             * */
+            function onRemoveArticleButtonClick() {
+                var result = confirm("Are you sure you want to remove article from the selected city ?");
+                if (result) {
+                    var countryCode = $("#country").val();
+                    var stateCode = $("#state").val();
+                    var cityName = $('#city').val()
+                    $.ajax({
+                        url: "/admin/business/remove-article-for-seleceted-city",
+                        type: "POST",
+                        data: {
+                            countryCode: countryCode,
+                            stateCode: stateCode,
+                            cityName: cityName
+                        },
+                        success: function (response) {
+                            if (response) {
+                                showAlertMessage("#dvNotification", response.split(":")[0].toLowerCase(), response.split(":")[1]);
+                                var isAllowed = $('input[name="ShowCitiesWithArticle"]:checked').val();
+                                $('#city').val('');
+                                // Disable all button by default
+                                disableButtonById("showArticlebtn");
+                                disableButtonById("editArticlebtn");
+                                disableButtonById("allowArticlebtn");
+                                disableButtonById("removeArticlebtn");
+                                loadCitiesByState(countryCode, stateCode, isAllowed);
+                            }
+                        },
+                        error: function (request, status, error) {
+                            console.log(error);
+                        }
+                    });
+                }
+            }
+
+        </script>
+    }
+</body>
+</html>

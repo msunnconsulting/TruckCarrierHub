@@ -1,0 +1,64 @@
+﻿@using PartnerCarrier.ViewModels.Admin
+@model EditProfileVM
+@{
+    ViewBag.Title = "Edit Profile";
+}
+<div class="row">
+    <div class="col-md-12">
+        <h2>@ViewBag.Title</h2>
+    </div>
+</div>
+<hr class="small" />
+<div id="dvNotification"></div>
+@using (Ajax.BeginForm("edit-profile", "Account", null, new AjaxOptions
+{
+    OnSuccess = "vm.EditAdminOnSuccess",
+    OnFailure = "vm.EditAdminOnFailure",
+}))
+{
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.Id)
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-2">
+                    @Html.LabelFor(m => m.Name, new { @class = "" })
+                </div>
+                <div class="col-md-6">
+                    @Html.TextBoxFor(m => m.Name, new { @class = "form-control", maxlength = "100" })
+                    @Html.ValidationMessageFor(m => m.Name, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-2">
+                    @Html.LabelFor(m => m.Email, new { @class = "" })
+                </div>
+                <div class="col-md-6">
+                   @Html.TextBoxFor(m => m.Email, new { @class = "form-control" })
+                @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-2">
+                </div>
+                <div class="col-md-6">
+                    <button type="submit" class="btn btn-primary" value="Save" title="Save"><i class="fa fa-save"></i> Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+@section Scripts {
+<script src="~/Areas/Admin/Content/PageScript/Account/edit-admin-profile.js"></script>
+}
+
+

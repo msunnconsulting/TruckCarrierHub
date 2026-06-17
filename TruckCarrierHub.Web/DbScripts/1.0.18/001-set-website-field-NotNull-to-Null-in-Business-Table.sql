@@ -1,0 +1,1 @@
+﻿ALTER TABLE [dbo].[Business] ALTER COLUMN [Website] nvarchar(255) NULL

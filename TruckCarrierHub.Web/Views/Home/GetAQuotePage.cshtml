@@ -1,0 +1,658 @@
+﻿@using PartnerCarrier.ViewModels.User
+@using Common.Utility.Helpers.MVC.Extensions
+@model GetAQuoteVM
+@{
+    ViewBag.Title = "Get A Quote Page";
+}
+
+@using (Ajax.BeginForm("SubmitGetAQuotePage", "Home", null, new AjaxOptions
+{
+    HttpMethod = "POST",
+    OnSuccess = "vmGetAQuote.OnSuccessSubmitGetAQuote",
+    OnFailure = "vmGetAQuote.OnFailureSubmitGetAQuote",
+}, new { id = "submitGetAQuoteForm" }))
+{
+    @Html.HiddenFor(a => a.OriginURL)
+
+    <div>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <h3>Shipper Information</h3>
+                    <div class="row" id="dvNotification"></div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group required">
+                        <label for="FirstName">First Name</label>
+                        @Html.TextBoxFor(m => m.FirstName, new { placeholder = "Enter First Name", @class = "form-control", autocomplete = "off" })
+                        @Html.ValidationMessageFor(m => m.FirstName, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group required">
+                        <label for="LastName">Last Name</label>
+                        @Html.TextBoxFor(m => m.LastName, new { placeholder = "Enter Last Name", @class = "form-control", autocomplete = "off" })
+                        @Html.ValidationMessageFor(m => m.LastName, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group required">
+                        <label for="EmailAddress">Email Address</label>
+                        @Html.TextBoxFor(m => m.EmailAddress, new { placeholder = "Enter Email Address", @class = "form-control", autocomplete = "off" })
+                        @Html.ValidationMessageFor(m => m.EmailAddress, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group required">
+                        <label for="Phone">Phone</label>
+                        @Html.TextBoxFor(m => m.Phone, new { placeholder = "Enter Phone", @class = "form-control", autocomplete = "off" })
+                        @Html.ValidationMessageFor(m => m.Phone, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="CompanyName">Company Name</label>
+                        @Html.TextBoxFor(m => m.CompanyName, new { placeholder = "Enter Company Name", @class = "form-control", autocomplete = "off" })
+                        @Html.ValidationMessageFor(m => m.CompanyName, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-xs-12 col-md-6">
+
+                <div class="row">
+                    <div class="col-sm-7" style="margin-left:-15px">
+                        <div class="form-group required">
+                            <label for="PickupLocation">PickUp Location</label>
+                            <div class="input-group">
+                                @Html.TextBoxFor(m => m.PickupLocation, new { placeholder = "City", @class = "form-control home-search-inputbox ui-autocomplete-input", maxlength = "100", autocomplete = "off", onfocus = "if(this.value == 'City') { this.value = ''; }" })
+                                <span class="input-group-addon" id="swapePickupLocation" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="Reverse pickup and delivery location"><i class="fa fa-exchange"></i></span>
+                            </div>
+                            @Html.ValidationMessageFor(m => m.PickupLocation, "", new { @class = "text-danger" })
+                        </div>
+                        <div class="form-group">
+                            <label for="PickupLocationType">Location Type</label>
+                            @Html.DropDownListFor(a => a.PickupLocationType, new SelectList(Model.ListPickupLocationType, "Id", "Name"), new { @class = "form-control", @onchange = "vmGetAQuote.ChangeLocationType('Pickup')" })
+                        </div>
+                    </div>
+                    <div class="col-sm-5 pickup-special-handling">
+                        <label class="themed-popover no_text_decoration class_popover" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="Special services provided by the carrier. If your load needs Special Handling, please select it below for an accurate quote. Carriers charge for Special Handling if needed, and this will affect your final invoice." data-original-title="" title="">
+                            Special handling&nbsp;(!)
+                        </label>
+                        @for (int i = 0; i < Model.PickupSpecialHandlingList.Count; i++)
+                        {
+                            <div class="checkbox checkbox-primary pickupCheckboxes">
+                                <input id="@Model.PickupSpecialHandlingList[i].Id" name="SelectedSpcialHandlings" type="checkbox" value="@Model.PickupSpecialHandlingList[i].Name">
+                                <label class="check" for="@Model.PickupSpecialHandlingList[i].Id" data-toggle="popover" data-trigger="hover" data-placement="left" data-content="@Model.PickupSpecialHandlingList[i].Title">@Model.PickupSpecialHandlingList[i].Name</label>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-xs-12 col-md-6">
+
+                <div class="row deliveryLocation">
+                    <div class="col-sm-7" style="margin-left:-15px">
+                        <div class="form-group required">
+                            <label for="DeliveryLocation">Delivery Location</label>
+                            <div class="input-group">
+                                <span class="input-group-addon" id="swapeDeliveryLocation" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="Reverse pickup and delivery location"><i class="fa fa-exchange"></i></span>
+                                @Html.TextBoxFor(m => m.DeliveryLocation, new { placeholder = "City", @class = "form-control home-search-inputbox ui-autocomplete-input", autocomplete = "off", onfocus = "if(this.value == 'City') { this.value = ''; }" })
+                            </div>
+                            @Html.ValidationMessageFor(m => m.DeliveryLocation, "", new { @class = "text-danger" })
+                        </div>
+                        <div class="form-group">
+                            <label for="Dest_LocationType">Location Type</label>
+                            @Html.DropDownListFor(a => a.DeliveryLocationType, new SelectList(Model.ListDeliveryLocationType, "Id", "Name"), new { @class = "form-control", @onchange = "vmGetAQuote.ChangeLocationType('Delivery')" })
+                        </div>
+                    </div>
+                    <div class="col-sm-5 delivery-special-handling">
+                        <label class="" data-toggle="popover" data-trigger="hover" data-placement="left" data-content="Special services provided by the carrier. If your load needs Special Handling, please select it below for an accurate quote. Carriers charge for Special Handling if needed, and this will affect your final invoice." data-original-title="" title="">
+                            Special handling&nbsp;(!)
+                        </label>
+
+                        @for (int i = 0; i < Model.DeliverySpecialHandlingList.Count; i++)
+                        {
+                            <div class="checkbox checkbox-primary deliveryCheckboxes">
+                                <input id="@Model.DeliverySpecialHandlingList[i].Id"  name="SelectedDeliverySpecialHandlings" type="checkbox" value="@Model.DeliverySpecialHandlingList[i].Name">
+                                <label class="check" for="@Model.DeliverySpecialHandlingList[i].Id"  data-toggle="popover" data-trigger="hover" data-placement="left" data-content="@Model.DeliverySpecialHandlingList[i].Title">@Model.DeliverySpecialHandlingList[i].Name</label>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-default">
+                    <div class="panel-body">
+                        <div class="row">
+                            <div class="col-xs-12 col-md-5">
+                                <label for="LoadType">Load Type</label>
+                                @Html.DropDownListFor(a => a.LoadType, new SelectList(Model.ListLoad, "LoadName", "LoadDescription"), new { @class = "form-control", @onchange = "vmGetAQuote.ChangeLoadType()" })
+                            </div>
+                            <div class="col-xs-12 col-md-12">
+                                @if (Model.LoadType == "LTL")
+                                {
+                                    <div class="no-link-style">
+                                        <strong class="loadtypeContentUpdate">( <a href="getaquote?loadType=FTL/Rail">Change to FTL/Rail</a> | <a href="getaquote?loadType=Flatbed">Flatbed</a> | <a href="getaquote?loadType=Container">Container</a> ) </strong>
+                                    </div>
+                                }
+                                else if (Model.LoadType == "FTL/Rail")
+                                {
+                                    <div class="no-link-style">
+                                        <strong class="loadtypeContentUpdate">( <a href="getaquote?loadType=Flatbed">Change to Flatbed</a> | <a href="getaquote?loadType=Container">Container</a> | <a href="getaquote?loadType=LTL">LTL</a> ) </strong>
+                                    </div>
+                                }
+                                else if (Model.LoadType == "Flatbed")
+                                {
+                                    <div class="no-link-style">
+                                        <strong class="loadtypeContentUpdate">( <a href="getaquote?loadType=FTL/Rail">Change to FTL/Rail</a> | <a href="getaquote?loadType=Container">Container</a> | <a href="getaquote?loadType=LTL">LTL</a> ) </strong>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="no-link-style">
+                                        <strong class="loadtypeContentUpdate">( <a href="getaquote?loadType=FTL/Rail">Change to FTL/Rail</a> | <a href="getaquote?loadType=Flatbed">Flatbed</a> | <a href="getaquote?loadType=LTL">LTL</a> ) </strong>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="container" id="loadContainerID">
+            <div class="row">
+                <div class="col-md-12" style="margin-top:15px">
+                    <div class="panel panel-default">
+                        <div class="panel-body">
+                            <div class="row">
+                                <div class="col-xs-12 col-md-4 form-group required">
+                                    <label for="PickupDate">Choose a pickup date</label>
+                                    <div class="input-group date" data-provide="datepicker">
+                                        @Html.TextBoxFor(a => a.PickupDate, "{0:MM'/'dd'/'yyyy}", new { @class = "form-control" })
+                                        <div class="input-group-addon">
+                                            <span class="fa fa-calendar"></span>
+                                        </div>
+                                    </div>
+                                    @Html.ValidationMessageFor(m => m.PickupDate, "", new { @class = "text-danger" })
+                                </div>
+                                @if (Model.LoadType != "LTL")
+                                {
+                                    var imflxible = "I am flexible";
+                                    <div class="col-xs-12 col-md-4">
+                                        <div class="form-group">
+                                            <div class="col-md-12">
+                                                <br />
+                                            </div>
+
+                                            @if (Model.LoadType == "FTL/Rail")
+                                            {
+                                                <label data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="Selecting this option will return more rates.">  
+                                                    <input type="checkbox" id="isFlexible" checked>
+                                                    @imflxible
+                                                </label>
+                                            }
+                                            else
+                                            {
+                                                <label data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="Checking this option will send us a request for a manual quote"> 
+                                                    <input type="checkbox" id="isFlexible">
+                                                    @imflxible
+                                                </label>
+                                            }
+
+                                        </div>
+                                    </div>
+                                }
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (Model.LoadType == "LTL")
+            {
+                <div class="row" id="LoadrowforLTL">
+                    <div class="col-md-12 loafInformation" style="margin-top:15px" id="appendAddLoadHere" data-index="1">
+                        <a class="close panel-close removeSection" style="display: none"><span aria-hidden="true">×</span></a>
+                        <div class="panel panel-default">
+                            <div class="panel-body">
+                                <div class="row">
+                                    <div class="inline-column" style="width: 240px">
+                                        <div class="form-group required" onfocusout="vmGetAQuote.CheckForValidation(this)">
+                                            <label for="LoadInformation_Index_0" class="themed-popover no_text_decoration class_popover" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="Brief description of the product being shipped." data-original-title="">Goods</label>
+                                            <input required id="LoadInformation_Index_0" name="DescriptionOfGoods" data-loadinformation="LoadInformation" value="" type="text" maxlength="40" class="form-control DescriptionOfGoods" placeholder="Description of Goods" onfocus="this.placeholder = ''" onblur="this.placeholder = 'Description of Goods'">
+                                            <span class="text-danger" style="display:none">This field is required</span>
+                                        </div>
+
+                                    </div>
+                                    <div class="inline-column" style="width: 160px">
+                                        <div class="form-group required">
+                                            <label for="Pieces_Index_0">Number Of Items</label>
+                                            <div class="form-inline divided-field" onfocusout="vmGetAQuote.CheckForNoOfItem(this)">
+                                                <div class="form-group" style="width: 35%">
+                                                    <label class="sr-only">#</label>
+                                                    <input data-numberofitem="NumberOfItem" type="number" class="form-control multiNoOfItem" onfocusout="vmGetAQuote.calculateTotalWeight(this)" placeholder="#">
+                                                </div>
+                                                <div class="form-group" style="width: 65%">
+                                                    @Html.DropDownListFor(a => a.LoadItemTypeId, new SelectList(Model.LoadItemTypeList, "Id", "LoadItemType"), new { @class = "form-control", @data_loaditemtypeid = "LoadItemTypeId" })
+                                                </div>
+                                            </div>
+                                            <span class="text-danger" style="display:none">This field is required</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="inline-column" style="width: 235px">
+                                        <div class="form-group required">
+                                            <label for="Length_Index_0" class="themed-popover no_text_decoration class_popover" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="Incorrect dimensions will cause additional charges" data-original-title="" title="">Dimensions</label>
+                                            <div class="form-inline divided-field" onfocusout="vmGetAQuote.CheckForLWH(this)">
+                                                <div class="form-group" style="width: 25%">
+                                                    <label class="sr-only">L</label>
+                                                    <input id="Length_Index_0" name="Length[]" data-DimentionLength="DimentionLength" value="" type="number" class="form-control" placeholder="L" required="" maxlength="3">
+                                                </div>
+                                                <div class="form-group" style="width: 25%">
+                                                    <label class="sr-only">W</label>
+                                                    <input id="Width_Index_0" name="Width[]" data-DimentionWidth="DimentionWidth" value="" type="number" class="form-control" placeholder="W" required="" maxlength="3">
+                                                </div>
+                                                <div class="form-group" style="width: 50%">
+                                                    <label class="sr-only">H</label>
+                                                    <div class="input-group">
+                                                        <input id="Height_Index_0" name="Height[]" data-DimentionHeight="DimentionHeight" value="" type="number" class="form-control HeightInputBox" placeholder="H" min="0" required="" maxlength="3">
+                                                        <div class="input-group-addon">IN</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <span class="text-danger" style="display:none">This field is required</span>
+                                        </div>
+                                    </div>
+                                    <div class="inline-column" style="width: 150px">
+                                        <div class="form-group required">
+                                            <label for="Weight_Index_0" class="nowrap themed-popover no_text_decoration class_popover" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="Weight per pallet, box, crate etc." data-original-title="" title="">Weight Per Item</label>
+                                            <div class="input-group" onfocusout="vmGetAQuote.CheckValidationForWeight(this)">
+                                                <input id="Weight_Index_0" name="Weight[]" data-WeightPerItem="WeightPerItem" type="number" class="form-control multiweight" required="" maxlength="20" onfocusout="vmGetAQuote.calculateTotalWeight(this)">
+                                                <div class="input-group-addon">LB</div>
+                                            </div>
+                                            <span class="text-danger" style="display:none">This field is required</span>
+                                        </div>
+
+                                    </div>
+                                    <div class="inline-column" style="width: 100px">
+                                        <div class="form-group">
+                                            <label for="Class_Index_0" class="themed-popover no_text_decoration class_popover" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="In the USA, each product is given a Class ranging from 50-400 (determined by the National Motor Freight Traffic Association) based on its density and its assumed risk/liability for hauling. All quotes may be subject to audits which include classifications and weight verification by the carrier. If you are not sure of the Class, please call us (000) 000-0000 Ext 1. for assistance." data-original-title="" title="">
+                                                Class&nbsp;(USA*)
+                                            </label>
+                                            <div class="input-group">
+                                                @Html.DropDownListFor(a => a.LoadClassId, new SelectList(Model.LoadClassList, "Id", "Name"), "None", new { @class = "form-control", @data_classtypeid = "ClassTypeId" })
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                    <div class="inline-column" style="width:190px">
+                                        <div class="form-group">
+                                            <label class="spacer"></label>
+                                            <div class="form-group">
+                                                <label data-toggle="popover" data-trigger="hover" data-placement="left" data-content="Hazardous goods that require special handling and carrier expertise">
+                                                    <input type="checkbox" data-IsHazmat="IsHazmat" id="isHazmat"  value="true">
+                                                    Hazmat?
+                                                </label>
+
+                                                <label data-toggle="popover" data-trigger="hover" data-placement="left" data-content="Shipment cannot be stacked due to the content i.e. it cannot be put onto other cargo and cannot have other cargo put onto it. The minimum height for a non-stackable shipment is 96 inches. This may increase the price of your shipment.">
+                                                    <input type="checkbox" data-IsNonStackable="IsNonStackable" id="isNonStackable" value="false">
+                                                    Non-Stackable?
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (Model.LoadType == "FTL/Rail")
+            {
+                <div id="loadInfoTable" class="col-md-12">
+
+                    <div class="panel panel-default" data-index="0" style="border-color: rgb(233, 235, 241);">
+                        <div class="panel-body">
+                            <div class="row">
+                                <div class="inline-column" style="width: 240px">
+                                    <div class="form-group required" onfocusout="vmGetAQuote.CheckForValidation(this)">
+                                        <label for="LoadInformation_Index_0" class="themed-popover no_text_decoration class_popover" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="A short explanation of what the product is." data-original-title="" title="">Description of Goods</label>
+                                        <input id="LoadInformation_Index_0" onfocusout="vmGetAQuote.CheckForValidation(this)" data-gooddescription="GoodDescription" value="" type="text" maxlength="40" class="form-control" placeholder="Description of Goods" onfocus="this.placeholder = ''" onblur="this.placeholder = 'Description of Goods'" required="">
+                                        <span class="text-danger" style="display:none">This field is required</span>
+                                    </div>
+                                </div>
+                                <div class="inline-column" style="width: 160px">
+                                    <div class="form-group required">
+                                        <label for="Pieces_Index_0">Number Of Items</label>
+                                        <div class="form-inline divided-field" onfocusout="vmGetAQuote.CheckForNoOfItem(this)">
+                                            <div class="form-group" style="width: 35%">
+                                                <label class="sr-only">#</label>
+                                                <input data-noofitems="NumberOfItem" type="number" class="form-control" placeholder="#">
+                                            </div>
+                                            <div class="form-group" style="width: 65%">
+                                                @Html.DropDownListFor(a => a.LoadItemTypeId, new SelectList(Model.LoadItemTypeList, "Id", "LoadItemType"), new { @class = "form-control", @data_loaditemtypeid = "LoadItemTypeId" })
+                                            </div>
+                                        </div>
+                                        <span class="text-danger" style="display:none">This field is required</span>
+                                    </div>
+                                </div>
+
+                                <div class="inline-column" style="width: 150px">
+                                    <div class="form-group required">
+                                        <label class="nowrap" for="Weight_Index_0">Total Weight</label>
+                                        <div class="input-group" onfocusout="vmGetAQuote.CheckValidationForWeight(this)">
+                                            <input id="Weight_Index_0" data-weightperitem="WeightPerItem" type="number" class="form-control onlyTotalWeight">
+                                            <div class="input-group-addon">LB</div>
+                                        </div>
+                                        <span class="text-danger" style="display:none">This field is required</span>
+                                    </div>
+                                </div>
+                                <div class="inline-column">
+                                    <div class="form-group required">
+                                        <label for="TruckType_Index_0">Truck Type</label>
+                                        @Html.DropDownListFor(a => a.TruckTypeId, new SelectList(Model.TruckTypeList, "Id", "TruckType"), new { @class = "form-control", @data_trucktypeid = "TruckTypeId" })
+                                    </div>
+                                    <div class="help-block with-errors"></div>
+                                </div>
+                                <div class="inline-column">
+                                    <div class="form-group required">
+                                        <label for="LoadInfo_0">Load Info</label>
+                                        @Html.DropDownListFor(a => a.LoadInfoId, new SelectList(Model.LoadInfoList, "Id", "LoadInfoType"), new { @class = "form-control", @data_loadinfoid = "LoadInfoId" })
+                                    </div>
+                                </div>
+
+                                <div class="inline-column" style="width:190px">
+                                    <div class="form-group">
+                                        <label class="spacer"></label>
+                                        <div class="form-group">
+                                            <label data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="Hazardous goods that require special handling and carrier expertise">
+                                                <input type="checkbox" data-IsHazmat="IsHazmat" id="isHazmat" value="true">
+                                                Hazmat?
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (Model.LoadType == "Flatbed")
+            {
+                <div id="loadInfoTable" class="col-md-12">
+                    <div class="panel panel-default" data-index="0" style="border-color: rgb(233, 235, 241);">
+                        <div class="panel-body">
+                            <div class="row">
+                                <div class="inline-column" style="width: 240px">
+                                    <div class="form-group required" onfocusout="vmGetAQuote.CheckForValidation(this)">
+                                        <label for="LoadInformation_Index_0" class="themed-popover no_text_decoration class_popover" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="A short explanation of what the product is." data-original-title="" title="">Description of Goods</label>
+                                        <input id="LoadInformation_Index_0" data-gooddescription="GoodDescription" name="LoadInformation[]" value="" type="text" maxlength="40" class="form-control" placeholder="Description of Goods" onfocus="this.placeholder = ''" onblur="this.placeholder = 'Description of Goods'">
+                                        <span class="text-danger" style="display:none">This field is required</span>
+                                    </div>
+                                </div>
+                                <div class="inline-column" style="width: 150px">
+                                    <div class="form-group required">
+                                        <label for="Weight_Index_0" class="nowrap themed-popover no_text_decoration class_popover" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="Total weight of item">Weight</label>
+                                        <div class="input-group" onfocusout="vmGetAQuote.CheckValidationForWeight(this)">
+                                            <input id="Weight_Index_0" data-weightperitem="WeightPerItem" name="Weight[]" value="" type="number" class="form-control weight_field" required="" maxlength="20" data-hj-whitelist="">
+                                            <div class="input-group-addon">LB</div>
+                                        </div>
+                                        <span class="text-danger" style="display:none">This field is required</span>
+                                    </div>
+                                </div>
+                                <div class="inline-column" style="width: 235px">
+                                    <div class="form-group required">
+                                        <label for="Length_Index_0" class="themed-popover no_text_decoration class_popover" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="Incorrect dimensions will cause additional charges" data-original-title="" title="">Dimensions</label>
+                                        <div class="form-inline divided-field" onfocusout="vmGetAQuote.CheckForLWH(this)">
+                                            <div class="form-group" style="width: 25%">
+                                                <label class="sr-only">L</label>
+                                                <input id="Length_Index_0" data-dimentionlength="DimentionLength" name="Length[]" value="" type="number" class="form-control" placeholder="L" required="" maxlength="3" data-hj-whitelist="">
+                                            </div>
+                                            <div class="form-group" style="width: 25%">
+                                                <label class="sr-only">W</label>
+                                                <input name="Width[]" data-dimentionwidth="DimentionWidth" value="" type="number" class="form-control" placeholder="W" required="" maxlength="3" data-hj-whitelist="">
+                                            </div>
+                                            <div class="form-group" style="width: 50%">
+                                                <label class="sr-only">H</label>
+                                                <div class="input-group">
+                                                    <input name="Height[]" data-dimentionheight="DimentionHeight" value="" type="number" class="form-control" placeholder="H" required="" maxlength="3" data-hj-whitelist="">
+                                                    <div class="input-group-addon">IN</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <span class="text-danger" style="display:none">This field is required</span>
+                                    </div>
+                                </div>
+                                <div class="inline-column">
+                                    <div class="form-group required">
+                                        <label for="TruckType_Index_0">Truck Type</label>
+                                        @Html.DropDownListFor(a => a.TruckTypeId, new SelectList(Model.TruckTypeList, "Id", "TruckType"), new { @class = "form-control", @data_trucktypeid = "TruckTypeId" })
+                                    </div>
+                                </div>
+                                <div class="inline-column" style="width:190px">
+                                    <div class="form-group">
+                                        <label class="spacer"></label>
+                                        <div class="form-group">
+                                            <label data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="Hazardous goods that require special handling and carrier expertise">
+                                                <input type="checkbox" data-IsHazmat="IsHazmat" id="isHazmat" value="false">
+                                                Hazmat?
+                                            </label>
+                                            <label data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="Shipment cannot be stacked due to the content i.e. it cannot be put onto other cargo and cannot have other cargo put onto it. The minimum height for a non-stackable shipment is 96 inches. This may increase the price of your shipment.">
+                                                <input type="checkbox" data-IsNonStackable="IsNonStackable" id="isNonStackable" value="false">
+                                                Non-Stackable?
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+
+                <div id="loadInfoTable" class="col-md-12">
+                    <div class="panel panel-default" data-index="0" style="border-color: rgb(233, 235, 241);">
+                        <a class="close panel-close" style="display: none"><span aria-hidden="true">×</span></a>
+                        <div class="panel-body">
+                            <div class="row">
+                                <div class="inline-column" style="width: 240px">
+                                    <div class="form-group required" onfocusout="vmGetAQuote.CheckForValidation(this)">
+                                        <label for="LoadInformation_Index_0" class="themed-popover no_text_decoration class_popover" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="A short explanation of what the product is." data-original-title="" title="">Description of Goods</label>
+                                        <input id="LoadInformation_Index_0" data-gooddescription="GoodDescription" name="LoadInformation[]" value="" type="text" maxlength="40" class="form-control" placeholder="Description of Goods" onfocus="this.placeholder = ''" onblur="this.placeholder = 'Description of Goods'" required="">
+                                        <span class="text-danger" style="display:none">This field is required</span>
+                                    </div>
+                                </div>
+
+                                <div class="inline-column" style="width: 160px">
+                                    <div class="form-group required">
+                                        <label for="Type_Status_Index_0">Type</label>
+                                        @Html.DropDownListFor(a => a.LoadStatusTypeId, new SelectList(Model.LoadContainerTypeList, "Id", "StatusType"), new { @class = "form-control", @data_loadstatustypeid = "LoadStatusTypeId" })
+                                    </div>
+                                </div>
+
+                                <div class="inline-column" style="width: 240px">
+                                    <div class="form-group required">
+                                        <label for="Pieces_Index_0"># And Length Of Containers</label>
+                                        <div class="form-inline divided-field" onfocusout="vmGetAQuote.CheckForNoOfItem(this)">
+                                            <div class="form-group" style="width: 35%">
+                                                <label class="sr-only">#</label>
+                                                <input id="Pieces_Index_0" name="Pieces[]" data-noofcontainers="NoOfContainers" value="" type="number" class="form-control noOfItem" placeholder="#" required="" maxlength="2" data-hj-whitelist="">
+                                            </div>
+                                            <div class="form-group" style="width: 65%">
+                                                @Html.DropDownListFor(a => a.LoadContainerLengthId, new SelectList(Model.LoadContainerLengthList, "Id", "LengthOfContainer"), new { @class = "form-control", @data_loadcontainerlengthid = "LoadContainerLengthId" })
+                                            </div>
+                                        </div>
+                                        <span class="text-danger" style="display:none">This field is required</span>
+                                    </div>
+                                </div>
+
+                                <div class="inline-column" style="width: 240px">
+                                    <div class="form-group required">
+                                        <label for="Weight_Index_0" class="nowrap themed-popover no_text_decoration class_popover" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="Total Weight per container" data-original-title="" title="">Total Weight Per Container</label>
+                                        <div class="input-group" onfocusout="vmGetAQuote.CheckValidationForWeight(this)">
+                                            <input id="Weight_Index_0" data-weightperitem="WeightPerItem" name="Weight[]" value="" type="number" class="form-control weight" required="" maxlength="20" data-hj-whitelist="">
+                                            <div class="input-group-addon">LB</div>
+                                        </div>
+                                        <span class="text-danger" style="display:none">This field is required</span>
+                                    </div>
+                                </div>
+
+                                <div class="inline-column" style="width:190px">
+                                    <div class="form-group">
+                                        <label class="spacer"></label>
+                                        <div class="form-group">
+                                            <label>
+                                                <input type="checkbox" data-IsHazmat="IsHazmat" id="isHazmat" title="Hazardous goods that require special handling and carrier expertise" value="true">
+                                                Hazmat?
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    if (Model.LoadType == "LTL")
+    {
+        <div class="container margin-bottom-10">
+            <div class="row">
+                <div class="col-md-12">
+                    <button type="button" class="btn btn-lg btn-primary" onclick="" id="add_load">
+                        <h4 class="text-center text-semibold">Click to Add Another Load</h4>
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="container">
+        <div class="row">
+            <div id="loadInfoTable1" class="col-md-12">
+                <div class="panel panel-default" style="border-color: rgb(233, 235, 241);">
+                    <div class="panel-body">
+                        <div class="row">
+
+                        </div>
+                        @if (Model.LoadType != "LTL")
+                        {
+                            var textToDisplay = "";
+                            if (Model.LoadType == "Container")
+                            {
+                                textToDisplay = "Please enter here any additional information that may be relevant.";
+                            }
+                            if (Model.LoadType == "Flatbed")
+                            {
+                                textToDisplay = "Please enter any additional information about your shipment dimensions, packaging, special services like crane loading and instructions like construction site pickup or call ahead for pickup or delivery, here.";
+                            }
+                            if (Model.LoadType == "FTL/Rail")
+                            {
+                                textToDisplay = "Please enter additional information about dimensions, packaging, special services and instructions like construction site pickup or call ahead for pickup or delivery, here.";
+                            }
+                            <div class="col-xs-12 col-md-6 col-lg-6">
+                                <div class="form-group">
+                                    <label for="SpecialInstructions" class="themed-popover no_text_decoration class_popover" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="@textToDisplay">
+                                        Detailed Load Description
+                                    </label>
+                                    <textarea rows="4" placeholder="@textToDisplay" class="form-control" name="SpecialInstructions" id="SpecialInstructions" data-loaddetaildescription="LoadDetailDescription"></textarea>
+                                </div>
+                            </div>
+                        }
+
+
+                        @if (Model.LoadType != "Flatbed" && Model.LoadType != "Container")
+                        {
+                            <div class="col-xs-12 col-md-4 col-lg-4">
+                                <div class="form-group">
+                                    <label for="refrigeration" data-toggle="popover" data-trigger="hover" data-placement="bottom" data-content="For perishables such as food and items that have to be kept at a constant temperature">Refrigeration / Temp control</label>
+                                    @Html.DropDownListFor(a => a.RefrigerationId, new SelectList(Model.RefrigerationList, "Id", "RefrigerationType"), "None (temp control not required)", new { @class = "form-control", @data_refrigerationid = "RefrigerationId" })
+                                </div>
+                            </div>
+                            if (Model.LoadType != "LTL")
+                            {
+                                <div class="col-xs-12 col-md-2 col-lg-2">
+                                    <div class="form-group pull-right">
+                                        <label for="refrigeration_temperature">Temperature</label>
+                                        <div class="clearfix"></div>
+                                        <div class="form-inline divided-field temperature">
+                                            <div class="form-group" style="width: 60%">
+                                                <label class="sr-only" for="temperature">Temperature</label>
+                                                <input type="number" class="form-control" data-refrigeration-temperature="Temperature" name="refrigeration_temperature" id="refrigeration_temperature" value="" disabled="">
+                                            </div>
+                                            <div class="form-group" style="width: 40%">
+                                                @Html.DropDownListFor(a => a.TemperatureId, new SelectList(Model.TemperatureList, "Id", "TemperatureType"), new { @class = "form-control", @data_temperatureid = "TemperatureId", disabled = "" })
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        <div class="col-xs-12 col-md-2 col-lg-2">
+                            &nbsp;
+                        </div>
+                        <div class="col-xs-12 col-md-6 col-lg-6">
+                            <div class="confirmation pull-right">
+                                @if (Model.LoadType == "Container")
+                                {
+                                    <label class="align-bottom total-quote-container"><span class="align-bottom total-value total_container_show">0</span> containers. Total Quote Weight</label>
+                                }
+                                else
+                                {
+                                    <label class="align-bottom total-quote-weight-label">Total Quote Weight</label>
+                                }
+                                <span class="align-bottom total-value total_weight_show">0</span>&nbsp;<span class="align-bottom total-value total-units">LB</span>
+                                <button type="button" class="btn btn-lg btn-primary " onclick="vmGetAQuote.SubmitQuote(this)">
+                                    <h4 class="text-center text-semibold">GET A QUOTE</h4>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="quote-notes">
+            <div class="row">
+                <div class="col-md-12">
+                    <p>
+                        You will get competitive, no obligation freight quote shipping rates from world-class carriers working with TruckCarrierHub.com
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+@section scripts
+{
+    <script src="~/Content/User/get-a-quote.js"></script>
+    <link href="~/Themes/Bootstrap/plugins/bootstrap-datepicker-1.8.0/bootstrap-datepicker3.css" rel="stylesheet" />
+    <script src="~/Themes/Bootstrap/plugins/bootstrap-datepicker-1.8.0/bootstrap-datepicker.min.js"></script>
+}

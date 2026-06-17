@@ -1,0 +1,50 @@
+﻿@using PartnerCarrier.ViewModels.User
+@model GetAQuoteVM
+@using (Ajax.BeginForm("GetAQuotePage", "Home", null, new AjaxOptions
+{
+    HttpMethod = "GET",
+    OnSuccess = "vmLayout.OnSuccessGetAQuote",
+    OnFailure = "vmLayout.OnFailureGetAQuote",
+}, new { id = "getAQuoteForm" }))
+{
+
+    var url = Request.Url.AbsoluteUri;
+    <input type="hidden" id="OriginURL" name="OriginURL" value="@url" />
+    <div id="hero">
+        <div class="row" style="margin-top:25px">
+            <div class="">
+                <div class="col-xs-12 col-md-3 bordered hero-form bgTransperancy">
+                    <div class="mui-textfield">
+                        <label for="PickUp_Generic_Search">Pickup Location</label>
+                        @Html.TextBoxFor(m => m.PickupLocation, new { data_val = false, placeholder = "City", @class = "form-control ui-autocomplete-input", maxlength = "100", autocomplete = "off", onfocus = "if(this.value == 'City') { this.value = ''; }" })
+                        @Html.ValidationMessageFor(m => m.PickupLocation, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+                <div class="col-xs-12 col-md-3 bordered hero-form bgTransperancy">
+                    <div class="mui-textfield">
+                        <label for="Dest_Generic_Search">Delivery Location</label>
+                        @Html.TextBoxFor(m => m.DeliveryLocation, new { data_val = false, placeholder = "City", @class = "form-control ui-autocomplete-input", maxlength = "100", autocomplete = "off", onfocus = "if(this.value == 'City') { this.value = ''; }" })
+                        @Html.ValidationMessageFor(m => m.DeliveryLocation, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+                <div class="col-xs-12 col-md-3 bordered hero-form bgTransperancy">
+                    <div class="mui-select">
+                        <label for="loadType">Load Type</label>
+                        @Html.DropDownListFor(a => a.LoadType, new SelectList(Model.ListLoad, "LoadName", "LoadDescription"), new { @class = "form-control" })
+                    </div>
+                </div>
+                <div class="col-xs-12 col-sm-12 col-md-3 hero-btn mui--text-center no-gutter bordered hero-form bgTransperancy">
+                    <button type="button" class="btn btn-primary home-get-a-quote-btn center text-nowrap" onclick="vmLayout.submit()">GET A QUOTE</button>
+                </div>
+            </div>
+        </div>
+        <div>
+            <p class="text-center homepage-font-color homepage-title-font getaquote">
+                Get Freight Quotes from the best Trucking Companies and
+                Brokers.
+            </p>
+        </div>
+    </div>
+}
+
+

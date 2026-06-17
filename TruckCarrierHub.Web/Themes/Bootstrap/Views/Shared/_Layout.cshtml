@@ -1,0 +1,268 @@
+﻿@using PartnerCarrier.Web.App_Start;
+@using PartnerCarrier.ViewModels.Admin;
+@using PartnerCarrier.Infrastructure.Contracts.Admin.AdminManagement;
+@using PartnerCarrier.Infrastructure;
+@using Common.Utility;
+
+<!DOCTYPE html>
+<html>
+<head>
+    <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <script>
+        (adsbygoogle = window.adsbygoogle || []).push({
+            google_ad_client: "ca-pub-3377011374029148",
+            enable_page_level_ads: true
+        });
+    </script>
+    <!-- Google Tag Manager -->
+    <script>
+        (function (w, d, s, l, i) {
+            w[l] = w[l] || []; w[l].push({
+                'gtm.start':
+                    new Date().getTime(), event: 'gtm.js'
+            }); var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+                    'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-N24M4WJ');</script>
+    <!-- End Google Tag Manager -->
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VRRTL38CYD"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-VRRTL38CYD');
+    </script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewBag.Title</title>
+    @RenderSection("AdditionalMeta", false)
+    @RenderSection("Canonical", false)
+
+    <!-- Typefaces: Archivo for headings, IBM Plex Sans for body text,
+         IBM Plex Mono for official record numbers (USDOT, MC, zip, phone) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    @Styles.Render("~/Content/css-frontend")
+    <link href="~/Content/modern-theme.css" rel="stylesheet" type="text/css" />
+    @Scripts.Render("~/bundles/modernizr")
+    <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+</head>
+<body class="nopadding-left nopadding-right">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript>
+        <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-N24M4WJ"
+                height="0" width="0" style="display:none;visibility:hidden"></iframe>
+    </noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    <img src="~/Images/ajax-loader.gif" id="al" class="ajax-loader" style="display:none;" />
+    <div id="disabledpage"></div>
+    <div class="navbar navbar-inverse">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            @Html.ActionLink("Truck Carrier Hub", "Index", "Home", new { area = "" }, new { @class = "navbar-brand" })
+        </div>
+
+        @using (Html.BeginForm("LogOff", "Home", FormMethod.Post, new { id = "logoutForm", @class = "navbar-right" }))
+        {
+            @Html.AntiForgeryToken()
+        }
+        @{
+            var _businessManagement = StructuremapMvc.StructureMapDependencyScope.CurrentNestedContainer.GetInstance<IBusinessMangementService>();
+            var successStory = _businessManagement.GetSuccessStory();
+            var outboundLinks = _businessManagement.GetOutBoundLinks(true);
+        }
+        <div class="navbar-collapse collapse">
+
+            <ul class="nav navbar-nav navbar-right">
+                <li>
+                    <a class="contact-us-link" id="contact_us" href="@Url.Content("~/contact_us")">
+                        Contact Us
+                    </a>
+                </li>
+                @{
+                    var userInfo = FormsAuthService.Instance.LoggedInUser(Config.GetValue("BusinessLoginAuthenticationName"));
+                }
+                @if (userInfo != null && userInfo.Role == UserRole.BusinessUser)
+                {
+                    <li class="dropdown">
+                        <a class="dropdown-toggle top-menus-margin-top-6" data-toggle="dropdown" href="#">@userInfo.Email <span class="glyphicon glyphicon-cog"></span></a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                @Html.ActionLink("Edit Profile", "EditBusinessProfile", "Home", new { }, htmlAttributes: new { id = "profileLink" })
+                            </li>
+                            <li>
+                                <a class="contact-us-link" id="contact_us" href="javascript:document.getElementById('logoutForm').submit()">Log Out</a>
+                            </li>
+                        </ul>
+                    </li>
+
+
+                }
+                else
+                {
+                    <li>
+                        <a class="contact-us-link" id="contact_us" href="@Url.Action("BusinessLogin","Home")">Login</a>
+                    </li>
+                }
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+                @using (Ajax.BeginForm("search", null, new AjaxOptions
+                {
+                    HttpMethod = "POST",
+                    OnSuccess = "vmLayout.OnSuccessSearchResult",
+                    OnFailure = "vmLayout.OnFailureSearchResult",
+                }, new { id = "searchForm", @class = "navbar-form", @role = "search" }))
+                {
+                    <input type="hidden" value="" name="selectedValue" id="selectedValue" />
+                    <div class="input-group col-md-12 input-group-search">
+                        <div class="form-inline">
+                            <input type="search" name="searchText" class="form-control searchPlaceholder" placeholder="Search by City" id="searchTextBox">
+                        </div>
+                        <div class="input-group-btn">
+                            <button type="button" onclick="vmLayout.searchResult()" class="btn btn-search btn-primary" id="exampleButton">
+                                <span class="glyphicon glyphicon-search"></span>
+                            </button>
+                            <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
+                                <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu pull-right" role="menu" id="dropdown-change">
+                                <li><a name="selectedValue" class="font-color-in-smallDevice" value="City" href="#">City</a></li>
+                                <li><a name="selectedValue" class="font-color-in-smallDevice" value="Company Name" href="#">Company Name</a></li>
+                                <li><a name="selectedValue" class="font-color-in-smallDevice" value="USDOT Number" href="#">USDOT Number</a></li>
+                                <li><a name="selectedValue" class="font-color-in-smallDevice" value="MC Number" href="#">MC Number</a></li>
+                            </ul>
+                        </div>
+                    </div><!-- /input-group -->
+                }
+            </ul>
+
+            @if (ViewBag.IsShowGlobalHiringCheckbox != null && ViewBag.IsHiringCheckboxIsChecked != null)
+            {
+                <ul class="nav navbar-nav  navbar-right">
+                    <li>
+                        <a><input type="checkbox" name="GlobalHirings" value="" checked="@ViewBag.IsHiringCheckboxIsChecked" id="globalHiring"> <label for="globalHiring">Companies Now Hiring</label></a>
+                    </li>
+                </ul>
+            }
+
+            @if (ViewBag.IsShowReviewsCheckbox != null && ViewBag.IsReviewsFilterCheckboxIsChecked != null)
+            {
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a><input type="checkbox" name="Reviews" value="" checked="@ViewBag.IsReviewsFilterCheckboxIsChecked" id="reviews"> <label for="reviews">Companies with Reviews</label></a>
+                    </li>
+                </ul>
+            }
+
+            <!-- Outbound links -->
+            <ul class="nav navbar-nav nav-outboundLink">
+                <!---- If it's homepage then set follow/nofollow accordingly ---->
+                <!---- Other than homepage all outbound links are nofollow --------->
+                @if (Request.FilePath == "/")
+                {
+                    foreach (OutboundLinkVM link in outboundLinks)
+                    {
+                        if (link.Number != 0)
+                        {
+                            <li id="outboundLinkHeader" class="nav-item">
+                                @if (link.IsFollow)
+                                {
+                                    <a href="@link.URL" target="_blank" class="nav-link outbound-links">@link.URLTitle</a>
+                                }
+                                else
+                                {
+                                    <a href="@link.URL" target="_blank" rel="nofollow" class="nav-link outbound-links">@link.URLTitle</a>
+                                }
+                            </li>
+                        }
+                    }
+                }
+                else
+                {
+                    foreach (OutboundLinkVM link in outboundLinks)
+                    {
+                        if (link.Number != 0)
+                        {
+                            <li id="outboundLinkHeader" class="nav-item">
+                                <a href="@link.URL" target="_blank" rel="nofollow" class="nav-link outbound-links">@link.URLTitle</a>
+                            </li>
+                        }
+                    }
+                }
+            </ul>
+
+        </div>
+    </div>
+    <div id="dialog" title="Alert message" style="display: none;">
+        <div class="ui-dialog-content ui-widget-content">
+            <p>
+                <span class="ui-icon ui-icon-alert" style="float: left; margin: 0 7px 20px 0"></span>
+                <label id="lblMessage">
+                </label>
+            </p>
+        </div>
+    </div>
+    <div class="body-content">
+
+        @RenderBody()
+        <hr />
+        <!--Footer-->
+        <div id="footer">
+        </div>
+    </div>
+    <!--/.Footer-->
+    <footer>
+        <div class="row">
+            <div class="col-md-6 col-xs-12 hidden-lg hidden-md hidden-sm text-center footer-menu" style="">
+                <a href="@Url.Content("~/terms")">
+                    <u>Terms Of Use</u>
+                </a>
+                <a class="privacy_link" href="@Url.Content("~/privacy")">
+                    <u>Privacy Notice</u>
+                </a>
+                <a class="contact-us-link" id="contact_us" href="@Url.Content("~/contact_us")">
+                    <u>Contact Us</u>
+                </a>
+            </div>
+            @{
+                var currentYear = DateTime.Now.Year.ToString();
+            }
+            <div class="col-md-6 col-xs-12 text-center hidden-lg hidden-md hidden-sm">
+                <p class="">&nbsp;&nbsp; Truck Carrier Hub © Copyright @currentYear All Rights Reserved.</p>
+            </div>
+            <div class="col-md-6 col-sm-6 col-xs-12 hidden-xs footer-line">
+                <p class="pull-left">&nbsp;&nbsp; Truck Carrier Hub © Copyright @currentYear All Rights Reserved.</p>
+            </div>
+            <div class="col-md-6 col-sm-6 col-xs-12 hidden-xs">
+                @if (@successStory.SuccessStoryPublished)
+                {
+                    <a class="pull-right privacy_link" href="@Url.Content("~/success-story")"> <u> Success Stories</u> </a>
+                }
+                <a class="pull-right" href="@Url.Content("~/terms")">
+                    <u>Terms Of Use</u>
+                </a>
+                <a class="pull-right privacy_link" href="@Url.Content("~/privacy")">
+                    <u>Privacy Notice</u>
+                </a>
+
+                <a class="contact-us-link pull-right" href="@Url.Content("~/contact_us")">
+                    <u>Contact Us</u>
+                </a>
+            </div>
+        </div>
+    </footer>
+    @Scripts.Render("~/bundles/jquery-frontend")
+    @Scripts.Render("~/bundles/bootstrap-frontend")
+    @Scripts.Render("~/bundles/common-ajax-frontend")
+    @RenderSection("scripts", required: false)
+    <script src="~/Content/User/search-company.js"></script>
+</body>
+</html>

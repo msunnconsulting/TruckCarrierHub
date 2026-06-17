@@ -1,0 +1,93 @@
+﻿
+@{
+    ViewBag.Title = "_ReviewModal";
+}
+<style>
+    /* 🔹 Overlay covers full screen (dark background) */
+    #reviewOverlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.6);
+        z-index: 1050;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+
+    /* Modal container (white box inside overlay) */
+    #reviewOverlay .modal-box {
+        position: relative;
+        width: 100%;
+        max-width: 560px;
+        background: #fff;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        display: flex;
+        flex-direction: column;
+        max-height: 90vh; /* never taller than viewport */
+    }
+
+    /* Tall modal (used for writing review) */
+    #reviewOverlay .modal-box.full-height {
+        height: 85%;
+        width: 100%;
+    }
+
+    /* Smaller modal (used for sign-in prompt) */
+    #reviewOverlay .modal-box.small-height {
+        width: 100%;
+    }
+
+    /* Review list modal */
+    #reviewOverlay .modal-box.review-list {
+        height: 80%;
+        width: 100%;
+    }
+
+    /* Lock page scroll when modal is open */
+    body.modal-open {
+        overflow: hidden;
+    }
+
+    /* Responsive styles for tablets & smaller */
+    @@media (max-width: 768px) {
+        #reviewOverlay .modal-box {
+            width: 90%;
+            border-radius: 12px;
+        }
+    
+        textarea {
+            max-height: 100px;
+        }
+    }
+
+    /* Responsive styles for tablets & smaller */
+    @@media (max-width: 768px) {
+        .margin-top-35 {
+            margin-top: 15px !important;
+        }
+        .p-35-px {
+            padding: 15px !important;
+        }
+    }
+</style>
+
+<!-- Overlay container (hidden by default, opened via JS) -->
+<div id="reviewOverlay" style="display: none;" class="container-fluid">
+    <div class="modal-box">
+        <!-- Dynamic content injected via AJAX -->
+        <div id="modalContent"></div>
+    </div>
+</div>
+
+
+
+@section Scripts {
+    <script src="~/Content/User/add-edit-review.js"></script>
+}
+

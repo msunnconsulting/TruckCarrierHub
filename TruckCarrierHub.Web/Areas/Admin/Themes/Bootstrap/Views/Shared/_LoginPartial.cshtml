@@ -1,0 +1,34 @@
+﻿@using PartnerCarrier.Infrastructure
+@using Common.Utility
+@if (FormsAuthService.Instance.IsAuthenticated(Config.GetValue("AdminLoginAuthenticationName")))
+{
+    using (Html.BeginForm("LogOff", "Account", FormMethod.Post, new { id = "logoutForm", @class = "navbar-right" }))
+    {
+        @Html.AntiForgeryToken()
+
+        var loginInfo = FormsAuthService.Instance.LoggedInUser(Config.GetValue("AdminLoginAuthenticationName"));
+        <ul class="nav navbar-nav navbar-right">
+            <li class="dropdown">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">@loginInfo.Name <span class="fa fa-cog"></span></a>
+                <ul class="dropdown-menu">
+                    <li>
+                        @Html.ActionLink("Edit Profile", "edit-profile", "account", new {Area="Admin" }, htmlAttributes: new { id = "profileLink" })
+                    </li>
+                    <li>
+                        @Html.ActionLink("Change password", "change-password", "account", new {Area="Admin" }, htmlAttributes: new { id = "changepassword" })
+                    </li>
+                    <li>
+                        <a href="javascript:document.getElementById('logoutForm').submit()">Log Out</a>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+    }
+}
+else
+{
+    <ul class="nav navbar-nav navbar-right">
+        <li>@Html.ActionLink("Log in", "Login", "Account", routeValues: null, htmlAttributes: new { id = "loginLink" })</li>
+    </ul>
+}
+

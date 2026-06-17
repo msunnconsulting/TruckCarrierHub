@@ -1,0 +1,66 @@
+﻿@using PartnerCarrier.Infrastructure
+@using Common.Utility
+@{
+    var userInfo = FormsAuthService.Instance.LoggedInUser(Config.GetValue("AdminLoginAuthenticationName"));
+}
+
+@if (FormsAuthService.Instance.IsAuthenticated(Config.GetValue("AdminLoginAuthenticationName")))
+{
+    <ul class="nav navbar-nav">
+        <li>@Html.ActionLink("Admin Users", "list", "user")</li>
+        <li>@Html.ActionLink("Delete Record By USDOT Number", "delete-record", "user")</li>
+        <li>@Html.ActionLink("Update Record", "update-record", "user")</li>
+
+        <li>
+            <a class="dropdown-toggle" data-toggle="dropdown" href="#"> Business</a>
+            <ul class="dropdown-menu" role="menu" aria-labelledby="dLabel">
+                <li class="dropdown dropdown-submenu">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Emails</a>
+                    <ul class="dropdown-menu">
+                        <li>@Html.ActionLink("Create Email", "create-email", "business")</li>
+                        <li>@Html.ActionLink("Update/Send Email", "email", "business")</li>
+                    </ul>
+                </li>
+                <li>@Html.ActionLink("Global Hiring", "manage-global-hiring", "business")</li>
+                <li class="dropdown dropdown-submenu">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Reviews</a>
+                    <ul class="dropdown-menu">
+                        <li>@Html.ActionLink("Manage Reviews", "manage-reviews", "business")</li>
+                        <li>@Html.ActionLink("Delete Reviews", "delete-reviews", "user")</li>
+                    </ul>
+                </li>
+                <li>@Html.ActionLink("Manage Businesses", "manage-business", "business")</li>
+                <li>@Html.ActionLink("Success Stories", "update-success-stories", "business")</li>
+                <li class="dropdown dropdown-submenu">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Manage Carriers</a>
+                    <ul class="dropdown-menu">
+                        @{
+                            var textLink = "Manage appearance of " + '"' + "Get a Quote" + '"';
+                        }
+                        <li>@Html.ActionLink(textLink, "manage-get-a-quote", "business")</li>
+                        <li>@Html.ActionLink("Create Carrier", "create-carrier", "business")</li>
+                        <li>@Html.ActionLink("Manage Carrier", "manage-carrier", "business")</li>
+                    </ul>
+                </li>
+                <li>@Html.ActionLink("Outbound Links", "outbound-list", "business")</li>
+                <li>@Html.ActionLink("Outbound Banners", "outbound-banner-list", "business")</li>
+                <li class="dropdown dropdown-submenu">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">City Articles</a>
+                    <ul class="dropdown-menu">
+                        <li>@Html.ActionLink("Availability", "city-articles-availability", "business")</li>
+                        <li>@Html.ActionLink("Create City Article", "create-city-article", "business")</li>
+                        <li>@Html.ActionLink("Manage City Articles", "manage-city-articles", "business")</li>
+                        <li>@Html.ActionLink("Manage Cities", "manage-cities", "business")</li>
+                    </ul>
+                </li>
+
+            </ul>
+        </li>
+        <li>@Html.ActionLink("Clear Cities With Only 1 Company", "clean-company-monthly-list", "user")</li>
+
+    </ul>
+    @Html.Partial("_LoginPartial")
+}
+else
+{
+}   

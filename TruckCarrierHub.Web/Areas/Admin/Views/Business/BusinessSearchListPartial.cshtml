@@ -1,0 +1,170 @@
+﻿@using Common.Utility.ViewModels;
+@using Common.Utility.Extensions;
+@using PartnerCarrier.ViewModels.Admin;
+@model CommonBusinessAndPagelistVM
+
+<div id="tblAddEdit">
+
+    @using (Ajax.BeginForm("save", "user", null, new AjaxOptions
+    {
+        HttpMethod = "POST",
+        OnSuccess = "vm.EditBusinessOnSuccess",
+        OnFailure = "vm.EditBusinessOnFailure"
+
+    }, new { id = "frmEditBusiness" }))
+    {
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <tr>
+                    <th width="14%" class="text-center">
+                        @Html.SortLink("vm.pageSort", "USDOT Number", "USDOTNumber", "BusinessSearchListPartial", "Business", null, Model.PagedListVM.Sorting, Model.PagedListVM.Pagination)
+                    </th>
+                    <th width="20%" class="text-center">
+                        @Html.SortLink("vm.pageSort", "Website", "WebsiteName", "BusinessSearchListPartial", "Business", null, Model.PagedListVM.Sorting, Model.PagedListVM.Pagination)
+                    </th>
+                    <th width="12%" class="text-center">
+                        @Html.SortLink("vm.pageSort", "Email Verified", "EmailVerified", "BusinessSearchListPartial", "Business", null, Model.PagedListVM.Sorting, Model.PagedListVM.Pagination)
+                    </th>
+                    <th width="12%" class="text-center">
+                        @Html.SortLink("vm.pageSort", "Website Approved", "WebsiteApproved", "BusinessSearchListPartial", "Business", null, Model.PagedListVM.Sorting, Model.PagedListVM.Pagination)
+                    </th>
+                    <th width="20%" class="text-center">
+                        @Html.SortLink("vm.pageSort", "Contact Email", "BusinessContactEmail", "BusinessSearchListPartial", "Business", null, Model.PagedListVM.Sorting, Model.PagedListVM.Pagination)
+                    </th>
+
+                    <th width="14%" class="text-center">
+                        @Html.SortLink("vm.pageSort", "Communication Approved", "CommunicationApproved", "BusinessSearchListPartial", "Business", null, Model.PagedListVM.Sorting, Model.PagedListVM.Pagination)
+                    </th>
+                    <th width="8%" class="text-center">
+                        Actions
+                    </th>
+                </tr>
+
+                <tbody>
+
+                    <tr id="trAddEdit" class="form-tr">
+                        <td>
+                            <input type="hidden" name="BusinessID" id="BusinessID">
+                            <input type="text" class="form-control" placeholder="" value="" name="USDOTNumber" id="USDOTNumber" readonly>
+                        </td>
+                        <td>
+                            @Html.TextBoxFor(a => a.WebsiteName, new { MaxLength = 255, @class = "form-control input-sm", placeholder = "Website Name" })
+                            @Html.ValidationMessageFor(a => a.WebsiteName, "", new { @class = "text-danger" })
+                        </td>
+
+                        <td>
+                            <div class="radio-inline">
+                                <input type="radio" id="emailVerifiedYes" name="EmailVerified" value="Yes">
+                                <label for="emailVerifiedYes">Yes</label>
+
+                            </div>
+                            <div class="radio-inline">
+                                <input type="radio" id="emailVerifiedNo" name="EmailVerified" value="No">
+                                <label for="emailVerifiedNo">No</label>
+                            </div>
+                        </td>
+
+                        <td>
+                            <div class="radio-inline">
+                                <input type="radio" id="websiteApprovedYes" name="WebsiteApproved" value="Yes">
+                                <label for="websiteApprovedYes">Yes</label>
+                            </div>
+                            <div class="radio-inline">
+                                <input type="radio" id="websiteApprovedNo" name="WebsiteApproved" value="No">
+                                <label for="websiteApprovedNo">No</label>
+                            </div>
+                        </td>
+                        <td>
+                            @Html.TextBoxFor(a => a.BusinessContactEmail, new { MaxLength = 255, @class = "form-control input-sm", placeholder = "Contact Email" })
+                            @Html.ValidationMessageFor(a => a.BusinessContactEmail, "", new { @class = "text-danger" })
+                        </td>
+                        <td>
+                            <div class="radio-inline">
+                                <input type="radio" id="communicationApprovedYes" name="CommunicationApproved" value="Yes">
+                                <label for="communicationApprovedYes">Yes</label>
+                            </div>
+                            <div class="radio-inline">
+                                <input type="radio" id="communicationApprovedNo" name="CommunicationApproved" value="No">
+                                <label for="communicationApprovedNo">No</label>
+                            </div>
+
+                        </td>
+
+                        <td colspan="2" class="text-center">
+                            <button type="button" onclick="vm.Save()" class="btn btn-link" title="Save"><i class="fa fa-save"></i></button>&nbsp;&nbsp;
+                            <a onclick="vm.cancel()" href="Javascript:;" title="Cancel"><span class="fa fa-undo"></span></a>
+                        </td>
+                    </tr>
+
+                    @if (Model.PagedListVM.Items.Count > 0)
+                    {
+                        foreach (var business in Model.PagedListVM.Items)
+                        {
+                            var One = "1";
+                            var Zero = "0";
+                            <tr id="@business.USDOTNumber" data-usdotnumber="@business.USDOTNumber" data-website="@business.Website" data-emailverified="@business.EmailVerified" data-websiteapproved="@business.WebsiteApproved" data-communicationapproved="@business.CommunicationApproved" data-businesscontactemail="@business.BusinessContactEmail">
+
+                                <td class="text-center">@business.USDOTNumber</td>
+
+                                <td class="text-center">
+                                    @business.Website
+                                </td>
+
+                                <td class="text-center">
+                                    @if (@business.EmailVerified.HasValue)
+                                    {
+                                        if (business.EmailVerified.Value == true)
+                                        {
+                                            @One
+                                        }
+                                        else
+                                        {
+                                            @Zero
+                                        }
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    @if (@business.WebsiteApproved.HasValue)
+                                    {
+                                        if (business.WebsiteApproved.Value == true)
+                                        {
+                                            @One
+                                        }
+                                        else
+                                        {
+                                            @Zero
+                                        }
+                                    }
+                                </td>
+                                <td class="text-center">@business.BusinessContactEmail</td>
+                                <td class="text-center">
+                                    @if (@business.CommunicationApproved.HasValue)
+                                    {
+                                        if (business.CommunicationApproved.Value == true)
+                                        {
+                                            @One
+                                        }
+                                        else
+                                        {
+                                            @Zero
+                                        }
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <a href="javascript:void(0);" onclick="vm.edit('@business.USDOTNumber')" title="Edit"><i class="fa fa-edit"></i></a>
+                                    <a href="Javascript:;" onclick="vm.DeleteBusiness(@business.USDOTNumber)" title="Delete"><i class="fa fa-trash"></i></a>
+                                    <a href="Javascript:;" onclick="vm.ResetPassword(@business.USDOTNumber)" title="Reset password"><i class="fa fa-key"></i></a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td class="text-center well" colspan="7">Not Found</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @Html.Pager("vm.pageSort", "BusinessSearchListPartial", "Business", null, Model.PagedListVM.Pagination, Model.PagedListVM.Sorting)
+    }
+</div>

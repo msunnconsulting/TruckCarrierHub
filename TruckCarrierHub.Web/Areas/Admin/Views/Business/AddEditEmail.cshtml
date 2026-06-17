@@ -1,0 +1,83 @@
+﻿@using PartnerCarrier.ViewModels.Admin;
+@model EmailsVM
+
+@{
+
+    ViewBag.Title = Model.EmailID.HasValue? "Edit Email" : "Create Email";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <h2>@ViewBag.Title</h2>
+    </div>
+</div>
+<hr class="small" />
+
+<div class="row" id="dvNotification"></div>
+
+@using (Ajax.BeginForm("save-email", "business", null, new AjaxOptions
+{
+    HttpMethod = "POST",
+    OnSuccess = "vm.OnSuccessAddUpdateEmail",
+    OnFailure = "vm.OnFailureAddUpdateEmail"
+}, new { id = "AddUpdateEmailForm" }))
+{
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.EmailID)
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-3 col-md-3">
+                    <label class="">Email Subject: </label>
+                </div>
+                <div class="col-md-9">
+                    @Html.TextBoxFor(m => m.Subject, new { @class = "form-control", maxlength = "255" })
+                    @Html.ValidationMessageFor(m => m.Subject, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-3 col-md-3">
+                    <label class="">Email Content: </label>
+                </div>
+                <div class="col-md-9">
+                    @Html.TextBoxFor(m => m.Content, new { @class = "form-control"  })
+                    @Html.ValidationMessageFor(m => m.Content, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-3">
+                    <label class="">Link Needed:</label>
+                </div>
+                <div class="col-md-9">
+                    @Html.CheckBoxFor(m => m.LinkNeeded)
+                </div>
+            </div>
+        </div>
+    </div>
+    <hr />
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-2 col-md-2">
+                </div>
+                <div class="col-md-6">
+                    <button type="button" class="btn btn-primary" value="Save" title="Save" onclick="vm.OnBeginAddUpdateEmail()"><i class="fa fa-save"></i> Save</button>
+                    <a href="@Url.Action("email", "business")" title="Back" class="btn btn-default"><i class="fa fa-arrow-left"></i> Back</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+@section Scripts {
+<script src="~/Scripts/ckeditor/ckeditor.js"></script>
+    <script src="~/Areas/Admin/Content/PageScript/AdminUsers/add-edit-emails.js"></script>
+}

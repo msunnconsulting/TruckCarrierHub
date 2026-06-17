@@ -1,0 +1,51 @@
+﻿@using PartnerCarrier.ViewModels.Admin;
+@model ManageReviewsVM
+
+@{
+    ViewBag.Title = "Manage Reviews";
+}
+
+<h2>Manage Reviews</h2>
+
+<div class="row" id="dvNotification"></div>
+
+@using (Ajax.BeginForm("save-reviews-filter", "business", null, new AjaxOptions
+{
+    HttpMethod = "POST",
+    OnSuccess = "vm.onSuccessReviewsFilterUpdate",
+    OnFailure = "vm.onFailureReviewsFilterUpdate"
+}, new { id = "SaveManageReviewsForm" }))
+{
+
+    @Html.AntiForgeryToken()
+
+    <div class="row margin-top-10">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-3 col-md-2">
+                    <label class="">Reviews :</label>
+                </div>
+                <div class="col-md-8">
+                    @Html.DropDownListFor(x => x.SelectedFilterValue, EnumHelper.GetSelectList(typeof(ManageReviewEnum)), new { @class = "form-control" })
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <hr />
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-md-6">
+                    <button type="submit" class="btn btn-primary" value="Save" title="Save"><i class="fa fa-save"></i> Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+
+
+@section Scripts {
+    <script src="~/Areas/Admin/Content/PageScript/AdminUsers/manage-reviews.js"></script>
+}

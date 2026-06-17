@@ -1,0 +1,70 @@
+﻿@using Common.Utility.ViewModels;
+@using Common.Utility.Extensions;
+@using PartnerCarrier.ViewModels.Admin;
+@model PagedList<EmailsVM>
+
+<div class="table-responsive">
+    <table class="table table-bordered">
+        <tr>
+            <th width="4%">
+                Email ID
+            </th>
+            <th width="8%">
+                Subject
+            </th>
+            <th width="50%">
+                Content
+            </th>
+            <th width="4%">
+                Link Needed?
+            </th>
+            <th width="4%">
+                Emails Sent
+            </th>
+            <th width="8%">
+                Last Date Sent
+            </th>
+            <th width="4%"></th>
+            <th width="4%"></th>
+        </tr>
+        <tbody>
+            @if (Model.Items.Count > 0)
+            {
+                foreach (var emails in Model.Items)
+                {
+                    <tr>
+                        <td>
+                            @emails.EmailID
+                        </td>
+                        <td>
+                            @emails.Subject
+                        </td>
+                        <td>
+                            @Html.Raw(emails.Content)
+                        </td>
+                        <td>
+                            @emails.LinkNeeded
+                        </td>
+                        <td>
+                            @emails.EmailSent
+                        </td>
+                        <td>
+                            @if (@emails.LastDateSent.Value.Year != 0001)
+                            {
+                                @emails.LastDateSent.Value.ToString("MMM, dd, yyyy")
+                            }
+                        </td>
+                        <td>
+                            <a class="btn btn-default" href="@Url.Action("edit-email/" + emails.EmailID, "business")" title="Edit">Edit</a>
+                        </td>
+                        <td><a class="btn btn-default" href="@Url.Action("send-emails/" + emails.EmailID, "business")" title="Ready to Send">Ready to Send</a></td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr><td class="text-center well" colspan="8">No Record(s) Found</td></tr>
+            }
+        </tbody>
+    </table>
+</div>

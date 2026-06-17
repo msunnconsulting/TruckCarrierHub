@@ -1,0 +1,137 @@
+﻿@using PartnerCarrier.ViewModels.Admin;
+@model SendEmailsVM
+@{
+    ViewBag.Title = "Send Email";
+}
+
+<style>
+    input, select {
+        width: 100%;
+    }
+</style>
+<div class="row">
+    <div class="col-md-12">
+        <h2>Manage Emails</h2>
+    </div>
+</div>
+<hr class="small" />
+
+@*Append error message with HTML using jquery*@
+<div class="row" id="dvNotification"></div>
+
+@using (Ajax.BeginForm("send-email", "business", new { Area = "admin" }, new AjaxOptions
+{
+    HttpMethod = "POST",
+    OnBegin = "vm.OnBeginSendEmail",
+    OnSuccess = "vm.onProcessStarted",
+    OnFailure = "vm.OnFailureSendEmail",
+    UpdateTargetId = "emailList"
+}, new { id = "emailSendForm" }))
+{
+    <div class="row">
+        <div class="col-md-12">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <tr>
+                        <th width="4%">Email ID</th>
+                        <th width="12%">Subject</th>
+                        <th width="8%">State</th>
+                        <th width="8%">City</th>
+                        <th width="8%">Emails to send</th>
+                        <th width="8%">Real Time Counter</th>
+                        <th width="8%">Min # of Trucks</th>
+                        <th width="8%">Max # of Trucks</th>
+                        <th width="8%">To companies added after the date</th>
+                        <th width="8%">To companies updated after the date</th>
+                        <th width="8%"></th>
+                        <th width="8%"></th>
+                    </tr>
+                    <tbody>
+                        <tr>
+                            <td>
+                                @Model.EmailID
+                                @Html.HiddenFor(x => x.EmailID)
+                                @Html.HiddenFor(x => x.LinkNeeded)
+                            </td>
+                            <td>
+                                @Model.Subject
+                            </td>
+                            <td>
+                                @Html.DropDownListFor(m => Model.State, new SelectList(Model.lstStates, "StateCode", "State"), "--Select--")
+                            </td>
+                            <td>
+                                @Html.DropDownListFor(m => Model.City, new SelectList(Enumerable.Empty<SelectListItem>()), "--Select--")
+                            </td>
+                            <td>
+                                @Html.TextBoxFor(x => x.EmailsToSend, new { @Value = "" })
+                                @Html.ValidationMessageFor(m => m.EmailsToSend, "", new { @class = "text-danger"})
+                            </td>
+                            <td>
+                                <span id="real-time-counter">@Model.RealTimeCounter</span>
+                            </td>
+                            <td>
+                                @Html.TextBoxFor(x => x.MinNoOfTrucks)
+                                @Html.ValidationMessageFor(m => m.MinNoOfTrucks, "", new { @class = "text-danger" })
+                            </td>
+                            <td>
+                                @Html.TextBoxFor(x => x.MaxNoOfTrucks)
+                                @Html.ValidationMessageFor(m => m.MaxNoOfTrucks, "", new { @class = "text-danger" })
+                            </td>
+                            <td>
+                                @Html.TextBoxFor(x => x.ToCompaniesAddedAfterTheDate, new { @class = "datepicker",autocomplete="off" })
+                                @Html.ValidationMessageFor(m => m.ToCompaniesAddedAfterTheDate, "", new { @class = "text-danger" })
+                            </td>
+                            <td>
+                                @Html.TextBoxFor(x => x.ToCompaniesUpdatedAfterTheDate, new { @class = "datepicker", autocomplete = "off" })
+                                @Html.ValidationMessageFor(m => m.ToCompaniesUpdatedAfterTheDate, "", new { @class = "text-danger" })
+                            </td>
+                            <td>
+                                <input type="submit" name="Start" value="Start" class="btn btn-default" id="btnStartEmail" />
+                                <input type="button" name="Stop" value="Stop" class="btn btn-default" onclick="vm.cancelSendMailOnSuccess()" id="btnStopEmail" style="display:none;" />
+                            </td>
+                            <td><a href="@Url.Action("email", "business")" title="Back" class="btn btn-default"> Back</a></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+<div id="dvInProgress" style="display:none">
+
+
+
+    <div class="row">
+        <div class="col-md-3">
+
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="progress">
+                <div class="progress-bar progress-bar-striped bg-danger " role="progressbar" style="width: 0%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">0%</div>
+            </div>
+            <div class="row">
+                <div class="col-md-8">
+                    <label class="form-group">Processed:&nbsp;</label><text class="records-processed">0</text><text> / </text><text class="records-to-process">0</text>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <label class="form-group">Success:&nbsp;</label><text class="records-success">0</text>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <p class="form-group"><label>Failed :&nbsp;</label><text class="records-failed">0</text></p>
+        </div>
+    </div>
+
+</div>
+@section Scripts{
+
+    <script src="~/Areas/Admin/Content/PageScript/AdminUsers/manage-emails.js"></script>
+}

@@ -1,0 +1,125 @@
+﻿<div class="signin-modal">
+    <div class="signin-header">
+        <img src="/Images/avatar_circle_blue_120dp.png" alt="User Icon">
+        <p>Sign in with your Truck Carrier Hub Account to write a review</p>
+    </div>
+    <div class="signin-footer">
+        <a onclick="reviewVm.closeReviewIframe()" class="cancel">Cancel</a>
+        <a onclick="reviewVm.onSignUpBtnClick(); return false;" class="signin-btn">Sign In</a>
+    </div>
+</div>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    /* Sign-In Modal Wrapper */
+    .signin-modal {
+        width: 100%;
+        max-width: 600px;
+        display: flex;
+        flex-direction: column;
+        height: 57vh;
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    /* Blue header portion (90%) */
+    .signin-header {
+        background: #1a73e8;
+        color: white;
+        text-align: center;
+        flex: 0 0 90%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+
+        .signin-header img {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: #fff;
+            margin-bottom: 20px;
+        }
+
+        .signin-header p {
+            font-size: 18px;
+            margin: 0;
+            line-height: 1.4;
+        }
+
+    /* Footer (10%) */
+    .signin-footer {
+        background: #fff;
+        flex: 0 0 11%;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        padding: 0 20px;
+        font-size: 14px;
+        color: #5f6368;
+    }
+
+        .signin-footer a {
+            margin-left: 16px;
+            text-decoration: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+    .cancel {
+        color: #5f6368;
+    }
+
+    .signin-btn {
+        color: #1a73e8;
+    }
+
+    @@media (max-width: 768px) {
+        .signin-modal {
+            max-width: 100%;
+        }
+
+        .signin-header img {
+            width: 70px;
+            height: 70px;
+        }
+
+        .signin-header p {
+            font-size: 16px;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .signin-modal {
+            max-width: 100%;
+        }
+
+        .signin-header img {
+            width: 60px;
+            height: 60px;
+        }
+
+        .signin-header p {
+            font-size: 14px;
+        }
+
+        .signin-footer {
+            justify-content: center;
+            font-size: 12px;
+        }
+
+            .signin-footer a {
+                margin-left: 10px;
+            }
+    }
+</style>
+
+@section scripts
+{
+    <script src="~/Content/User/add-edit-review.js"></script>
+}

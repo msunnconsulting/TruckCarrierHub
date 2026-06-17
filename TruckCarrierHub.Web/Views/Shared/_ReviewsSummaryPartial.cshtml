@@ -1,0 +1,430 @@
+﻿@using PartnerCarrier.ViewModels.User;
+@using Common.Utility.ViewModels;
+@model CompanyReviewSummaryVM
+
+<div class="modal-header">
+    <h3 class="modal-title text-center legalName-font-color">@Model.CompanyName</h3>
+    <button type="button" class="close" data-dismiss="modal" onclick="reviewVm.closeReviewIframe()" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+<div class="modal-body">
+    <div class="rating-overview">
+        <div class="stars-breakdown">
+            @foreach (var kv in Model.RatingsBreakdown.OrderByDescending(x => x.Key))
+            {
+                var percentage = Model.TotalReviews > 0
+                    ? (kv.Value * 100 / Model.TotalReviews)
+                    : 0;
+
+                <div class="rating-bar">
+                    <span class="">@kv.Key</span>
+                    <div class="bar">
+                        <div class="fill" style="width:@percentage%"></div>
+                    </div>
+                </div>
+            }
+        </div>
+        <div class="average-rating">
+            <h2>@Model.AverageRating</h2>
+            <div class="stars">
+                @for (int i = 1; i <= 5; i++)
+                {
+                    <span class="star @(i <= Math.Round(Model.AverageRating) ? "filled" : "")">★</span>
+                }
+            </div>
+            <p>@Model.TotalReviews review(s)</p>
+        </div>
+    </div>
+    @if (!Model.CanWriteReview)
+    { 
+        <br />
+    }
+
+    @if(Model.CanWriteReview)
+    {
+        <div class="write-review">
+            <button onclick="reviewVm.onAddReviewClick(@Model.CompanyUSDOT, false)" class="write-review-btn">🖊️ Write a review</button>
+        </div>
+    }
+
+    <hr class="hr" />
+    <div class="row">
+        <div class="col-md-12">
+            <div class="dropdown pull-right google-sort-button-wrapper">
+                <button class="btn google-sort-button dropdown-toggle" type="button" id="sortDropdown"
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="fa fa-filter"></i> Sort
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="sortDropdown">
+                    @foreach (var option in Enum.GetValues(typeof(ReviewSortOption)).Cast<ReviewSortOption>())
+                    {
+                        <li>
+                            <a href="javascript:void(0);" onclick="reviewVm.selectSortOption(@Model.CompanyUSDOT,@((int)option))">
+                                @option.GetDisplayName()
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="modal-body-scroll">
+        @foreach (var review in Model.Reviews)
+        {
+            <div class="review-card" id="review-@review.ReviewId">
+                <img src="~/Images/avatar_circle_blue_120dp.png" class="avatar" />
+                <div class="details">
+                    <strong>By @review.ReviewerName (USDOT @review.ReviewerUSDOT)</strong>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                <span class="star @(i <= review.Rating ? "filled" : "")">★</span>
+                            }
+                            <small style="margin-left:5px;">@review.UpdatedOn</small>
+                        </span>
+                        
+                        <span style="margin-left: 2pc " class="actions">
+                            @if (review.CanEdit)
+                            {
+                                <a href="javascript:void(0);" class="link" onclick="reviewVm.onEditReview(@review.ReviewId,@Model.CompanyUSDOT)"><i class="fa fa-pencil-square-o" aria-hidden="true"></i> Edit</a>
+                            }
+                         
+                        </span>
+                    </div>
+                    <div class="review-text">
+                        @{
+                            var words = review.Comment?.Split(' ');
+                            string preview = null;
+                            string fullText = null;
+
+                            if (words != null && words.Length > 30)
+                            {
+                                preview = string.Join(" ", words.Take(30));
+                                fullText = string.Join(" ", words.Take(120));
+                            }
+                        }
+
+                        @if (words != null && words.Length > 30)
+                        {
+                            <span class="preview-text">@preview </span>
+                            <a href="javascript:void(0);" class="toggle-text">...More</a>
+                            <span class="full-text">@fullText</span>
+                        }
+                        else
+                        {
+                            <span>@review.Comment</span>
+                        }
+                        <div>
+                            @if (review.CanReply && string.IsNullOrEmpty(review.ReplyText))
+                            {
+                                <a href="javascript:void(0);" class="link" onclick="reviewVm.onReplyReview(@review.ReviewId,@Model.CompanyUSDOT)"><i class="fa fa-reply" aria-hidden="true"></i> Reply</a>
+                            }
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(review.ReplyText))
+                    {
+                        <div class="reply">
+                            <span style="display: flex;justify-content: space-between;margin-top:5px;">
+                                <strong>Response from the owner/manager</strong>
+                                <span style="margin-left: 2pc " class="actions">
+                                    @if (review.CanReply && !string.IsNullOrEmpty(review.ReplyText))
+                                    {
+                                        <a href="javascript:void(0);" class="link" onclick="reviewVm.onEditReviewReply(@review.ReponseId,@Model.CompanyUSDOT)"><i class="fa fa-pencil-square-o" aria-hidden="true"></i> Edit</a>
+                                    }
+                                </span>
+                            </span>                            
+                            <div class="review-text">
+                                @{
+                                    var replyWords = review.ReplyText?.Split(' ');
+                                    string replyPreview = null;
+                                    string replyFull = null;
+
+                                    if (replyWords != null && replyWords.Length > 30)
+                                    {
+                                        replyPreview = string.Join(" ", replyWords.Take(30));
+                                        replyFull = string.Join(" ", replyWords.Take(120));
+                                    }
+                                }
+
+                                @if (replyWords != null && replyWords.Length > 30)
+                                {
+                                    <span class="preview-text">@replyPreview </span>
+                                    <a href="javascript:void(0);" class="toggle-text">...More</a>
+                                    <span class="full-text" style="display:none;">@replyFull</span>
+                                }
+                                else
+                                {
+                                    <span>@review.ReplyText</span>
+                                }
+                                <small style="margin-left:5px;">@review.ReplyUpdatedOn</small>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+
+    .full-text {
+        display:none;
+    }
+    .modal-body-scroll::-webkit-scrollbar {
+        display: none; /* Chrome/Safari/Opera */
+    }
+
+    .modal-title {
+        width: 99%;
+    }
+
+    .modal-body-scroll {
+        max-height: 38vh;
+        overflow-y: auto;
+    }
+
+    @@media (max-width: 768px) {
+        .modal-body-scroll {
+            max-height: 34vh;
+        }
+        .modal-header {
+            padding: 10px 0;
+        }
+        .close {
+            top: 10px !important;
+            right: 10px !important;
+            width: 5% !important;
+        }
+       
+        .modal-header .close{
+            margin-right:auto;
+        }
+        .modal-title {
+            width: 95% !important;
+        }
+
+    }
+
+    .modal-header {
+        position:relative;
+        border-bottom:0px;
+    }
+
+    .reply {
+        border-left: 2px solid #b9bbbc;
+        padding-left: 15px;
+    }
+
+    .close {
+        position: absolute;
+        top: 10px;
+        right: 20px;
+        width: 1%;
+        margin-top: 0 !important;
+        margin-right: 0 !important;
+    }
+    .overlap-dropdown {
+        top: 0 !important;
+        left: 0 !important;
+        margin-top: 0;
+        z-index: 1051;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        width: auto;
+        min-width: max-content;
+        padding: 6px 0;
+    }
+
+
+    .hr {
+        margin-top: 0px;
+        margin-bottom: 10px;
+        border: 0;
+        border-top: 1px solid #eeeeee;
+        width:95%;
+    }
+
+    .google-sort-button-wrapper {
+        position: relative;
+        display: inline-block;
+        font-family: Arial, sans-serif;
+    }
+
+    .google-sort-button {
+        background-color: #f1f3f4;
+        color: #202124;
+        border: none;
+        border-radius: 24px;
+        padding: 8px 16px;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3), 0 1px 3px rgba(60, 64, 67, 0.15);
+        transition: background-color 0.2s;
+    }
+
+        .google-sort-button:hover {
+            background-color: #e8eaed;
+        }
+
+    .dropdown-icon {
+        font-size: 12px;
+    }
+
+    .sort-dropdown-menu {
+        display: none;
+        position: absolute;
+        background-color: white;
+        min-width: 160px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        border-radius: 8px;
+        padding: 8px 0;
+        z-index: 1000;
+        margin-top: 6px;
+        list-style-type: none;
+    }
+
+        .sort-dropdown-menu li {
+            padding: 8px 16px;
+            font-size: 14px;
+            color: #202124;
+            cursor: pointer;
+        }
+
+            .sort-dropdown-menu li:hover {
+                background-color: #f1f3f4;
+            }
+
+    .review-summary-container {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        max-width: 500px;
+        margin: auto;
+    }
+
+    .rating-overview {
+        display: flex;
+        justify-content: space-evenly;
+        align-items: center;
+    }
+
+    .stars-breakdown {
+        width: 60%;
+    }
+
+    .rating-bar {
+        display: flex;
+        align-items: center;
+        margin: 5px 0;
+    }
+
+        .rating-bar .label {
+            width: 15px;
+            font-size: 14px;
+        }
+
+        .rating-bar .bar {
+            background: #eee;
+            width: 250px;
+            height: 8px;
+            margin-left: 10px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .rating-bar .fill {
+            height: 100%;
+            background: #fbbc04; /* Google yellow */
+        }
+
+    .average-rating {
+        text-align: center;
+    }
+
+        .average-rating h2 {
+            margin: 0;
+            font-size: 36px;
+            color: #202124;
+        }
+
+    .stars {
+        margin: 5px 0;
+    }
+
+    .star {
+        font-size: 18px;
+        color: #ccc;
+        margin: 0 1px;
+    }
+
+        .star.filled {
+            color: #fbbc04;
+        }
+
+    .write-review {
+        text-align: center;
+        margin: 20px 0;
+    }
+
+    .write-review-btn {
+        border-radius: 40px;
+        height: 40px;
+        background-color: #d3f7ff;
+        border: 1px solid #d3f7ff;
+        color: #014f5a;
+    }
+
+
+    .review-card {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 15px;
+        margin: 15px;
+    }
+
+    @@media (max-width: 480px) {
+        .review-card {
+            margin: 15px 5px;
+        }
+    }
+
+        .review-card .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-top : 5px;
+        }
+
+        .review-card .details {
+            flex: 1;
+        }
+
+        .review-card strong {
+            display: block;
+            margin-bottom: 4px;
+            color: #202124;
+        }
+
+        .review-card small {
+            color: #5f6368;
+            font-size: 12px;
+        }
+        .modal-title{
+            width:95% !important;
+        }
+        .close{
+            width:5% !important;
+        }
+</style>
+
+@section Scripts {
+    <script src="~/Content/User/add-edit-review.js"></script>
+}

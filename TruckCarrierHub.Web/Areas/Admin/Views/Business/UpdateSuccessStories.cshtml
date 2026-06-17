@@ -1,0 +1,62 @@
+﻿@using PartnerCarrier.ViewModels.Admin;
+@model SuccessStoriesVM
+@{
+
+    ViewBag.Title = "Manage Success Stories";
+}
+<div class="row">
+    <div class="col-md-12">
+        <h2>@ViewBag.Title</h2>
+    </div>
+</div>
+<hr class="small" />
+
+<div class="row" id="dvNotification"></div>
+
+@using (Ajax.BeginForm("save-success-stories", "business", null, new AjaxOptions
+{
+    HttpMethod = "POST",
+    OnSuccess = "vm.OnSuccessUpdateSuccessStory",
+    OnFailure = "vm.OnFailureUpdateSuccessStory"
+}, new { id = "SaveSuccessStoriesForm" }))
+{
+    @Html.AntiForgeryToken()
+
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-8 col-md-8">
+                    <label>@Html.CheckBoxFor(m => m.SuccessStoryPublished) Check to make Success Stories page available for viewers</label>
+                </div>
+               
+            </div>
+        </div>
+    </div>
+
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-md-11">
+                    @Html.TextBoxFor(m => m.Content, new { @class = "form-control" })
+                    @Html.ValidationMessageFor(m => m.Content, "", new { @class = "text-danger" })
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <hr />
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-md-6">
+                    <button type="button" class="btn btn-primary" value="Save" title="Save" onclick="vm.SaveSuccessStories()"><i class="fa fa-save"></i> Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+}
+@section Scripts {
+    <script src="~/Scripts/ckeditor/ckeditor.js"></script>
+    <script src="~/Areas/Admin/Content/PageScript/AdminUsers/update-success-stories.js"></script>
+}

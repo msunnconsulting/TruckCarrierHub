@@ -1,0 +1,84 @@
+﻿<html>
+<head>
+    <style>
+        .panel {
+            height: auto;
+            width: 98%;
+            margin: auto;
+            background-color: white;
+            border: 1px solid #EBEEF0;
+            margin-top: 20px;
+        }
+
+        .panel-heading {
+            padding-top: 0px;
+        }
+
+        .panel-title {
+            background-color: #0070c9;
+            margin-bottom: 0px;
+            margin-top: 0px;
+            line-height: 50px;
+            font-weight: normal;
+            padding-left: 20px;
+            font-size: large;
+            color: white;
+            font-family: 'Open Sans' Arial, Helvetica, sans-serif;
+        }
+
+        .message-body {
+            padding: 15px;
+            font-size: 20px;
+        }
+
+        /*@media (max-width : 480px) {
+            .panel {
+                height: auto;
+                width: 98%;
+                margin: auto;
+                background-color: white;
+                border: 1px solid #EBEEF0;
+                margin-top: 20px;
+            }
+        }*/
+
+        @media (min-width: 768px)and (max-width: 992px) {
+            body > .panel {
+                width: 98%;
+            }
+
+            .message-body {
+                font-size: 30px;
+            }
+        }
+
+        @media only screen and (min-device-width: 1024px) and (max-device-width: 1366px) and (-webkit-min-device-pixel-ratio: 1.5) {
+            body > .panel {
+                width: 98%;
+            }
+
+            .message-body {
+                font-size: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="panel">
+        <div class="panel-heading">
+            <h3 class="panel-title">
+                Newsletters
+            </h3>
+        </div>
+        <div class="message-body">
+            <span style="margin-left:10px;margin-right:5px">This message was sent to {userEmail}. If you don't want to receive these emails from TruckCarrierHub in the future, please <a href="{unsubscribeURL}"> unsubscribe </a>.<br /><br /></span>
+            <span style="margin-left:10px;margin-right:5px">{emailTableContent}<br /><br /></span>
+            <span style="margin-left:10px;margin-right:5px">Please do not reply to this email. We are unable to respond to inquiries sent to this address. For immediate answers to your questions, visit our <a href="https://truckcarrierhub.com/contact_us">Contact Us </a>  page. <br /><br /></span>
+            <span style="margin-left:5px;margin-right:5px">Thanks,<br /></span>
+            <span style="margin-left:5px;margin-right:5px">Truck Carrier Hub Admin<br /></span>
+            <br />
+        </div>
+    </div>
+</body>
+</html>
+ 

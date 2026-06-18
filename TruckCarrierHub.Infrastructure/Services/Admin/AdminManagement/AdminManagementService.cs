@@ -403,7 +403,9 @@
                                     if (transportCompanysExistInMain != null)
                                     {
                                         AppLogger.Instance.Log(string.Format("Starting - Delete Record From Db - USDOTNumber: {0}, RecordIndex: {1}", currentRecordUSDOTNumber, currentRecordIndex), LogType.Info, null, isLogEnable);
-                                        dbCopyData.TransportCompanies.Delete(dbCopyData, new TransportCompany { USDOTNumber = currentRecordUSDOTNumber });
+                                        var deletedCompany = new TransportCompany { USDOTNumber = currentRecordUSDOTNumber };
+                                        dbCopyData.TransportCompanies.Delete(dbCopyData, deletedCompany);
+                                        dbCopyData.TransportCompanies.Detach(dbCopyData, deletedCompany);
                                         AppLogger.Instance.Log(string.Format("Ending - Delete Record From Db - USDOTNumber: {0}, RecordIndex: {1}", currentRecordUSDOTNumber, currentRecordIndex), LogType.Info, null, isLogEnable);
 
                                     }
@@ -463,6 +465,7 @@
 
                                     AppLogger.Instance.Log(string.Format("Starting - Add Record To Db - USDOTNumber: {0}, RecordIndex: {1}", currentRecordUSDOTNumber, currentRecordIndex), LogType.Info, null, isLogEnable);
                                     dbCopyData.TransportCompanies.Insert(dbCopyData, transportCompany);
+                                    dbCopyData.TransportCompanies.Detach(dbCopyData, transportCompany);
                                     AppLogger.Instance.Log(string.Format("Ending   - Add Record To Db - USDOTNumber: {0}, RecordIndex: {1}", currentRecordUSDOTNumber, currentRecordIndex), LogType.Info, null, isLogEnable);
 
                                     UpdateRecordProgressInfo.RecordsSuccessful++;

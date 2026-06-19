@@ -15,6 +15,7 @@
     using System.Web.Script.Serialization;
     using System.Threading;
     using System.Web;
+    using System.Data.Entity.Infrastructure;
     using System.Data.SqlClient;
 
     public class AdminManagementService : IAdminManagementService
@@ -278,6 +279,7 @@
                 bool isLogEnable = vm.IsDataMigrationLogEnabled; //for Enable/Disable log
                 int currentRecordIndex = 0; // take this to get the currently updated record number during running process
                 var currentRecordUSDOTNumber = 0;
+                var objCtx = ((IObjectContextAdapter)dbCopyData).ObjectContext;
 
                 try
                 {
@@ -405,7 +407,8 @@
                                         AppLogger.Instance.Log(string.Format("Starting - Delete Record From Db - USDOTNumber: {0}, RecordIndex: {1}", currentRecordUSDOTNumber, currentRecordIndex), LogType.Info, null, isLogEnable);
                                         var deletedCompany = new TransportCompany { USDOTNumber = currentRecordUSDOTNumber };
                                         dbCopyData.TransportCompanies.Delete(dbCopyData, deletedCompany);
-                                        dbCopyData.TransportCompanies.Detach(dbCopyData, deletedCompany);
+                                        if (objCtx.ObjectStateManager.TryGetObjectStateEntry(deletedCompany, out _))
+                                            dbCopyData.TransportCompanies.Detach(dbCopyData, deletedCompany);
                                         AppLogger.Instance.Log(string.Format("Ending - Delete Record From Db - USDOTNumber: {0}, RecordIndex: {1}", currentRecordUSDOTNumber, currentRecordIndex), LogType.Info, null, isLogEnable);
 
                                     }
@@ -465,7 +468,8 @@
 
                                     AppLogger.Instance.Log(string.Format("Starting - Add Record To Db - USDOTNumber: {0}, RecordIndex: {1}", currentRecordUSDOTNumber, currentRecordIndex), LogType.Info, null, isLogEnable);
                                     dbCopyData.TransportCompanies.Insert(dbCopyData, transportCompany);
-                                    dbCopyData.TransportCompanies.Detach(dbCopyData, transportCompany);
+                                    if (objCtx.ObjectStateManager.TryGetObjectStateEntry(transportCompany, out _))
+                                        dbCopyData.TransportCompanies.Detach(dbCopyData, transportCompany);
                                     AppLogger.Instance.Log(string.Format("Ending   - Add Record To Db - USDOTNumber: {0}, RecordIndex: {1}", currentRecordUSDOTNumber, currentRecordIndex), LogType.Info, null, isLogEnable);
 
                                     UpdateRecordProgressInfo.RecordsSuccessful++;

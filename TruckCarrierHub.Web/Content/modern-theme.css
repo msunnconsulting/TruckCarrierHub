@@ -341,8 +341,8 @@ a {
     }
 
     .status-badge.is-inactive {
-        background: var(--steel-200);
-        color: var(--steel-500);
+        background: var(--steel-500);
+        color: var(--white);
     }
 
 /* -------------------------------------------------------------------- */

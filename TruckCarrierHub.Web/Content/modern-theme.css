@@ -19,6 +19,9 @@
     /* Verified green — active / trustworthy status */
     --verified-600: #2F7D52;
     --verified-50: #E7F3EC;
+    /* Danger red — inactive / error status */
+    --danger-600: #C0392B;
+    --danger-50: #FDEDEC;
     /* Neutral surfaces and text */
     --paper-50: #F7F5F1;
     --steel-200: #DDE3E8;
@@ -341,7 +344,7 @@ a {
     }
 
     .status-badge.is-inactive {
-        background: var(--steel-500);
+        background: var(--danger-600);
         color: var(--white);
     }
 

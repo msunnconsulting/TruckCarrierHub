@@ -359,8 +359,8 @@
         </div>
     }
 
-    @* Claim banner — only for unclaimed listings *@
-    @if (Model.UsDOtNum == 0)
+    @* Claim banner — only for unclaimed active listings *@
+    @if (Model.UsDOtNum == 0 && Model.Status.ToLower() == "a")
     {
         <div class="co-claim-banner">
             <p><strong>This listing hasn't been claimed yet.</strong> Are you the owner?</p>

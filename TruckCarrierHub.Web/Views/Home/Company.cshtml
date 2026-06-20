@@ -410,7 +410,7 @@
                 <span class="co-rating-count">@Model.TotalReviews review@(Model.TotalReviews == 1 ? "" : "s")</span>
                 <a href="javascript:void(0);" class="co-rating-link" onclick="reviewVm.openReviewOverlay(@Model.USDOTNumber)">Read reviews</a>
             }
-            else if (Model.CanWriteReview)
+            else if (Model.CanWriteReview && Model.Status.ToLower() == "a")
             {
                 <a href="javascript:void(0);" class="co-first-review" onclick="reviewVm.onAddReviewClick(@Model.USDOTNumber, true)">Be the first to write a review</a>
             }
@@ -541,7 +541,7 @@
                         }
                     </div>
                 }
-                else if (Model.CanWriteReview)
+                else if (Model.CanWriteReview && Model.Status.ToLower() == "a")
                 {
                     <div class="review-card-body">
                         <p class="review-empty">No reviews yet.</p>

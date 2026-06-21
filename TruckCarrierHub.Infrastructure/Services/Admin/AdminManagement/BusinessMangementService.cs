@@ -1842,23 +1842,77 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
             _cityRenewProgress.Message = "Starting...";
             try
             {
+                var aiAuth = new OpenAIAuthDetails
+                {
+                    APIKey = Config.GetValue("OpenAIAPIKey"),
+                    SystemContent = Config.GetValue("OpenAISystemContent"),
+                    Model = Config.GetValue("OpenAIModel")
+                };
+
                 using (var dbCtx = new PartnerCarrier_DevEntities(true, null, true, null, null))
                 {
                     dbCtx.Database.CommandTimeout = 360;
+
                     var urlSet = new HashSet<string>(
                         request.CityURLs ?? new List<string>(),
                         StringComparer.OrdinalIgnoreCase);
+
                     var cities = dbCtx.Cities.ToList()
                         .Where(c => urlSet.Contains(c.StateCode + "/" + c.CityName.Replace(" ", "-")))
                         .ToList();
                     _cityRenewProgress.Total = cities.Count;
+
+                    var stateByCode = dbCtx.States.ToList()
+                        .GroupBy(s => s.StateCode)
+                        .ToDictionary(g => g.Key, g => g.First().State1, StringComparer.OrdinalIgnoreCase);
+
                     foreach (var city in cities)
                     {
-                        // Phase 4: generate Description and Article here
+                        _cityRenewProgress.Message = "Generating: " + city.CityName + ", " + city.StateCode;
+
+                        var companies = dbCtx.TransportCompanies
+                            .Where(c => c.Status == "A"
+                                && c.PhysicalAddressStateCode == city.StateCode
+                                && c.PhysicalAddressCity == city.CityName)
+                            .ToList();
+
+                        if (companies.Count > 0)
+                        {
+                            var stateName = stateByCode.ContainsKey(city.StateCode)
+                                ? stateByCode[city.StateCode]
+                                : city.StateCode;
+
+                            var prompt = BuildCityContentPrompt(city.CityName, stateName, companies);
+                            var aiResult = CallOpenAISync(prompt, aiAuth);
+
+                            if (aiResult.Status && !string.IsNullOrEmpty(aiResult.ResponseText))
+                            {
+                                try
+                                {
+                                    var parsed = JsonConvert.DeserializeObject<CityContentResponse>(
+                                        aiResult.ResponseText.Trim());
+                                    city.Description = string.IsNullOrWhiteSpace(parsed?.Description)
+                                        ? null : parsed.Description.Trim();
+                                    city.Article = string.IsNullOrWhiteSpace(parsed?.Article)
+                                        ? null : parsed.Article.Trim();
+                                }
+                                catch
+                                {
+                                    // Model returned non-JSON: store raw text as the article
+                                    city.Article = aiResult.ResponseText.Trim();
+                                }
+                                city.LastRenewedDate = DateTime.Now;
+                                dbCtx.SaveChanges();
+                            }
+                        }
+
                         _cityRenewProgress.Processed++;
-                        _cityRenewProgress.Message = "Processing " + _cityRenewProgress.Processed + " of " + _cityRenewProgress.Total;
+                        _cityRenewProgress.Message = "Processed " + _cityRenewProgress.Processed
+                            + " of " + _cityRenewProgress.Total;
                     }
-                    _cityRenewProgress.Message = "Complete — " + _cityRenewProgress.Processed + " cities processed";
+
+                    _cityRenewProgress.Message = "Complete — " + _cityRenewProgress.Processed
+                        + " of " + _cityRenewProgress.Total + " cities updated";
                 }
             }
             catch (Exception ex)
@@ -1869,6 +1923,134 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
             {
                 _cityRenewProgress.IsInProgress = false;
             }
+        }
+
+        private string BuildCityContentPrompt(string cityName, string stateName, List<TransportCompany> companies)
+        {
+            int count = companies.Count;
+
+            // Entity type breakdown
+            var entityLines = companies
+                .Where(c => !string.IsNullOrEmpty(c.EntityType))
+                .GroupBy(c => c.EntityType)
+                .OrderByDescending(g => g.Count())
+                .Take(3)
+                .Select(g => g.Key + " (" + g.Count() + ")")
+                .ToList();
+
+            // Top cargo types (non-null field = company carries that cargo)
+            var cargoCounts = new List<KeyValuePair<string, int>>
+            {
+                new KeyValuePair<string, int>("general freight",        companies.Count(c => c.CargoTransportedAGeneralFreight != null)),
+                new KeyValuePair<string, int>("household goods",        companies.Count(c => c.CargoTransportedBHouseholdGoods != null)),
+                new KeyValuePair<string, int>("motor vehicles",         companies.Count(c => c.CargoTransportedDMotorVehicles != null)),
+                new KeyValuePair<string, int>("building materials",     companies.Count(c => c.CargoTransportedGBuildingMaterials != null)),
+                new KeyValuePair<string, int>("machinery/heavy objects",companies.Count(c => c.CargoTransportedIMachineryLargeObjects != null)),
+                new KeyValuePair<string, int>("fresh produce",          companies.Count(c => c.CargoTransportedJFreshProduce != null)),
+                new KeyValuePair<string, int>("liquids/gases",          companies.Count(c => c.CargoTransportedKLiquidsGases != null)),
+                new KeyValuePair<string, int>("intermodal containers",  companies.Count(c => c.CargoTransportedLIintermodalContainers != null)),
+                new KeyValuePair<string, int>("oilfield equipment",     companies.Count(c => c.CargoTransportedNOilfieldEquipment != null)),
+                new KeyValuePair<string, int>("grain/feed/hay",         companies.Count(c => c.CargoTransportedPGrainFeedHay != null)),
+                new KeyValuePair<string, int>("chemicals",              companies.Count(c => c.CargoTransportedUChemicals != null)),
+                new KeyValuePair<string, int>("dry bulk commodities",   companies.Count(c => c.CargoTransportedVCommoditiesDryBulk != null)),
+                new KeyValuePair<string, int>("refrigerated food",      companies.Count(c => c.CargoTransportedWRefrigeratedFood != null)),
+            };
+            var topCargo = cargoCounts
+                .Where(kv => kv.Value > 0)
+                .OrderByDescending(kv => kv.Value)
+                .Take(4)
+                .Select(kv => kv.Key)
+                .ToList();
+
+            // Fleet size summary
+            var fleetSizes = companies
+                .Where(c => c.TrucksAndTractors.HasValue && c.TrucksAndTractors.Value > 0)
+                .Select(c => c.TrucksAndTractors.Value)
+                .ToList();
+            string fleetNote = fleetSizes.Count > 0
+                ? "fleet sizes from " + fleetSizes.Min() + " to " + fleetSizes.Max()
+                    + " trucks/tractors (avg " + (int)fleetSizes.Average() + ")"
+                : "varied fleet sizes";
+
+            // Article length scaled to city size
+            int paragraphs = count >= 100 ? 4 : count >= 30 ? 3 : count >= 10 ? 2 : 1;
+
+            var sb = new StringBuilder();
+            sb.AppendLine("You are writing SEO content for a trucking company directory page for "
+                + cityName + ", " + stateName + ".");
+            sb.AppendLine();
+            sb.AppendLine("Use only the verified data below. Do not invent company names, phone numbers, addresses, or statistics not listed here.");
+            sb.AppendLine();
+            sb.AppendLine("Data:");
+            sb.AppendLine("- Active registered trucking companies: " + count);
+            if (entityLines.Any())
+                sb.AppendLine("- Company types: " + string.Join(", ", entityLines));
+            if (topCargo.Any())
+                sb.AppendLine("- Most common cargo: " + string.Join(", ", topCargo));
+            sb.AppendLine("- Fleet: " + fleetNote);
+            sb.AppendLine();
+            sb.AppendLine("Generate a JSON object with exactly two fields:");
+            sb.AppendLine("\"description\": A 140-160 character meta description. Lead with the city name. Include the company count and top cargo or service type. Factual and specific.");
+            sb.AppendLine("\"article\": A " + paragraphs + "-paragraph body article. Describe the types of carriers, the cargo they move, fleet characteristics, and the city's role in regional freight. Use only the data provided. Plain factual prose — no invented specifics, no company names, no clichés like 'bustling hub'.");
+            sb.AppendLine();
+            sb.AppendLine("Return ONLY the JSON object. No markdown, no code fences, no extra text.");
+
+            return sb.ToString();
+        }
+
+        private OpenAIResponse CallOpenAISync(string prompt, OpenAIAuthDetails aiAuth)
+        {
+            var result = new OpenAIResponse();
+            try
+            {
+                var body = new
+                {
+                    model = aiAuth.Model,
+                    messages = new List<object>
+                    {
+                        new { role = "system", content = aiAuth.SystemContent },
+                        new { role = "user", content = prompt }
+                    },
+                    temperature = 0.5
+                };
+                var requestContent = new StringContent(
+                    JsonConvert.SerializeObject(body), Encoding.UTF8, "application/json");
+                _httpClient.DefaultRequestHeaders.Clear();
+                _httpClient.DefaultRequestHeaders.Add(
+                    "Authorization", "Bearer " + (aiAuth.APIKey ?? "").Trim());
+
+                var httpResponse = _httpClient
+                    .PostAsync("https://api.openai.com/v1/chat/completions", requestContent)
+                    .GetAwaiter().GetResult();
+
+                if (httpResponse.IsSuccessStatusCode)
+                {
+                    var responseBody = httpResponse.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    var gptResponse = JsonConvert.DeserializeObject<ChatGptResponse>(responseBody);
+                    result.Status = true;
+                    result.ResponseText = gptResponse?.Choices != null && gptResponse.Choices.Count > 0
+                        ? gptResponse.Choices[0]?.Message?.Content
+                        : null;
+                }
+                else
+                {
+                    var errorBody = httpResponse.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    result.Status = false;
+                    result.ResponseText = "HTTP " + (int)httpResponse.StatusCode + ": " + errorBody;
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Status = false;
+                result.ResponseText = ex.Message;
+            }
+            return result;
+        }
+
+        private class CityContentResponse
+        {
+            public string Description { get; set; }
+            public string Article { get; set; }
         }
 
         public List<ManageCityListVM> GetCityListForManageCities()

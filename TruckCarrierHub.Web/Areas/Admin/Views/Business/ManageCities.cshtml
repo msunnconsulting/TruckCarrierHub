@@ -397,6 +397,27 @@ function onFinishCitiesUpdateButtonClick() {
 
 // ── Preview (single city AI generation) ──────────────────────────────────────
 
+function friendlyAiError(raw) {
+    if (!raw) return 'Generation failed.';
+    // Try to extract OpenAI error object from raw string like "HTTP 429: {...}"
+    var jsonStart = raw.indexOf('{');
+    if (jsonStart >= 0) {
+        try {
+            var obj = JSON.parse(raw.substring(jsonStart));
+            var code = obj.error && obj.error.code;
+            var msg  = obj.error && obj.error.message;
+            if (code === 'insufficient_quota')
+                return 'OpenAI account has no remaining credits. Add credits at <a href="https://platform.openai.com/account/billing/overview" target="_blank">platform.openai.com</a>.';
+            if (code === 'rate_limit_exceeded')
+                return 'OpenAI rate limit hit. Wait a minute and try again.';
+            if (msg) return 'OpenAI error: ' + msg;
+        } catch (e) {}
+    }
+    if (raw.indexOf('429') >= 0) return 'OpenAI quota exceeded (HTTP 429). Check billing at platform.openai.com.';
+    if (raw.indexOf('401') >= 0) return 'OpenAI API key rejected (HTTP 401). Check the OpenAIAPIKey config value.';
+    return raw;
+}
+
 var _previewStateCode = '';
 var _previewCityName  = '';
 
@@ -426,13 +447,13 @@ function previewCity(btn) {
         success: function (res) {
             $('#previewLoading').hide();
             if (!res.Success) {
-                $('#previewError').text(res.Error || 'Generation failed.').show();
+                $('#previewError').html(friendlyAiError(res.Error)).show();
                 return;
             }
             var descLen = (res.Description || '').length;
             $('#previewCompanyCount').text(res.CompanyCount + ' active companies found.');
             $('#previewDescription').val(res.Description || '');
-            $('#previewDescLen').text(descLen + ' chars' + (descLen < 140 || descLen > 160 ? ' ⚠ target 140–160' : ' ✓'));
+            $('#previewDescLen').text(descLen + ' chars' + (descLen < 140 || descLen > 160 ? ' (target 140-160)' : ' OK'));
             $('#previewArticle').val(res.Article || '');
             $('#previewResult').show();
             $('#previewAcceptBtn').show();

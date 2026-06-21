@@ -7,6 +7,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width" />
     <title>Manage Cities</title>
     <style>
@@ -105,11 +106,11 @@
                         var hasDesc = !string.IsNullOrEmpty(city.Description);
                         var hasArticle = !string.IsNullOrEmpty(city.Article);
                         var descPreview = hasDesc
-                            ? (city.Description.Length > 70 ? city.Description.Substring(0, 70) + "…" : city.Description)
-                            : "—";
+                            ? (city.Description.Length > 70 ? city.Description.Substring(0, 70) + "..." : city.Description)
+                            : "-";
                         var renewedStr = city.LastRenewedDate.HasValue
                             ? city.LastRenewedDate.Value.ToString("yyyy-MM-dd")
-                            : "—";
+                            : "-";
 
                         <tr class="city-row"
                             data-companies="@city.NoCompanies"
@@ -122,7 +123,7 @@
                             <td><a href="/@city.CityURL" target="_blank">@city.City</a></td>
                             <td>@city.NoCompanies</td>
                             <td class="desc-preview">@descPreview</td>
-                            <td class="text-center article-indicator">@(hasArticle ? "Yes" : "—")</td>
+                            <td class="text-center article-indicator">@(hasArticle ? "Yes" : "-")</td>
                             <td class="small renewed-date">@renewedStr</td>
                             <td>
                                 <button type="button" class="btn btn-xs btn-default edit-btn" onclick="toggleEdit(this)">Edit</button>
@@ -214,8 +215,8 @@ function saveCity(btn) {
                 statusEl.addClass('text-success').text('Saved');
                 var dataRow = editRow.prev('.city-row');
                 var preview = description.length > 70 ? description.substring(0, 70) + '…' : description;
-                dataRow.find('.desc-preview').text(description ? preview : '—');
-                dataRow.find('.article-indicator').text(article ? 'Yes' : '—');
+                dataRow.find('.desc-preview').text(description ? preview : '-');
+                dataRow.find('.article-indicator').text(article ? 'Yes' : '-');
                 setTimeout(function () { statusEl.text(''); }, 3000);
             } else {
                 statusEl.addClass('text-danger').text(res.message || 'Error');
@@ -368,9 +369,9 @@ function onStartCitiesUpdateButtonClick() {
                         + '<td>' + (city.State || '') + '</td>'
                         + '<td><a href="/' + city.CityURL + '" target="_blank">' + city.City + '</a></td>'
                         + '<td>' + city.NoCompanies + '</td>'
-                        + '<td class="desc-preview">—</td>'
-                        + '<td class="text-center article-indicator">—</td>'
-                        + '<td class="small renewed-date">—</td>'
+                        + '<td class="desc-preview">-</td>'
+                        + '<td class="text-center article-indicator">-</td>'
+                        + '<td class="small renewed-date">-</td>'
                         + '<td></td>'
                         + '</tr>'
                     );
@@ -466,8 +467,8 @@ function acceptPreview() {
                 // Update the table row in place
                 var dataRow = $('.city-row[data-statecode="' + _previewStateCode + '"][data-cityname="' + _previewCityName + '"]');
                 var preview = description.length > 70 ? description.substring(0, 70) + '…' : description;
-                dataRow.find('.desc-preview').text(description ? preview : '—');
-                dataRow.find('.article-indicator').text(article ? 'Yes' : '—');
+                dataRow.find('.desc-preview').text(description ? preview : '-');
+                dataRow.find('.article-indicator').text(article ? 'Yes' : '-');
                 // Also populate the edit row textareas if expanded
                 var editRow = dataRow.next('.edit-row');
                 editRow.find('.edit-description').val(description);

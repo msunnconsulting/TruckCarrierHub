@@ -15,6 +15,8 @@
 
         public string PageDescription { get; set; }
 
+        public string CityMetaDescription { get; set; }
+
         public string City { get; set; }
 
         public string StateCode { get; set; }

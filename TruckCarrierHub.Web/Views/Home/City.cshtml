@@ -5,7 +5,6 @@
 @using PartnerCarrier.Web.App_Start;
 @using PartnerCarrier.Infrastructure.Contracts.Admin.AdminManagement;
 @using PartnerCarrier.Web.SessionManager;
-@using System.Text.RegularExpressions;
 @model CompanyVM
 @{
     ViewBag.Title = Model.PageTitle;
@@ -48,18 +47,12 @@
     ViewBag.CanonicalUrl = uri.Scheme + "://" + uri.Authority + path + canonicalQuery;
 
     var textHelperResponse = TextHelper.TruncateText(Model.PageDescription, Model.NumberOfWordsForCityArticle);
-    string metaDescText = Model.PageDescription ?? "";
-    var metaMatches = Regex.Matches(metaDescText, @"\.");
-    if (metaMatches.Count >= 4)
-    {
-        metaDescText = metaDescText.Substring(0, metaMatches[3].Index + 1);
-    }
 
     var totalCount = Model.Companies != null ? Model.Companies.Pagination.TotalCount : 0;
 }
 
 @section AdditionalMeta {
-    <meta name="description" content="@metaDescText" />
+    <meta name="description" content="@Model.CityMetaDescription" />
     <link rel="canonical" href="@ViewBag.CanonicalUrl" />
 }
 

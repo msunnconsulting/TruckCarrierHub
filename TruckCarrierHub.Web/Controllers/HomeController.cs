@@ -163,6 +163,7 @@ namespace PartnerCarrier.Web.Controllers
             companyVM.PageTitle = _homepageService.GetPageTitle(pageName, companyVM.StateName, city);
             //set page description
             companyVM.PageDescription = _homepageService.GetPageDescription(pageName, companyVM.StateName, city, ps == null ? null : ps.p);
+            companyVM.CityMetaDescription = _homepageService.GetCityMetaDescription(companyVM.StateName, city);
             companyVM.NumberOfWordsForCityArticle = _homepageService.GetNumberOfWordsAllowedByAdmin();
             //set statecode to set in url
             companyVM.StateCode = stateCode;

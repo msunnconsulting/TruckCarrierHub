@@ -517,17 +517,22 @@
             {
                 var stateCode = db.States.FirstOrDefault(s => s.State1.ToLower() == state.ToLower()).StateCode;
                 var selectedCity = db.Cities.FirstOrDefault(s => s.CityName == city && s.StateCode == stateCode);
-                if (selectedCity != null && selectedCity.Article != null && (pageNum == 1 || pageNum == null))
+                if (selectedCity != null && selectedCity.Article != null)
                 {
                     pageDescription = selectedCity.Article;
                 }
-                else
-                {
-                    pageDescription = db.Database.SqlQuery<string>("select CityPageDescription from Admin").FirstOrDefault();
-                    pageDescription = city + " " + state + " " + pageDescription;
-                }
             }
             return pageDescription;
+        }
+
+        public string GetCityMetaDescription(string state, string city)
+        {
+            var stateCode = db.States.FirstOrDefault(s => s.State1.ToLower() == state.ToLower()).StateCode;
+            var selectedCity = db.Cities.FirstOrDefault(s => s.CityName == city && s.StateCode == stateCode);
+            if (selectedCity != null && selectedCity.Description != null)
+                return selectedCity.Description;
+            var fallback = db.Database.SqlQuery<string>("select CityPageDescription from Admin").FirstOrDefault();
+            return city + " " + state + " " + fallback;
         }
 
         public string GetPlainHomeMetaDescription()

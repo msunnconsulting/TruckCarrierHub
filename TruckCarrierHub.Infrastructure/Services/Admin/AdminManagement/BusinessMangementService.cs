@@ -1887,10 +1887,10 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
 
                             if (aiResult.Status && !string.IsNullOrEmpty(aiResult.ResponseText))
                             {
+                                var cleaned = StripCodeFences(aiResult.ResponseText);
                                 try
                                 {
-                                    var parsed = JsonConvert.DeserializeObject<CityContentResponse>(
-                                        aiResult.ResponseText.Trim());
+                                    var parsed = JsonConvert.DeserializeObject<CityContentResponse>(cleaned);
                                     city.Description = string.IsNullOrWhiteSpace(parsed?.Description)
                                         ? null : parsed.Description.Trim();
                                     city.Article = string.IsNullOrWhiteSpace(parsed?.Article)
@@ -1898,11 +1898,16 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
                                 }
                                 catch
                                 {
-                                    // Model returned non-JSON: store raw text as the article
-                                    city.Article = aiResult.ResponseText.Trim();
+                                    city.Article = cleaned;
                                 }
                                 city.LastRenewedDate = DateTime.Now;
                                 dbCtx.SaveChanges();
+                            }
+                            else if (!aiResult.Status)
+                            {
+                                _cityRenewProgress.Message = "AI error (" + city.CityName + "): "
+                                    + (aiResult.ResponseText ?? "").Substring(0,
+                                        Math.Min(120, (aiResult.ResponseText ?? "").Length));
                             }
                         }
 
@@ -2045,6 +2050,72 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
                 result.ResponseText = ex.Message;
             }
             return result;
+        }
+
+        public CityContentPreviewVM PreviewCityContent(string stateCode, string cityName)
+        {
+            var result = new CityContentPreviewVM();
+            try
+            {
+                var companies = db.TransportCompanies
+                    .Where(c => c.Status == "A"
+                        && c.PhysicalAddressStateCode == stateCode
+                        && c.PhysicalAddressCity == cityName)
+                    .ToList();
+                result.CompanyCount = companies.Count;
+                if (companies.Count == 0)
+                {
+                    result.Error = "No active companies found with PhysicalAddressCity = '" + cityName + "'";
+                    return result;
+                }
+                var stateName = db.States.FirstOrDefault(s => s.StateCode == stateCode)?.State1 ?? stateCode;
+                var aiAuth = new OpenAIAuthDetails
+                {
+                    APIKey = Config.GetValue("OpenAIAPIKey"),
+                    SystemContent = Config.GetValue("OpenAISystemContent"),
+                    Model = Config.GetValue("OpenAIModel")
+                };
+                var prompt = BuildCityContentPrompt(cityName, stateName, companies);
+                var aiResult = CallOpenAISync(prompt, aiAuth);
+                if (!aiResult.Status)
+                {
+                    result.Error = aiResult.ResponseText;
+                    return result;
+                }
+                var cleaned = StripCodeFences(aiResult.ResponseText ?? "");
+                try
+                {
+                    var parsed = JsonConvert.DeserializeObject<CityContentResponse>(cleaned);
+                    result.Description = parsed?.Description?.Trim();
+                    result.Article = parsed?.Article?.Trim();
+                }
+                catch
+                {
+                    result.Article = cleaned;
+                }
+                result.Success = true;
+            }
+            catch (Exception ex)
+            {
+                result.Error = ex.Message;
+            }
+            return result;
+        }
+
+        private static string StripCodeFences(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            var t = text.Trim();
+            if (t.StartsWith("```"))
+            {
+                var nl = t.IndexOf('\n');
+                if (nl >= 0) t = t.Substring(nl + 1).Trim();
+                if (t.EndsWith("```")) t = t.Substring(0, t.Length - 3).Trim();
+            }
+            // Strip any preamble before the opening brace
+            var brace = t.IndexOf('{');
+            if (brace > 0) t = t.Substring(brace);
+            return t.Trim();
         }
 
         private class CityContentResponse

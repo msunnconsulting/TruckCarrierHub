@@ -437,6 +437,15 @@ namespace PartnerCarrier.ViewModels.Admin
         public List<string> CityURLs { get; set; }
     }
 
+    public class CityContentPreviewVM
+    {
+        public bool Success { get; set; }
+        public string Description { get; set; }
+        public string Article { get; set; }
+        public int CompanyCount { get; set; }
+        public string Error { get; set; }
+    }
+
     public class OpenAIAuthDetails
     {
         public string Model { get; set; }

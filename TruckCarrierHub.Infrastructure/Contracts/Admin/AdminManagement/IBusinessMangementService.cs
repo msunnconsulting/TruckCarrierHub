@@ -72,6 +72,7 @@ namespace PartnerCarrier.Infrastructure.Contracts.Admin.AdminManagement
         string SaveCityContent(SaveCityContentVM vm);
         CityRenewProgressVM GetCityRenewProgress();
         void StartCityRenew(StartCityRenewVM request);
+        CityContentPreviewVM PreviewCityContent(string stateCode, string cityName);
         ManageReviewsVM GetReviewsFilter();
         void SaveReviewsFilter(ManageReviewsVM manageReviewsVM);
         ManageReviewsVM GetCompanyReviewsFilterValue();

@@ -126,6 +126,7 @@
                             <td class="small renewed-date">@renewedStr</td>
                             <td>
                                 <button type="button" class="btn btn-xs btn-default edit-btn" onclick="toggleEdit(this)">Edit</button>
+                                <button type="button" class="btn btn-xs btn-info preview-btn" onclick="previewCity(this)" style="margin-left:3px;" title="Generate preview with AI">AI</button>
                             </td>
                         </tr>
                         <tr class="edit-row" style="display:none;"
@@ -401,10 +402,94 @@ function onFinishCitiesUpdateButtonClick() {
     });
 }
 
+// ── Preview (single city AI generation) ──────────────────────────────────────
+
+var _previewStateCode = '';
+var _previewCityName  = '';
+
+function previewCity(btn) {
+    var dataRow = $(btn).closest('tr');
+    _previewStateCode = dataRow.data('statecode');
+    _previewCityName  = dataRow.data('cityname');
+
+    if (!_previewStateCode || !_previewCityName) {
+        alert('Cannot preview a city that has not yet been saved to the database.');
+        return;
+    }
+
+    $('#previewModal .modal-title').text('AI Preview — ' + _previewCityName + ', ' + _previewStateCode);
+    $('#previewLoading').show();
+    $('#previewResult').hide();
+    $('#previewError').hide().text('');
+    $('#previewAcceptBtn').hide();
+    $('#previewModal').modal('show');
+
+    $.ajax({
+        url: '/admin/business/preview-city-content',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ stateCode: _previewStateCode, cityName: _previewCityName }),
+        timeout: 60000,
+        success: function (res) {
+            $('#previewLoading').hide();
+            if (!res.Success) {
+                $('#previewError').text(res.Error || 'Generation failed.').show();
+                return;
+            }
+            var descLen = (res.Description || '').length;
+            $('#previewCompanyCount').text(res.CompanyCount + ' active companies found.');
+            $('#previewDescription').val(res.Description || '');
+            $('#previewDescLen').text(descLen + ' chars' + (descLen < 140 || descLen > 160 ? ' ⚠ target 140–160' : ' ✓'));
+            $('#previewArticle').val(res.Article || '');
+            $('#previewResult').show();
+            $('#previewAcceptBtn').show();
+        },
+        error: function (xhr, status) {
+            $('#previewLoading').hide();
+            $('#previewError').text(status === 'timeout' ? 'Request timed out (60 s). Try again.' : 'Request failed.').show();
+        }
+    });
+}
+
+function acceptPreview() {
+    var description = $('#previewDescription').val();
+    var article     = $('#previewArticle').val();
+
+    $.ajax({
+        url: '/admin/business/save-city-content',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ stateCode: _previewStateCode, cityName: _previewCityName,
+                               description: description, article: article }),
+        success: function (res) {
+            if (res.success) {
+                // Update the table row in place
+                var dataRow = $('.city-row[data-statecode="' + _previewStateCode + '"][data-cityname="' + _previewCityName + '"]');
+                var preview = description.length > 70 ? description.substring(0, 70) + '…' : description;
+                dataRow.find('.desc-preview').text(description ? preview : '—');
+                dataRow.find('.article-indicator').text(article ? 'Yes' : '—');
+                // Also populate the edit row textareas if expanded
+                var editRow = dataRow.next('.edit-row');
+                editRow.find('.edit-description').val(description);
+                editRow.find('.edit-article').val(article);
+                $('#previewModal').modal('hide');
+            } else {
+                alert('Save failed: ' + (res.message || 'Unknown error'));
+            }
+        },
+        error: function () { alert('Save request failed.'); }
+    });
+}
+
 // ── Char counter ─────────────────────────────────────────────────────────────
 
 $(document).on('input', '.edit-description', function () {
     updateCharCount(this);
+});
+
+$(document).on('input', '#previewDescription', function () {
+    var len = $(this).val().length;
+    $('#previewDescLen').text(len + ' chars' + (len < 140 || len > 160 ? ' ⚠ target 140–160' : ' ✓'));
 });
 
 $(document).ready(function () {
@@ -415,5 +500,40 @@ $(document).ready(function () {
 
 </script>
 }
+
+@* Preview modal *@
+<div class="modal fade" id="previewModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">AI Preview</h4>
+            </div>
+            <div class="modal-body">
+                <div id="previewLoading" class="text-center" style="padding:30px;">
+                    <span class="glyphicon glyphicon-refresh" style="font-size:24px;"></span>
+                    <p class="text-muted" style="margin-top:10px;">Calling OpenAI — this may take 10–30 seconds…</p>
+                </div>
+                <div id="previewError" class="alert alert-danger" style="display:none;"></div>
+                <div id="previewResult" style="display:none;">
+                    <p id="previewCompanyCount" class="text-muted small"></p>
+                    <div class="form-group">
+                        <label>Description <span id="previewDescLen" class="text-muted small" style="margin-left:6px;"></span></label>
+                        <textarea id="previewDescription" class="form-control" rows="2" maxlength="500"></textarea>
+                    </div>
+                    <div class="form-group" style="margin-top:10px;">
+                        <label>Article</label>
+                        <textarea id="previewArticle" class="form-control" rows="10"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="previewAcceptBtn" class="btn btn-primary" onclick="acceptPreview()" style="display:none;">Accept &amp; Save</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">Dismiss</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

@@ -1062,6 +1062,21 @@ namespace PartnerCarrier.Web.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [Route("preview-city-content")]
+        public ActionResult PreviewCityContent(SaveCityContentVM vm)
+        {
+            try
+            {
+                var result = _businessMangementService.PreviewCityContent(vm.StateCode, vm.CityName);
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                return Json(new CityContentPreviewVM { Error = ex.Message });
+            }
+        }
+
+        [HttpPost]
         [Route("start-city-renew")]
         public ActionResult StartCityRenew(StartCityRenewVM request)
         {

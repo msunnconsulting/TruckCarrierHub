@@ -26,6 +26,7 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
         private readonly PartnerCarrier_DevEntities db;
 
         private static List<SentEmailsProgressInfoVM> lstSentEmailsProgressInfoVM = null;
+        private static CityRenewProgressVM _cityRenewProgress = new CityRenewProgressVM { Message = "Idle" };
         private readonly HttpClient _httpClient;
 
 
@@ -1802,15 +1803,72 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
                 {
                     Country = c.CountryCode == "US" ? "US" : "Canada",
                     State = state != null ? state.State1 : c.StateCode,
+                    StateCode = c.StateCode,
                     City = c.CityName,
                     CityURL = c.StateCode + "/" + c.CityName.Replace(" ", "-"),
-                    NoCompanies = c.NumberOfCompanies ?? 0
+                    NoCompanies = c.NumberOfCompanies ?? 0,
+                    Description = c.Description,
+                    Article = c.Article,
+                    LastRenewedDate = c.LastRenewedDate
                 };
             })
             .OrderBy(c => c.Country)
             .ThenBy(c => c.State)
             .ThenBy(c => c.City)
             .ToList();
+        }
+
+        public string SaveCityContent(SaveCityContentVM vm)
+        {
+            var city = db.Cities.FirstOrDefault(c => c.StateCode == vm.StateCode && c.CityName == vm.CityName);
+            if (city == null)
+                return "error:City not found";
+            city.Description = string.IsNullOrWhiteSpace(vm.Description) ? null : vm.Description.Trim();
+            city.Article = string.IsNullOrWhiteSpace(vm.Article) ? null : vm.Article.Trim();
+            db.SaveChanges();
+            return "success:Saved";
+        }
+
+        public CityRenewProgressVM GetCityRenewProgress()
+        {
+            return _cityRenewProgress;
+        }
+
+        public void StartCityRenew(StartCityRenewVM request)
+        {
+            _cityRenewProgress.IsInProgress = true;
+            _cityRenewProgress.Processed = 0;
+            _cityRenewProgress.Total = 0;
+            _cityRenewProgress.Message = "Starting...";
+            try
+            {
+                using (var dbCtx = new PartnerCarrier_DevEntities(true, null, true, null, null))
+                {
+                    dbCtx.Database.CommandTimeout = 360;
+                    var urlSet = new HashSet<string>(
+                        request.CityURLs ?? new List<string>(),
+                        StringComparer.OrdinalIgnoreCase);
+                    var cities = dbCtx.Cities.ToList()
+                        .Where(c => urlSet.Contains(c.StateCode + "/" + c.CityName.Replace(" ", "-")))
+                        .ToList();
+                    _cityRenewProgress.Total = cities.Count;
+                    foreach (var city in cities)
+                    {
+                        // Phase 4: generate Description and Article here
+                        _cityRenewProgress.Processed++;
+                        _cityRenewProgress.Message = "Processing " + _cityRenewProgress.Processed + " of " + _cityRenewProgress.Total;
+                    }
+                    _cityRenewProgress.Message = "Complete — " + _cityRenewProgress.Processed + " cities processed";
+                }
+            }
+            catch (Exception ex)
+            {
+                _cityRenewProgress.Message = "Error: " + ex.Message;
+            }
+            finally
+            {
+                _cityRenewProgress.IsInProgress = false;
+            }
         }
 
         public List<ManageCityListVM> GetCityListForManageCities()

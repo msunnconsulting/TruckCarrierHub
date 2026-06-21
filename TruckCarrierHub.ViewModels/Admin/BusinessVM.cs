@@ -383,9 +383,13 @@ namespace PartnerCarrier.ViewModels.Admin
     {
         public string Country { get; set; }
         public string State { get; set; }
+        public string StateCode { get; set; }
         public string City { get; set; }
         public string CityURL { get; set; }
         public int NoCompanies { get; set; }
+        public string Description { get; set; }
+        public string Article { get; set; }
+        public DateTime? LastRenewedDate { get; set; }
     }
 
     // Response Model (to represent the OpenAI API response)
@@ -408,6 +412,29 @@ namespace PartnerCarrier.ViewModels.Admin
     public class ManageCitiesVM
     {
         public List<ManageCityListVM> List { get; set; }
+    }
+
+    public class SaveCityContentVM
+    {
+        public string StateCode { get; set; }
+        public string CityName { get; set; }
+        public string Description { get; set; }
+        public string Article { get; set; }
+    }
+
+    public class CityRenewProgressVM
+    {
+        public bool IsInProgress { get; set; }
+        public int Processed { get; set; }
+        public int Total { get; set; }
+        public string Message { get; set; }
+    }
+
+    public class StartCityRenewVM
+    {
+        public int MinCompanies { get; set; }
+        public int MaxCompanies { get; set; }
+        public List<string> CityURLs { get; set; }
     }
 
     public class OpenAIAuthDetails

@@ -69,6 +69,9 @@ namespace PartnerCarrier.Infrastructure.Contracts.Admin.AdminManagement
         List<ManageCityListVM> GetAllCities();
         List<ManageCityListVM> GetCityListForManageCities();
         Task<string> FinishCityUpdate();
+        string SaveCityContent(SaveCityContentVM vm);
+        CityRenewProgressVM GetCityRenewProgress();
+        void StartCityRenew(StartCityRenewVM request);
         ManageReviewsVM GetReviewsFilter();
         void SaveReviewsFilter(ManageReviewsVM manageReviewsVM);
         ManageReviewsVM GetCompanyReviewsFilterValue();

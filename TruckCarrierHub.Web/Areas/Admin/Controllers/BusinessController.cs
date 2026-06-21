@@ -23,6 +23,7 @@ namespace PartnerCarrier.Web.Areas.Admin.Controllers
         private readonly IHomepageService _homepageService;
         private readonly IBusinessMangementService _businessMangementService;
         private static object lockSendMailMethod = new object();
+        private static object lockCityRenew = new object();
 
         public BusinessController(IBusinessMangementService businessMangementService, IHomepageService homepageService)
         {
@@ -1035,6 +1036,43 @@ namespace PartnerCarrier.Web.Areas.Admin.Controllers
             {
                 return ReturnExceptionResult(ex);
             }
+        }
+
+        [HttpPost]
+        [Route("save-city-content")]
+        public ActionResult SaveCityContent(SaveCityContentVM vm)
+        {
+            try
+            {
+                var result = _businessMangementService.SaveCityContent(vm);
+                var parts = result.Split(new[] { ':' }, 2);
+                return Json(new { success = parts[0] == "success", message = parts.Length > 1 ? parts[1] : "" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        [Route("city-renew-progress")]
+        public ActionResult GetCityRenewProgress()
+        {
+            return Json(_businessMangementService.GetCityRenewProgress(), JsonRequestBehavior.AllowGet);
+        }
+
+        [HttpPost]
+        [Route("start-city-renew")]
+        public ActionResult StartCityRenew(StartCityRenewVM request)
+        {
+            lock (lockCityRenew)
+            {
+                if (!_businessMangementService.GetCityRenewProgress().IsInProgress)
+                {
+                    Task.Factory.StartNew(() => { _businessMangementService.StartCityRenew(request); });
+                }
+            }
+            return Json(new { started = true });
         }
 
         #endregion

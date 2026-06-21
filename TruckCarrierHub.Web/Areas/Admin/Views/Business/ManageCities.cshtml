@@ -1,149 +1,419 @@
-﻿@using PartnerCarrier.ViewModels.Admin
+@using PartnerCarrier.ViewModels.Admin
 @model ManageCitiesVM
 @{
     ViewBag.Title = "Manage Cities";
 }
 
 <!DOCTYPE html>
-
 <html>
 <head>
     <meta name="viewport" content="width=device-width" />
-    <title>ManageCities</title>
+    <title>Manage Cities</title>
+    <style>
+        .city-table td { vertical-align: middle; }
+        .edit-row td { padding: 12px 16px; background: #f9f9f9; }
+        .desc-preview { color: #666; font-size: 12px; }
+        .renew-panel .form-group { margin-bottom: 0; }
+        #renewStatus .progress { margin-bottom: 4px; }
+    </style>
 </head>
 <body>
-    <div class="row">
-        <div class="col-md-10">
-            <h2> @ViewBag.Title</h2>
+
+<div class="row">
+    <div class="col-md-12">
+        <h2>@ViewBag.Title</h2>
+    </div>
+</div>
+<hr class="small" />
+<div class="row" id="dvNotification"></div>
+
+@* City count update *@
+<div class="row" style="margin-bottom:16px;">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading"><strong>City Count Update</strong></div>
+            <div class="panel-body">
+                <button type="button" class="btn btn-default" onclick="onStartCitiesUpdateButtonClick()">Start Cities Update</button>
+                <button type="button" class="btn btn-primary" onclick="onFinishCitiesUpdateButtonClick()" style="margin-left:8px;">Finish Cities Update</button>
+                <span id="updateStatus" class="text-muted small" style="margin-left:12px;"></span>
+            </div>
         </div>
     </div>
-    <hr class="small" />
-    <div class="row" id="dvNotification"></div>
+</div>
 
-    <div class="row">
-        <div class="col-md-1"> </div>
-        <div class="col-md-10">
-
-            <div class="row">
-                <div class="col-md-12 col-sm-12 text-center margin-bottom-20">
-                    <button type="button" class="btn btn-default" title="start cities update" id="startCitiesUpdateBtn()" onclick="onStartCitiesUpdateButtonClick()">
-                        Start Cities Update
-                    </button>
+@* Renew content panel *@
+<div class="row" style="margin-bottom:16px;">
+    <div class="col-md-12">
+        <div class="panel panel-default renew-panel">
+            <div class="panel-heading"><strong>Renew City Content</strong></div>
+            <div class="panel-body">
+                <div class="form-inline" style="margin-bottom:10px;">
+                    <div class="form-group">
+                        <label>Min Companies:</label>
+                        <input type="number" id="minCompanies" class="form-control input-sm" value="1" min="0" style="width:80px; margin-left:6px;">
+                    </div>
+                    <div class="form-group" style="margin-left:16px;">
+                        <label>Max Companies:</label>
+                        <input type="number" id="maxCompanies" class="form-control input-sm" value="0" min="0" style="width:80px; margin-left:6px;" title="0 = no upper limit">
+                    </div>
+                    <button type="button" class="btn btn-default btn-sm" onclick="applyFilter()" style="margin-left:12px;">Filter Table</button>
+                    <button type="button" class="btn btn-link btn-sm" onclick="clearFilter()">Clear</button>
+                    <span id="filteredCount" class="text-muted small" style="margin-left:8px;"></span>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-warning btn-sm" onclick="renewSelected()">Renew Selected</button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="renewAllFiltered()" style="margin-left:6px;">Renew All Filtered</button>
+                </div>
+                <div id="renewStatus" style="margin-top:10px; display:none;">
+                    <div class="progress" style="margin-bottom:4px; height:18px;">
+                        <div id="renewProgressBar" class="progress-bar progress-bar-striped active" role="progressbar" style="width:0%; min-width:2em;">0%</div>
+                    </div>
+                    <span id="renewMessage" class="text-muted small"></span>
                 </div>
             </div>
-
-            <div class="row">
-                <div class="col-md-1 col-sm-1"> </div>
-                <div class="col-md-10 col-sm-10">
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th width="12%">Country</th>
-                                <th width="18%">State</th>
-                                <th width="15%">City Name</th>
-                                <th width="25%">Number of Companies</th>
-                                <th width="30%"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (Model.List.Count > 0)
-                            {
-                                foreach (var city in Model.List)
-                                {
-                                    <tr>
-                                        <td>@city.Country</td>
-                                        <td>@city.State</td>
-                                        <td>
-                                            <a href="/@city.CityURL" target="_blank">@city.City</a>
-                                        </td>
-                                        <td>@city.NoCompanies</td>
-                                        <td></td>
-                                    </tr>
-                                }
-                            }
-                            else
-                            {
-                                <tr><td class="text-center well" colspan="5">No Record(s) Found</td></tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-                <div class="col-md-1 col-sm-1"> </div>
-            </div>
-
-            <div class="row">
-                <div class="col-md-12 col-sm-12 text-center">
-                    <button type="button" class="btn btn-primary" value="Save" title="save article" id="finishCitiesUpdate()" onclick="onFinishCitiesUpdateButtonClick()">
-                        Finish Cities Update
-                    </button>
-                </div>
-            </div>
-
         </div>
-        <div class="col-md-1"> </div>
     </div>
-    
-    @section Scripts {
-        <script type="text/javascript">
-            $(document).ready(function () {
-            });
+</div>
 
-            /**
-             * To get the list of new cities which are not in cities table.
-             * */
-            function onStartCitiesUpdateButtonClick() {
-                $.ajax({
-                    url: "/admin/business/get-city-list-for-manage-city",
-                    type: "GET",
-                    success: function (response) {
-                        if (response && response.length > 0) {
-                            // Clear the existing rows in the table except the header
-                            var tbody = $('table tbody');
-                            tbody.empty();  // Clears previous table rows
+@* City table *@
+<div class="row">
+    <div class="col-md-12">
+        <div style="margin-bottom:8px;" class="form-inline">
+            <button type="button" class="btn btn-xs btn-default" onclick="selectAllVisible()">Select All Visible</button>
+            <button type="button" class="btn btn-xs btn-default" onclick="deselectAll()" style="margin-left:4px;">Deselect All</button>
+            <span id="selectedCount" class="text-muted small" style="margin-left:10px;">0 selected</span>
+        </div>
+        <table class="table table-bordered table-condensed city-table" id="citiesTable">
+            <thead>
+                <tr>
+                    <th width="3%"><input type="checkbox" id="selectAllCheck" onclick="toggleSelectAll(this)" title="Select all visible"></th>
+                    <th width="6%">Country</th>
+                    <th width="13%">State</th>
+                    <th width="13%">City</th>
+                    <th width="4%">#</th>
+                    <th width="28%">Description</th>
+                    <th width="7%">Article</th>
+                    <th width="11%">Last Renewed</th>
+                    <th width="7%"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.List != null && Model.List.Count > 0)
+                {
+                    foreach (var city in Model.List)
+                    {
+                        var hasDesc = !string.IsNullOrEmpty(city.Description);
+                        var hasArticle = !string.IsNullOrEmpty(city.Article);
+                        var descPreview = hasDesc
+                            ? (city.Description.Length > 70 ? city.Description.Substring(0, 70) + "…" : city.Description)
+                            : "—";
+                        var renewedStr = city.LastRenewedDate.HasValue
+                            ? city.LastRenewedDate.Value.ToString("yyyy-MM-dd")
+                            : "—";
 
-                            // Loop through the response and generate the table rows
-                            response.forEach(function (city) {
-                                var row = `<tr>
-                                                   <td>${city.Country}</td>
-                                                   <td>${city.State}</td>
-                                                   <td><a href="/${city.CityURL}" target="_blank">${city.City}</a></td>
-                                                   <td>${city.NoCompanies}</td>
-                                                   <td></td> <!-- Empty column, you can populate if needed -->
-                                                   </tr>`;
-                                tbody.append(row);
-                            });
-                        } else {
-                            // If no data is returned, display "No Record(s) Found"
-                            var tbody = $('table tbody');
-                            tbody.empty(); // Clear previous rows
-                            tbody.append('<tr><td class="text-center well" colspan="5">No Record(s) Found</td></tr>');
-                        }
-                    },
-                    error: function (request, status, error) {
-                        console.log(error);
+                        <tr class="city-row"
+                            data-companies="@city.NoCompanies"
+                            data-url="@city.CityURL"
+                            data-statecode="@city.StateCode"
+                            data-cityname="@city.City">
+                            <td><input type="checkbox" class="city-checkbox"></td>
+                            <td>@city.Country</td>
+                            <td>@city.State</td>
+                            <td><a href="/@city.CityURL" target="_blank">@city.City</a></td>
+                            <td>@city.NoCompanies</td>
+                            <td class="desc-preview">@descPreview</td>
+                            <td class="text-center article-indicator">@(hasArticle ? "Yes" : "—")</td>
+                            <td class="small renewed-date">@renewedStr</td>
+                            <td>
+                                <button type="button" class="btn btn-xs btn-default edit-btn" onclick="toggleEdit(this)">Edit</button>
+                            </td>
+                        </tr>
+                        <tr class="edit-row" style="display:none;"
+                            data-statecode="@city.StateCode"
+                            data-cityname="@city.City">
+                            <td colspan="9">
+                                <div class="form-group">
+                                    <label>Description <small class="text-muted">(max 500 chars, ~140–160 ideal for SEO)</small></label>
+                                    <textarea class="form-control edit-description" rows="2" maxlength="500">@city.Description</textarea>
+                                    <span class="desc-char-count text-muted small"></span>
+                                </div>
+                                <div class="form-group" style="margin-top:8px;">
+                                    <label>Article <small class="text-muted">(leave blank to hide article section on city page)</small></label>
+                                    <textarea class="form-control edit-article" rows="6">@city.Article</textarea>
+                                </div>
+                                <div style="margin-top:8px;">
+                                    <button type="button" class="btn btn-sm btn-primary save-btn" onclick="saveCity(this)">Save</button>
+                                    <button type="button" class="btn btn-sm btn-default" onclick="cancelEdit(this)" style="margin-left:6px;">Cancel</button>
+                                    <span class="save-status small" style="margin-left:10px;"></span>
+                                </div>
+                            </td>
+                        </tr>
                     }
-                });
-            }
+                }
+                else
+                {
+                    <tr><td colspan="9" class="text-center well">No cities found.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
 
-            /**
-             * To update the cities table with new cities.
-             * */
-            function onFinishCitiesUpdateButtonClick() {
-                $.ajax({
-                    url: "/admin/business/finish-cities-update",
-                    type: "GET",
-                    success: function (response) {
-                        if (response) {
-                            showAlertMessage("#dvNotification", response.split(":")[0].toLowerCase(), response.split(":")[1]);
-                        }
-                    },
-                    error: function (request, status, error) {
-                        console.log(error);
-                    }
-                });
-            }
+@section Scripts {
+<script type="text/javascript">
 
-        </script>
+// ── Edit / Save ──────────────────────────────────────────────────────────────
+
+function toggleEdit(btn) {
+    var dataRow = $(btn).closest('tr');
+    var editRow = dataRow.next('.edit-row');
+    var opening = !editRow.is(':visible');
+
+    // Close any other open rows
+    $('.edit-row:visible').hide();
+    $('.edit-btn').text('Edit');
+
+    if (opening) {
+        editRow.show();
+        $(btn).text('Close');
+        updateCharCount(editRow.find('.edit-description'));
     }
+}
+
+function cancelEdit(btn) {
+    var editRow = $(btn).closest('tr');
+    editRow.hide();
+    editRow.prev('.city-row').find('.edit-btn').text('Edit');
+}
+
+function updateCharCount(textarea) {
+    var len = $(textarea).val().length;
+    $(textarea).next('.desc-char-count').text(len + ' / 500');
+}
+
+function saveCity(btn) {
+    var editRow = $(btn).closest('tr');
+    var stateCode = editRow.data('statecode');
+    var cityName = editRow.data('cityname');
+    var description = editRow.find('.edit-description').val();
+    var article = editRow.find('.edit-article').val();
+    var statusEl = editRow.find('.save-status');
+
+    $(btn).prop('disabled', true);
+    statusEl.removeClass('text-success text-danger').text('Saving…');
+
+    $.ajax({
+        url: '/admin/business/save-city-content',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ stateCode: stateCode, cityName: cityName, description: description, article: article }),
+        success: function (res) {
+            $(btn).prop('disabled', false);
+            if (res.success) {
+                statusEl.addClass('text-success').text('Saved');
+                var dataRow = editRow.prev('.city-row');
+                var preview = description.length > 70 ? description.substring(0, 70) + '…' : description;
+                dataRow.find('.desc-preview').text(description ? preview : '—');
+                dataRow.find('.article-indicator').text(article ? 'Yes' : '—');
+                setTimeout(function () { statusEl.text(''); }, 3000);
+            } else {
+                statusEl.addClass('text-danger').text(res.message || 'Error');
+            }
+        },
+        error: function () {
+            $(btn).prop('disabled', false);
+            statusEl.addClass('text-danger').text('Request failed');
+        }
+    });
+}
+
+// ── Filter ───────────────────────────────────────────────────────────────────
+
+function applyFilter() {
+    var min = parseInt($('#minCompanies').val()) || 0;
+    var max = parseInt($('#maxCompanies').val()) || 0;
+    var shown = 0;
+
+    $('.city-row').each(function () {
+        var n = parseInt($(this).data('companies'));
+        var pass = (min === 0 || n >= min) && (max === 0 || n <= max);
+        if (pass) {
+            $(this).show();
+            shown++;
+        } else {
+            $(this).hide();
+            $(this).next('.edit-row').hide();
+            $(this).find('.city-checkbox').prop('checked', false);
+        }
+    });
+
+    $('#filteredCount').text(shown + ' cities visible');
+    updateSelectedCount();
+}
+
+function clearFilter() {
+    $('#minCompanies').val('1');
+    $('#maxCompanies').val('0');
+    $('.city-row').show();
+    $('#filteredCount').text('');
+    updateSelectedCount();
+}
+
+// ── Selection ────────────────────────────────────────────────────────────────
+
+function selectAllVisible() {
+    $('.city-row:visible .city-checkbox').prop('checked', true);
+    updateSelectedCount();
+}
+
+function deselectAll() {
+    $('.city-checkbox').prop('checked', false);
+    $('#selectAllCheck').prop('checked', false);
+    updateSelectedCount();
+}
+
+function toggleSelectAll(cb) {
+    $('.city-row:visible .city-checkbox').prop('checked', $(cb).prop('checked'));
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    var n = $('.city-checkbox:checked').length;
+    $('#selectedCount').text(n + ' selected');
+}
+
+$(document).on('change', '.city-checkbox', function () { updateSelectedCount(); });
+
+// ── Renew ────────────────────────────────────────────────────────────────────
+
+var renewPollTimer = null;
+
+function getVisibleUrls(checkedOnly) {
+    var urls = [];
+    $('.city-row:visible').each(function () {
+        if (!checkedOnly || $(this).find('.city-checkbox').prop('checked')) {
+            urls.push($(this).data('url'));
+        }
+    });
+    return urls;
+}
+
+function renewSelected() {
+    var urls = getVisibleUrls(true);
+    if (urls.length === 0) { alert('Select at least one city first.'); return; }
+    startRenew(urls);
+}
+
+function renewAllFiltered() {
+    var urls = getVisibleUrls(false);
+    if (urls.length === 0) { alert('No cities visible — adjust the filter first.'); return; }
+    if (!confirm('Renew content for ' + urls.length + ' cities?')) return;
+    startRenew(urls);
+}
+
+function startRenew(urls) {
+    var min = parseInt($('#minCompanies').val()) || 0;
+    var max = parseInt($('#maxCompanies').val()) || 0;
+
+    $.ajax({
+        url: '/admin/business/start-city-renew',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ minCompanies: min, maxCompanies: max, cityURLs: urls }),
+        success: function () {
+            $('#renewStatus').show();
+            $('#renewProgressBar').addClass('active').css('width', '0%').text('0%');
+            pollRenewProgress();
+        },
+        error: function () { alert('Failed to start renew job.'); }
+    });
+}
+
+function pollRenewProgress() {
+    if (renewPollTimer) clearTimeout(renewPollTimer);
+    $.ajax({
+        url: '/admin/business/city-renew-progress',
+        type: 'GET',
+        success: function (res) {
+            $('#renewStatus').show();
+            var pct = res.Total > 0 ? Math.round(res.Processed / res.Total * 100) : 0;
+            $('#renewProgressBar').css('width', pct + '%').text(pct + '%');
+            $('#renewMessage').text(res.Message || '');
+            if (res.IsInProgress) {
+                renewPollTimer = setTimeout(pollRenewProgress, 2000);
+            } else {
+                $('#renewProgressBar').removeClass('active');
+            }
+        }
+    });
+}
+
+// ── City count update (existing) ─────────────────────────────────────────────
+
+function onStartCitiesUpdateButtonClick() {
+    $('#updateStatus').text('Loading…');
+    $.ajax({
+        url: '/admin/business/get-city-list-for-manage-city',
+        type: 'GET',
+        success: function (response) {
+            var tbody = $('#citiesTable tbody');
+            tbody.empty();
+            if (response && response.length > 0) {
+                response.forEach(function (city) {
+                    tbody.append(
+                        '<tr class="city-row" data-companies="' + city.NoCompanies + '" data-url="' + city.CityURL + '" data-statecode="" data-cityname="">'
+                        + '<td><input type="checkbox" class="city-checkbox"></td>'
+                        + '<td>' + (city.Country || '') + '</td>'
+                        + '<td>' + (city.State || '') + '</td>'
+                        + '<td><a href="/' + city.CityURL + '" target="_blank">' + city.City + '</a></td>'
+                        + '<td>' + city.NoCompanies + '</td>'
+                        + '<td class="desc-preview">—</td>'
+                        + '<td class="text-center article-indicator">—</td>'
+                        + '<td class="small renewed-date">—</td>'
+                        + '<td></td>'
+                        + '</tr>'
+                    );
+                });
+                $('#updateStatus').text(response.length + ' pending cities loaded.');
+            } else {
+                tbody.append('<tr><td colspan="9" class="text-center well">No new cities found.</td></tr>');
+                $('#updateStatus').text('No pending cities.');
+            }
+            updateSelectedCount();
+        },
+        error: function () { $('#updateStatus').text('Error loading cities.'); }
+    });
+}
+
+function onFinishCitiesUpdateButtonClick() {
+    $('#updateStatus').text('Running…');
+    $.ajax({
+        url: '/admin/business/finish-cities-update',
+        type: 'GET',
+        success: function (response) {
+            if (response) {
+                var parts = response.split(':');
+                showAlertMessage('#dvNotification', parts[0].toLowerCase(), parts[1]);
+                $('#updateStatus').text('Done. Reload page to see updated list.');
+            }
+        },
+        error: function () { $('#updateStatus').text('Error running update.'); }
+    });
+}
+
+// ── Char counter ─────────────────────────────────────────────────────────────
+
+$(document).on('input', '.edit-description', function () {
+    updateCharCount(this);
+});
+
+$(document).ready(function () {
+    updateSelectedCount();
+    // Check if a renew job is already running on page load
+    pollRenewProgress();
+});
+
+</script>
+}
 </body>
-</html >
+</html>

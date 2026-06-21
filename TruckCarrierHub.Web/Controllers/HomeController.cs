@@ -156,8 +156,6 @@ namespace PartnerCarrier.Web.Controllers
             companyVM.SearchFilter = new SearchFilterVM();
             companyVM.hdnCityName = city;
 
-            companyVM.IsCityArticleAllowedByAdmin = _homepageService.GetIfCityArticleAllowedByAdmin();
-            companyVM.IsCityArticleAllowed = _homepageService.GetIfCityArticleAllowed(stateCode, city);
             companyVM.SearchFilter = _homepageService.CheckFilterValuesNullOrNot(filter1, filter2, filter3, filter4, filter5, filter6, filter7, filter8, filter9);
             var pageName = "Citypage";
             //set page title

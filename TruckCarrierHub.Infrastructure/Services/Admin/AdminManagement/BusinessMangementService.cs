@@ -1926,7 +1926,8 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
                             CityName = city.CityName,
                             NumberOfCompanies = city.NumberOfCompanies,
                             Article = null,
-                            CityArticleAllowed = false
+                            Description = null,
+                            LastRenewedDate = null
                         });
                     }
                 }

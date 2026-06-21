@@ -128,8 +128,6 @@
         void SendEmailsForQuote(int quoteId);
         OutboundBannerDataModel GetOutboundBanner(byte pageLevel);
         int GetNumberOfWordsAllowedByAdmin();
-        bool GetIfCityArticleAllowedByAdmin();
-        bool GetIfCityArticleAllowed(string state, string city);
         CompanyRatingVM GetCompanyRating(int usdotnumber);
         void AddCompanyReview(AddCompanyReviewVM addCompanyReviewVM);
         AddCompanyReviewVM GetReviewDetailsById(int reviewId);

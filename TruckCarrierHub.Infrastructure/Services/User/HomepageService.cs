@@ -515,10 +515,9 @@
             }
             if (pageName == "Citypage")
             {
-                var isCityArticleAllowByAdmin = db.Database.SqlQuery<bool>("select CityArticlesAllowed from Admin").FirstOrDefault();
                 var stateCode = db.States.FirstOrDefault(s => s.State1.ToLower() == state.ToLower()).StateCode;
                 var selectedCity = db.Cities.FirstOrDefault(s => s.CityName == city && s.StateCode == stateCode);
-                if (isCityArticleAllowByAdmin && selectedCity != null && selectedCity.CityArticleAllowed.HasValue && selectedCity.CityArticleAllowed.Value && (pageNum == 1 || pageNum == null))
+                if (selectedCity != null && selectedCity.Article != null && (pageNum == 1 || pageNum == null))
                 {
                     pageDescription = selectedCity.Article;
                 }
@@ -2793,17 +2792,6 @@
         public int GetNumberOfWordsAllowedByAdmin()
         {
             return db.Database.SqlQuery<int>("select NumberOfWords from Admin").FirstOrDefault();
-        }
-
-        public bool GetIfCityArticleAllowedByAdmin()
-        {
-            return db.Database.SqlQuery<bool>("select CityArticlesAllowed from Admin").FirstOrDefault();
-        }
-
-        public bool GetIfCityArticleAllowed(string state, string city)
-        {
-            var selectedCity = db.Cities.FirstOrDefault(s => s.CityName == city && s.StateCode == state);
-            return selectedCity != null ? (bool)selectedCity.CityArticleAllowed : false;
         }
 
         #region Company Reviews

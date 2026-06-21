@@ -271,7 +271,7 @@
     </div>
 
     @* City article — page 1 only, with truncation + expand *@
-    @if (Model.Companies != null && Model.Companies.Pagination.PageIndex == 1 && Model.IsCityArticleAllowed && Model.IsCityArticleAllowedByAdmin)
+    @if (Model.Companies != null && Model.Companies.Pagination.PageIndex == 1 && !string.IsNullOrEmpty(Model.PageDescription))
     {
         <div class="city-article">
             <div id="cityArticle"

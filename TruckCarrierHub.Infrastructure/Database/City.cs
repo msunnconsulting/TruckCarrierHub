@@ -19,6 +19,8 @@ namespace PartnerCarrier.Infrastructure.Database
         public string CityName { get; set; }
         public Nullable<int> NumberOfCompanies { get; set; }
         public string Article { get; set; }
+        public string Description { get; set; }
+        public Nullable<DateTime> LastRenewedDate { get; set; }
         public Nullable<bool> CityArticleAllowed { get; set; }
     }
 }

@@ -89,8 +89,7 @@
         public string Status { get; set; }
         public OutboundBannerDataModel OutboundBanner { get; set; }
         public int NumberOfWordsForCityArticle { get; set; }
-        public bool IsCityArticleAllowed { get; set; }
-        public bool IsCityArticleAllowedByAdmin { get; set; }
+
 
         public double AverageRating { get; set; }
         public int TotalReviews { get; set; }

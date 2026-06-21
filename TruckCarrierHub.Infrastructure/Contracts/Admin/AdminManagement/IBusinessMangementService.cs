@@ -66,6 +66,7 @@ namespace PartnerCarrier.Infrastructure.Contracts.Admin.AdminManagement
         string SetArticleForSelectedCity(string countryCode, string stateCode, string cityName, string article);
         List<SelectListVM> GetCitiesForManageCityArticle(string countryCode, string stateCode, bool? isAllowed);
         bool IsCityArticleAvailable(string countryCode, string stateCode, string cityName);
+        List<ManageCityListVM> GetAllCities();
         List<ManageCityListVM> GetCityListForManageCities();
         Task<string> FinishCityUpdate();
         ManageReviewsVM GetReviewsFilter();

@@ -1788,6 +1788,31 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
         /// Retrieves a list of cities for managing cities, excluding cities that already exist in the Cities table.
         /// </summary>
         /// <returns>A list of ManageCityListVM objects representing the cities.</returns>
+        public List<ManageCityListVM> GetAllCities()
+        {
+            var cities = db.Cities.ToList();
+            var stateByCode = db.States.ToList()
+                .GroupBy(s => s.StateCode)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+            return cities.Select(c =>
+            {
+                var state = stateByCode.ContainsKey(c.StateCode) ? stateByCode[c.StateCode] : null;
+                return new ManageCityListVM
+                {
+                    Country = c.CountryCode == "US" ? "US" : "Canada",
+                    State = state != null ? state.State1 : c.StateCode,
+                    City = c.CityName,
+                    CityURL = c.StateCode + "/" + c.CityName.Replace(" ", "-"),
+                    NoCompanies = c.NumberOfCompanies ?? 0
+                };
+            })
+            .OrderBy(c => c.Country)
+            .ThenBy(c => c.State)
+            .ThenBy(c => c.City)
+            .ToList();
+        }
+
         public List<ManageCityListVM> GetCityListForManageCities()
         {
             // Perform a left join between TransportCompanies and States tables based on the state code.

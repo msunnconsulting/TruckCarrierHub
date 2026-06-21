@@ -998,7 +998,7 @@ namespace PartnerCarrier.Web.Areas.Admin.Controllers
             try
             {
                 ManageCitiesVM data = new ManageCitiesVM();
-                data.List = new List<ManageCityListVM>();
+                data.List = _businessMangementService.GetAllCities();
                 return View(data);
             }
             catch (Exception ex)

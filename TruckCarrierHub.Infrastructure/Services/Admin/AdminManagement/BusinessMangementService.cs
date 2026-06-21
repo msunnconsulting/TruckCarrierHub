@@ -1832,9 +1832,9 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
         {
             try
             {
-                // Check for invalid state codes in transport companies.
+                // Check for invalid state codes among active companies only.
                 var invalidStateCodes = await db.TransportCompanies
-                    .Where(c => !db.States.Any(s => s.StateCode == c.PhysicalAddressStateCode))
+                    .Where(c => c.Status == "A" && !db.States.Any(s => s.StateCode == c.PhysicalAddressStateCode))
                     .ToListAsync();
 
                 // If there are invalid state codes, return an error message.
@@ -1843,45 +1843,58 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
                     return "danger : There are StateCodes in Company that do not exist in State.";
                 }
 
-                // Retrieve all cities grouped by country code, state code, and city name.
-                var allCities = await (from transportCompany in db.TransportCompanies
-                                       join state in db.States on transportCompany.PhysicalAddressStateCode equals state.StateCode into stateGroup
-                                       from state in stateGroup.DefaultIfEmpty()
-                                       group transportCompany by new
-                                       {
-                                           state.CountryCode,
-                                           transportCompany.PhysicalAddressStateCode,
-                                           transportCompany.PhysicalAddressCity
-                                       } into cityGroup
-                                       select new
-                                       {
-                                           CountryCode = cityGroup.Key.CountryCode,
-                                           StateCode = cityGroup.Key.PhysicalAddressStateCode,
-                                           CityName = cityGroup.Key.PhysicalAddressCity,
-                                           NumberOfCompanies = cityGroup.Count()
-                                       }).ToListAsync();
+                // Count active companies by physical address city only.
+                // Grouping on TransportCompanies alone (no States join) avoids row
+                // multiplication if States ever has duplicate StateCode entries.
+                var cityCounts = await db.TransportCompanies
+                    .Where(tc => tc.Status == "A")
+                    .GroupBy(tc => new { tc.PhysicalAddressStateCode, tc.PhysicalAddressCity })
+                    .Select(g => new
+                    {
+                        StateCode = g.Key.PhysicalAddressStateCode,
+                        CityName = g.Key.PhysicalAddressCity,
+                        NumberOfCompanies = g.Count()
+                    })
+                    .ToListAsync();
 
-                // Iterate through each city to update or add to the Cities table.
+                // Resolve CountryCode per StateCode in memory, deduplicating States rows.
+                var countryByState = (await db.States.ToListAsync())
+                    .GroupBy(s => s.StateCode)
+                    .ToDictionary(g => g.Key, g => g.First().CountryCode, StringComparer.OrdinalIgnoreCase);
+
+                var allCities = cityCounts.Select(c => new
+                {
+                    CountryCode = countryByState.ContainsKey(c.StateCode) ? countryByState[c.StateCode] : (string)null,
+                    c.StateCode,
+                    c.CityName,
+                    c.NumberOfCompanies
+                }).ToList();
+
+                // Load all existing Cities rows once; use a dictionary for O(1) lookup.
+                var existingCities = await db.Cities.ToListAsync();
+                var existingByKey = existingCities.ToDictionary(
+                    c => c.StateCode + "|" + c.CityName,
+                    StringComparer.OrdinalIgnoreCase);
+
+                // Set of city keys that currently have active companies.
+                var activeCityKeys = new HashSet<string>(
+                    allCities.Select(c => c.StateCode + "|" + c.CityName),
+                    StringComparer.OrdinalIgnoreCase);
+
+                // Update existing rows and insert new ones.
                 foreach (var city in allCities)
                 {
-                    // Check if the city already exists in the Cities table.
-                    var existingCity = await db.Cities.FirstOrDefaultAsync(s =>
-                        s.CountryCode == city.CountryCode &&
-                        s.StateCode == city.StateCode &&
-                        s.CityName == city.CityName);
-
-                    if (existingCity != null)
+                    var key = city.StateCode + "|" + city.CityName;
+                    if (existingByKey.TryGetValue(key, out var existingCity))
                     {
-                        // Update the number of companies if it has changed.
+                        // Update the count if it has changed; leave Article untouched.
                         if (existingCity.NumberOfCompanies != city.NumberOfCompanies)
-                        {
                             existingCity.NumberOfCompanies = city.NumberOfCompanies;
-                        }
                     }
                     else
                     {
-                        // Create a new city entry if it does not exist.
-                        City newCity = new City()
+                        // New city/spelling — create a row with no article.
+                        db.Cities.Add(new City()
                         {
                             CountryCode = city.CountryCode,
                             StateCode = city.StateCode,
@@ -1889,10 +1902,15 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
                             NumberOfCompanies = city.NumberOfCompanies,
                             Article = null,
                             CityArticleAllowed = false
-                        };
-
-                        db.Cities.Add(newCity);
+                        });
                     }
+                }
+
+                // Remove orphan rows: cities that exist in the table but have no
+                // active companies today (physical address only).
+                foreach (var orphan in existingCities.Where(c => !activeCityKeys.Contains(c.StateCode + "|" + c.CityName)))
+                {
+                    db.Cities.Remove(orphan);
                 }
 
                 // Save all changes to the database.

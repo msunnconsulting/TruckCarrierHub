@@ -26,6 +26,23 @@
     ViewBag.IsHiringCheckboxIsChecked = SessionManager.Instance.IsHiringCheckboxIsChecked;
     ViewBag.IsReviewsFilterCheckboxIsChecked = SessionManager.Instance.IsReviewsFilterCheckboxIsChecked;
 }
+@{
+    var homepageLd = new Newtonsoft.Json.Linq.JObject {
+        ["@context"] = "https://schema.org",
+        ["@type"]    = "WebSite",
+        ["name"]     = "Truck Carrier Hub",
+        ["url"]      = "https://truckcarrierhub.com/",
+        ["description"] = "The most comprehensive directory of U.S. and Canadian trucking companies and freight brokers.",
+        ["potentialAction"] = new Newtonsoft.Json.Linq.JObject {
+            ["@type"] = "SearchAction",
+            ["target"] = new Newtonsoft.Json.Linq.JObject {
+                ["@type"]       = "EntryPoint",
+                ["urlTemplate"] = "https://truckcarrierhub.com/search?searchText={search_term_string}"
+            },
+            ["query-input"] = "required name=search_term_string"
+        }
+    };
+}
 @section AdditionalMeta
 {
     <meta name="description" content="@Model.MetaDescription" />
@@ -36,6 +53,7 @@
             height: 250px !important;
         }
     </style>
+    <script type="application/ld+json">@Html.Raw(homepageLd.ToString(Newtonsoft.Json.Formatting.None))</script>
 }
 <div class="home-background-image">
 
@@ -99,12 +117,77 @@
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-12">
-        <h2 class="homepage-page-decription">
-            <p>@Html.Raw(Model.PageDescription)</p>
-            <div class="home-article">@Html.Raw(Model.HomeArticle)</div>
-        </h2>
+<!-- Statistics band -->
+<div class="hp-stats-strip">
+<div class="hpb-band">
+    <div class="container">
+        <div class="hpb-grid">
+            <a href="/statistics/active-companies" class="hpb-card hpb-card-link">
+                <div class="hpb-icon hpb-icon-blue"><i class="fa fa-truck"></i></div>
+                <div class="hpb-num">@Model.HpTotalCompanies.ToString("N0")</div>
+                <div class="hpb-label">Active U.S. Trucking Companies</div>
+                <div class="hpb-cue">Statistics &rarr;</div>
+            </a>
+            <a href="/statistics/active-brokers" class="hpb-card hpb-card-link">
+                <div class="hpb-icon hpb-icon-green"><i class="fa fa-users"></i></div>
+                <div class="hpb-num">@Model.HpActiveBrokers.ToString("N0")</div>
+                <div class="hpb-label">Active U.S. Freight Brokers</div>
+                <div class="hpb-cue">Statistics &rarr;</div>
+            </a>
+            <a href="/statistics/new-registrations?range=12m" class="hpb-card hpb-card-link">
+                <div class="hpb-icon hpb-icon-purple"><i class="fa fa-line-chart"></i></div>
+                <div class="hpb-num">@Model.HpNewRegistrations12m.ToString("N0")</div>
+                <div class="hpb-label">New FMCSA Registrations (12 mo)</div>
+                <div class="hpb-cue">Statistics &rarr;</div>
+            </a>
+            <div class="hpb-card">
+                <div class="hpb-icon hpb-icon-orange"><i class="fa fa-map-marker"></i></div>
+                <div class="hpb-num">@Model.HpCitiesCount.ToString("N0")</div>
+                <div class="hpb-label">U.S. Cities Covered</div>
+            </div>
+            @if (!string.IsNullOrEmpty(Model.HpLastDataUpdate))
+            {
+                <div class="hpb-card">
+                    <div class="hpb-icon hpb-icon-gold"><i class="fa fa-calendar"></i></div>
+                    <div class="hpb-num hpb-num-date">@Model.HpLastDataUpdate</div>
+                    <div class="hpb-label">FMCSA Data Updates</div>
+                    <div class="hpb-desc">Data is updated weekly to ensure accuracy.</div>
+                </div>
+            }
+        </div>
+        <div class="hpb-note">Companies holding both carrier and broker authority are counted in both figures.</div>
+    </div>
+</div>
+@if (Model.HpMonthTeaser != null)
+{
+    var mt = Model.HpMonthTeaser;
+    string hptUrl      = "/statistics/new-registrations/" + mt.Year.ToString() + "/" + mt.Month.ToString("D2");
+    string hptTotal    = mt.TotalCount.ToString("N0");
+    string hptCarriers = mt.MotorCarrierCount.ToString("N0");
+    string hptBrokers  = mt.BrokerCount.ToString("N0");
+    <div class="hpt-wrap">
+        <div class="container">
+            <a href="@hptUrl" class="hpt-teaser">
+                <div class="hpb-icon hpb-icon-gold" style="margin-bottom:0;"><i class="fa fa-calendar"></i></div>
+                <div class="hpt-left">
+                    <span class="hpt-badge">New</span><span class="hpt-title">@mt.MonthName FMCSA Registration Report</span>
+                    <div class="hpt-body">@hptTotal companies registered last month &mdash; @hptCarriers motor carriers and @hptBrokers freight brokers@(mt.BothCount > 0 ? " (some hold both authorities)" : ""). See top states, cities, and daily trends.</div>
+                </div>
+                <div class="hpt-right"><i class="fa fa-chevron-right"></i></div>
+            </a>
+        </div>
+    </div>
+}
+</div>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h2 class="homepage-page-decription">
+                <p>@Html.Raw(Model.PageDescription)</p>
+                <div class="home-article">@Html.Raw(Model.HomeArticle)</div>
+            </h2>
+        </div>
     </div>
 </div>
 
@@ -193,3 +276,4 @@
         $('[data-toggle="popover"]').popover()
     </script>
 }
+

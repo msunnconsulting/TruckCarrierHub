@@ -24,8 +24,6 @@
 
         string GetPageDescription(string pageName, string state, string city, int? pageNum = null);
 
-        string GetCityMetaDescription(string state, string city);
-
         string GetPlainHomeMetaDescription();
 
         string GetHomeArticle();
@@ -123,13 +121,13 @@
         List<LoadContainerTypeVM> GetDropDownForLoadContainerType();
         List<LoadContainerLengthVM> GetDropDownForLoadContainerLength();
         List<RefrigerationVM> GetDropDownForRefrigerationType(string loadType);
-        string GetCityNameFromURLCityName(string city);
+        string GetCityNameFromURLCityName(string city, string stateCode = null);
+        List<SearchRedirectResult> GetSearchRedirectInfo(string searchText, string selectedDropdownValue, bool isHiringCheckboxIsChecked, int GlobalHire);
         List<LoadTruckTypeVM> GetDropDownForTruckType(string loadType);
         List<LoadInfoVM> GetDropDownForLoadInfo();
         List<TemperatureVM> GetDropdownForTemperatureType();
         void SendEmailsForQuote(int quoteId);
         OutboundBannerDataModel GetOutboundBanner(byte pageLevel);
-        int GetNumberOfWordsAllowedByAdmin();
         CompanyRatingVM GetCompanyRating(int usdotnumber);
         void AddCompanyReview(AddCompanyReviewVM addCompanyReviewVM);
         AddCompanyReviewVM GetReviewDetailsById(int reviewId);
@@ -138,5 +136,16 @@
         CompanyReviewerNames GetCompanyandReviewerName(int companyUSDOT, int reviewerId = 0, int rUSDOTNumber = 0);
         void AddUpdateReviewResponse(AddEditReviewReplyVM addEditReviewReplyVM);
         AddEditReviewReplyVM GetResponseDetailsById(int responseId);
+        StatisticsIndexVM GetStatisticsData();
+        StatisticsActiveCompaniesVM GetActiveCompaniesData();
+        StatisticsActiveBrokersVM GetActiveBrokersData();
+        StatisticsStateCompaniesVM GetStateCompaniesData(string stateCode);
+        StatisticsCityCompaniesVM GetCityCompaniesData(string stateCode, string cityName, string range = "24m");
+        void InvalidateStatisticsCache();
+        StatisticsNewRegistrationsVM GetNewRegistrationsData(string range = "24m");
+        StatisticsNewRegistrationsMonthVM GetNewRegistrationsMonthData(int year, int month);
+        int GetEarliestRegistrationYearMonth();
+        StatisticsFleetOperationsVM GetFleetOperationsData();
+        StatisticsCargoVM GetCargoData();
     }
 }

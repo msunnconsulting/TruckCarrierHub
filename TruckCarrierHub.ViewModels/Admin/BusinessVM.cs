@@ -435,6 +435,7 @@ namespace PartnerCarrier.ViewModels.Admin
         public int MinCompanies { get; set; }
         public int MaxCompanies { get; set; }
         public List<string> CityURLs { get; set; }
+        public DateTime? LastRenewedBefore { get; set; }
     }
 
     public class CityContentPreviewVM
@@ -458,6 +459,455 @@ namespace PartnerCarrier.ViewModels.Admin
         public bool Status { get; set; }
         public string ResponseText { get; set; }
     }
+    #endregion
+
+    #region Statistics
+    public class ShowStatisticsNavVM
+    {
+        public bool ShowStatisticsNav { get; set; }
+    }
+
+    public class StatisticsIndexVM
+    {
+        public int TotalCompanies { get; set; }
+        public int PureBrokerCount { get; set; }
+        public int ActiveBrokers { get; set; }
+        public int StatesCount { get; set; }
+        public int CitiesCount { get; set; }
+        public int AvgFleetSize { get; set; }
+        public string LastDataUpdate { get; set; }
+        public int NewThisMonth { get; set; }
+        public int NewThisYear { get; set; }
+        public int NewRegistrations12MonthsCount { get; set; }
+        public List<StateStatVM> TopStates { get; set; }
+        public List<CityStatVM> TopCities { get; set; }
+        public List<YearStatVM> RegistrationsByYear { get; set; }
+        public List<StateStatVM> AllUsStates { get; set; }
+    }
+
+    public class StateStatVM
+    {
+        public string StateCode { get; set; }
+        public string StateName { get; set; }
+        public int Count { get; set; }
+    }
+
+    public class CityStatVM
+    {
+        public string City { get; set; }
+        public string StateCode { get; set; }
+        public int Count { get; set; }
+    }
+
+    public class YearStatVM
+    {
+        public int Year { get; set; }
+        public int Count { get; set; }
+    }
+
+    public class StatisticsActiveCompaniesVM
+    {
+        public int TotalActiveCompanies { get; set; }
+        public int StatesRepresented { get; set; }
+        public string TopStateName { get; set; }
+        public string TopStateCode { get; set; }
+        public int TopStateCount { get; set; }
+        public DateTime? LastDataUpdate { get; set; }
+        public List<StateStatRow> TopStates { get; set; }
+        public List<CityStatRow> TopCities { get; set; }
+        public List<StateMapRow> AllStatesForMap { get; set; }
+        public int NewThisMonth { get; set; }
+        public int NewLastMonth { get; set; }
+        public int NewThisYear { get; set; }
+        public int NewSamePeriodLastYear { get; set; }
+        public int NewPrior12Months { get; set; }
+        public int InterstateCarriersCount { get; set; }
+        public decimal InterstateCarriersPct { get; set; }
+        public int MedianFleetSize { get; set; }
+        public CompanySizeDistribution SizeDistribution { get; set; }
+        public List<CargoTypeRow> TopCargoTypes { get; set; }
+        public List<MonthlyRegistrationRow> MonthlyRegistrations { get; set; }
+        public int CitiesCount { get; set; }
+        public int PureBrokerCount { get; set; }
+        public List<TopCompanyRow> TopCompaniesByPowerUnits { get; set; }
+        public List<StateNewRegRow> TopStatesByNewRegistrations { get; set; }
+    }
+
+    public class TopCompanyRow
+    {
+        public string CompanyName { get; set; }
+        public int PowerUnits { get; set; }
+        public string City { get; set; }
+        public string StateCode { get; set; }
+    }
+
+    public class StateNewRegRow
+    {
+        public string StateCode { get; set; }
+        public string StateName { get; set; }
+        public int NewRegistrations { get; set; }
+        public decimal PercentOfTotal { get; set; }
+    }
+
+    public class StateStatRow
+    {
+        public string StateCode { get; set; }
+        public string StateName { get; set; }
+        public int CompanyCount { get; set; }
+        public decimal PercentOfTotal { get; set; }
+    }
+
+    public class CityStatRow
+    {
+        public string CityName { get; set; }
+        public string StateCode { get; set; }
+        public int CompanyCount { get; set; }
+        public decimal PercentOfTotal { get; set; }
+    }
+
+    public class StateMapRow
+    {
+        public string StateCode { get; set; }
+        public string StateName { get; set; }
+        public int CompanyCount { get; set; }
+    }
+
+    public class StatisticsStateCompaniesVM
+    {
+        public string StateCode { get; set; }
+        public string StateName { get; set; }
+        public int TotalActiveCompanies { get; set; }
+        public int ActiveMCNumbers { get; set; }
+        public int TotalPowerUnits { get; set; }
+        public int TotalDrivers { get; set; }
+        public decimal PercentOfUSTotal { get; set; }
+        public DateTime? LastDataUpdate { get; set; }
+        public List<CountyStatRow> TopCounties { get; set; }
+        public List<StateCityStatRow> TopCities { get; set; }
+        public List<CountyMapRow> AllCountiesForMap { get; set; }
+        public CompanySizeDistribution SizeDistribution { get; set; }
+        public int NewRegistrations12 { get; set; }
+        public int NewPriorRegistrations12 { get; set; }
+    }
+
+    public class CountyStatRow
+    {
+        public string CountyName { get; set; }
+        public int CountyCode { get; set; }
+        public int CompanyCount { get; set; }
+        public decimal PercentOfState { get; set; }
+    }
+
+    public class StateCityStatRow
+    {
+        public string CityName { get; set; }
+        public int CompanyCount { get; set; }
+        public decimal PercentOfState { get; set; }
+    }
+
+    public class CountyMapRow
+    {
+        public string CountyName { get; set; }
+        public int CountyCode { get; set; }
+        public int CompanyCount { get; set; }
+    }
+
+    public class CompanySizeDistribution
+    {
+        public int OneUnit { get; set; }
+        public int TwoToFive { get; set; }
+        public int SixToTwenty { get; set; }
+        public int TwentyOneToHundred { get; set; }
+        public int OverHundred { get; set; }
+        public int TotalReporting { get; set; }
+        public int MedianFleetSize { get; set; }
+    }
+
+    public class StatisticsCityCompaniesVM
+    {
+        public string CityName { get; set; }
+        public string StateCode { get; set; }
+        public string StateName { get; set; }
+        public string CountyName { get; set; }
+        public int TotalActiveCompanies { get; set; }
+        public decimal PercentOfStateTotal { get; set; }
+        public int NewRegistrationsLast24Months { get; set; }
+        public decimal AvgNewPerMonth { get; set; }
+        public decimal? NewRegistrationsYoYPercent { get; set; }
+        public int MedianFleetSize { get; set; }
+        public decimal OwnerOperatorPercent { get; set; }
+        public decimal StateOwnerOperatorPercent { get; set; }
+        public List<MonthlyRegistrationRow> MonthlyRegistrations { get; set; }
+        public string BestMonthLabel { get; set; }
+        public int BestMonthCount { get; set; }
+        public string LowestMonthLabel { get; set; }
+        public int LowestMonthCount { get; set; }
+        public CompanySizeDistribution SizeDistribution { get; set; }
+        public List<CargoTypeRow> TopCargoTypes { get; set; }
+        public CompanyAgeDistribution AgeDistribution { get; set; }
+        public List<AuthorityTypeRow> TopAuthorityTypes { get; set; }
+        public List<CityCompanyRow> TopCompaniesByFleetSize { get; set; }
+        public DateTime? LastDataUpdate { get; set; }
+        public string SelectedRange { get; set; }
+        public string RangeLabel { get; set; }
+    }
+
+    public class MonthlyRegistrationRow
+    {
+        public int Year { get; set; }
+        public int Month { get; set; }
+        public int Count { get; set; }
+        public string Label { get; set; }
+    }
+
+    public class CargoTypeRow
+    {
+        public string CargoTypeName { get; set; }
+        public int CompanyCount { get; set; }
+        public decimal PercentOfTotal { get; set; }
+    }
+
+    public class CompanyAgeDistribution
+    {
+        public int ZeroToTwo { get; set; }
+        public int ThreeToFive { get; set; }
+        public int SixToTen { get; set; }
+        public int ElevenToTwenty { get; set; }
+        public int OverTwenty { get; set; }
+        public decimal AverageAgeYears { get; set; }
+    }
+
+    public class AuthorityTypeRow
+    {
+        public string AuthorityTypeName { get; set; }
+        public int CompanyCount { get; set; }
+        public decimal PercentOfTotal { get; set; }
+    }
+
+    public class CityCompanyRow
+    {
+        public string LegalName { get; set; }
+        public int USDOTNumber { get; set; }
+        public int FleetSize { get; set; }
+    }
+
+    public class StatisticsActiveBrokersVM
+    {
+        public int TotalActiveBrokers { get; set; }
+        public int New24MonthsCount { get; set; }
+        public decimal AvgNewPerMonth { get; set; }
+        public int BrokerOnlyCount { get; set; }
+        public decimal BrokerOnlyPct { get; set; }
+        public int BrokerAndCarrierCount { get; set; }
+        public decimal BrokerAndCarrierPct { get; set; }
+        public DateTime? LastDataUpdate { get; set; }
+        public List<StateStatRow> TopStates { get; set; }
+        public List<StateMapRow> AllStatesForMap { get; set; }
+        public List<CityStatRow> TopCities { get; set; }
+        public List<BrokerEntityTypeRow> EntityTypes { get; set; }
+        public List<MonthlyRegistrationRow> MonthlyRegistrations { get; set; }
+        public CompanyAgeDistribution AgeDistribution { get; set; }
+        public List<BrokerCarrierRatioRow> CarrierToBrokerRatioByState { get; set; }
+        public List<LongestRegisteredBrokerRow> LongestRegisteredBrokers { get; set; }
+    }
+
+    public class BrokerEntityTypeRow
+    {
+        public string Name { get; set; }
+        public int Count { get; set; }
+        public decimal Pct { get; set; }
+    }
+
+    public class BrokerCarrierRatioRow
+    {
+        public string StateCode { get; set; }
+        public string StateName { get; set; }
+        public int CarrierCount { get; set; }
+        public int BrokerCount { get; set; }
+        public decimal Ratio { get; set; }
+    }
+
+    public class LongestRegisteredBrokerRow
+    {
+        public string LegalName { get; set; }
+        public int USDOTNumber { get; set; }
+        public string MCPrefix { get; set; }
+        public int? MCNumber { get; set; }
+        public string City { get; set; }
+        public string StateCode { get; set; }
+        public int SinceYear { get; set; }
+    }
+    public class StatisticsNewRegistrationsVM
+    {
+        public string Range { get; set; }
+        public int RangeMonths { get; set; }
+        public DateTime RangeStart { get; set; }
+        public DateTime RangeEnd { get; set; }
+        public int TotalNewCount { get; set; }
+        public int NewMotorCarrierCount { get; set; }
+        public int NewBrokerCount { get; set; }
+        public int NewOtherCount { get; set; }
+        public decimal AvgPerMonth { get; set; }
+        public int PrevTotalCount { get; set; }
+        public int PrevMotorCarrierCount { get; set; }
+        public int PrevBrokerCount { get; set; }
+        public List<NrMonthlyRow> MonthlyAll { get; set; }
+        public List<NrMonthlyRow> MonthlyMC { get; set; }
+        public List<NrMonthlyRow> MonthlyBroker { get; set; }
+        public int NewBothCount { get; set; }
+        public int PrevBothCount { get; set; }
+        public int EntityMCCount { get; set; }
+        public int EntityBrokerCount { get; set; }
+        public int EntityBothCount { get; set; }
+        public int EntityOtherCount { get; set; }
+        public List<NrStateRow> TopStates { get; set; }
+        public List<NrCityRow> TopCities { get; set; }
+        public NrAgeDistribution AgeDistribution { get; set; }
+        public List<StateMapRow> AllStatesForMap { get; set; }
+        public DateTime? LastDataUpdate { get; set; }
+    }
+
+    public class NrMonthlyRow
+    {
+        public string Label { get; set; }
+        public int YearMonth { get; set; }
+        public int Count { get; set; }
+    }
+
+    public class NrStateRow
+    {
+        public string StateCode { get; set; }
+        public string StateName { get; set; }
+        public int Count { get; set; }
+        public double PercentOfTotal { get; set; }
+    }
+
+    public class NrCityRow
+    {
+        public string CityName { get; set; }
+        public string StateCode { get; set; }
+        public int Count { get; set; }
+        public double PercentOfTotal { get; set; }
+    }
+
+    public class NrAgeDistribution
+    {
+        public int ZeroToSixMonths { get; set; }
+        public int SixToTwelveMonths { get; set; }
+        public int OneToTwoYears { get; set; }
+        public int TwoToFiveYears { get; set; }
+        public int FivePlusYears { get; set; }
+        public int Total { get; set; }
+    }
+
+    public class NrDailyRow
+    {
+        public int Day { get; set; }
+        public int Count { get; set; }
+    }
+
+    public class StatisticsNewRegistrationsMonthVM
+    {
+        public int Year { get; set; }
+        public int Month { get; set; }
+        public string MonthName { get; set; }
+        public int TotalCount { get; set; }
+        public int MotorCarrierCount { get; set; }
+        public int BrokerCount { get; set; }
+        public int OtherCount { get; set; }
+        public int BothCount { get; set; }
+        public int PrevTotalCount { get; set; }
+        public int PrevMotorCarrierCount { get; set; }
+        public int PrevBrokerCount { get; set; }
+        public int PrevBothCount { get; set; }
+        public int PrevYear { get; set; }
+        public int PrevMonth { get; set; }
+        public bool HasPrev { get; set; }
+        public int NextYear { get; set; }
+        public int NextMonth { get; set; }
+        public bool HasNext { get; set; }
+        public List<NrDailyRow> DailyAll { get; set; }
+        public List<NrStateRow> TopStates { get; set; }
+        public List<NrCityRow> TopCities { get; set; }
+        public List<NrStateRow> CarrierTopStates { get; set; }
+        public List<NrCityRow> CarrierTopCities { get; set; }
+        public List<NrStateRow> BrokerTopStates { get; set; }
+        public List<NrCityRow> BrokerTopCities { get; set; }
+        public List<NrDailyRow> DailyCarriers { get; set; }
+        public List<NrDailyRow> DailyBrokers { get; set; }
+        public string CarrierTopState { get; set; }
+        public string BrokerTopState { get; set; }
+        public DateTime? LastDataUpdate { get; set; }
+    }
+
+    public class FoFleetBucket
+    {
+        public string Label { get; set; }
+        public int CompanyCount { get; set; }
+        public long PowerUnitsSum { get; set; }
+    }
+
+    public class FoStateRow
+    {
+        public string StateCode { get; set; }
+        public string StateName { get; set; }
+        public long TotalPowerUnits { get; set; }
+        public double AvgFleetSize { get; set; }
+        public int ReportingCount { get; set; }
+    }
+
+    public class StatisticsFleetOperationsVM
+    {
+        public int TotalActiveCompanies { get; set; }
+        public long TotalPowerUnits { get; set; }
+        public double AvgFleetSize { get; set; }
+        public int ReportingCount { get; set; }
+        public int NonReportingCount { get; set; }
+        public long TotalTrucksAndTractors { get; set; }
+        public long OwnedTrucks { get; set; }
+        public long OwnedTractors { get; set; }
+        public long LeasedTrucks { get; set; }
+        public long LeasedTractors { get; set; }
+        public int OwnerOperatorCount { get; set; }
+        public int InterstateCount { get; set; }
+        public long InterstatePowerUnits { get; set; }
+        public int IntrastateCount { get; set; }
+        public long IntrastatePowerUnits { get; set; }
+        public int HazmatCount { get; set; }
+        public long HazmatPowerUnits { get; set; }
+        public List<FoFleetBucket> FleetBuckets { get; set; }
+        public List<FoStateRow> TopStatesByPowerUnits { get; set; }
+        public List<FoStateRow> TopStatesByAvgFleet { get; set; }
+        public DateTime? LastDataUpdate { get; set; }
+    }
+
+    public class CgCargoTypeRow
+    {
+        public string Label { get; set; }
+        public int CompanyCount { get; set; }
+        public long PowerUnitsSum { get; set; }
+        public int ReportingWithPU { get; set; }
+        public double AvgFleetSize { get; set; }
+    }
+
+    public class CargoSpecBucket
+    {
+        public string Label { get; set; }
+        public int Count { get; set; }
+    }
+
+    public class StatisticsCargoVM
+    {
+        public int TotalActiveCompanies { get; set; }
+        public int CompaniesWithAnyCargo { get; set; }
+        public int CompaniesWithNoCargo { get; set; }
+        public int TotalCargoSelections { get; set; }
+        public double AvgCargoTypesPerCompany { get; set; }
+        public List<CgCargoTypeRow> AllCargoTypes { get; set; }
+        public List<CargoSpecBucket> SpecBuckets { get; set; }
+        public DateTime? LastDataUpdate { get; set; }
+    }
+
     #endregion
 
     #region Company Reviews

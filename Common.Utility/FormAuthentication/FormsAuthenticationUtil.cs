@@ -208,9 +208,6 @@
             JavaScriptSerializer serializer = new JavaScriptSerializer();
             UserType user = (UserType)serializer.Deserialize(ticket.UserData, typeof(UserType));
             return user;
-            //}
-
-            return null;
         }
 
         #endregion

@@ -15,7 +15,12 @@
     <RootNamespace>PartnerCarrier.Web</RootNamespace>
     <AssemblyName>PartnerCarrier.Web</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
-    <MvcBuildViews>true</MvcBuildViews>
+    <!-- Compile-time Razor error checking in Debug builds only. Disabled for Release:
+         the publish pipeline compiles views itself, and MvcBuildViews trips over leftover
+         obj\release\aspnetcompilemerge\ output from previous publishes
+         ("allowDefinition='MachineToApplication' beyond application level"). -->
+    <MvcBuildViews Condition="'$(Configuration)' != 'Release'">true</MvcBuildViews>
+    <MvcBuildViews Condition="'$(Configuration)' == 'Release'">false</MvcBuildViews>
     <UseIISExpress>true</UseIISExpress>
     <IISExpressSSLPort />
     <IISExpressAnonymousAuthentication />
@@ -178,6 +183,7 @@
     <Compile Include="Areas\Admin\Controllers\AdminUsersController.cs" />
     <Compile Include="Areas\Admin\Controllers\BaseController.cs" />
     <Compile Include="Areas\Admin\Controllers\BusinessController.cs" />
+    <Compile Include="Areas\Admin\Controllers\StatisticsController.cs" />
     <Compile Include="Areas\Admin\RouteConfig.cs" />
     <Compile Include="Controllers\BaseController.cs" />
     <Compile Include="Controllers\ContactUsController.cs" />
@@ -188,6 +194,9 @@
     <Compile Include="DependencyResolution\IoC.cs" />
     <Compile Include="DependencyResolution\StructureMapDependencyScope.cs" />
     <Compile Include="DependencyResolution\StructureMapScopeModule.cs" />
+    <Compile Include="Helpers\CityModuleHelper.cs" />
+    <Compile Include="Helpers\StateModuleHelper.cs" />
+    <Compile Include="Helpers\SitemapGenerator.cs" />
     <Compile Include="Filters\AuthorizeRoleAttribute.cs" />
     <Compile Include="Filters\EnableSetupAttribute.cs" />
     <Compile Include="Global.asax.cs">
@@ -210,6 +219,7 @@
     <Content Include="Areas\Admin\Content\PageScript\AdminUsers\delete-reviews-by-usdotnumber.js" />
     <Content Include="Areas\Admin\Content\PageScript\AdminUsers\manage-getaquote-to-show.js" />
     <Content Include="Areas\Admin\Content\PageScript\AdminUsers\global-hiring.js" />
+    <Content Include="Areas\Admin\Content\PageScript\AdminUsers\statistics-settings.js" />
     <Content Include="Areas\Admin\Content\PageScript\AdminUsers\manage-reviews.js" />
     <Content Include="Areas\Admin\Content\PageScript\AdminUsers\update-success-stories.js" />
     <Content Include="Areas\Admin\Content\PageScript\AdminUsers\emails-list.js" />
@@ -222,7 +232,10 @@
     <Content Include="Areas\Admin\Content\PageScript\AdminUsers\update-record-from-premain-table.js" />
     <Content Include="Areas\Admin\Themes\Bootstrap\CSS\Site.css" />
     <Content Include="Areas\Admin\Themes\Plugins\Common.AJAX.js" />
+    <Content Include="Content\Images\Truck.png" />
+    <Content Include="Content\Images\usa_map_3.png" />
     <Content Include="Content\modern-theme.css" />
+    <Content Include="Content\us-map.svg" />
     <Content Include="Content\Setup\setup-login.js" />
     <Content Include="Content\User\company-business.js" />
     <Content Include="Content\User\business-change-password.js" />
@@ -349,6 +362,8 @@
     <Content Include="Areas\Admin\Views\Business\ManageCityArticles.cshtml" />
     <Content Include="Areas\Admin\Views\Business\ManageCities.cshtml" />
     <Content Include="Areas\Admin\Views\Business\ManageReviews.cshtml" />
+    <Content Include="Areas\Admin\Views\Statistics\Settings.cshtml" />
+    <Content Include="Areas\Admin\Views\Statistics\ManageStatistics.cshtml" />
     <Content Include="Areas\Admin\Views\AdminUsers\DeleteReviewsByUSDOTNumber.cshtml" />
     <None Include="Scripts\jquery-1.8.2.intellisense.js" />
     <Content Include="Images\avatar_circle_blue_120dp.png" />
@@ -809,7 +824,23 @@
     <Content Include="Views\Setup\Error_Page.cshtml" />
     <Content Include="Views\Home\City.cshtml" />
     <Content Include="Views\Home\Company.cshtml" />
+    <Content Include="Views\Home\InteractiveMap.cshtml" />
     <Content Include="Views\Home\State.cshtml" />
+    <Content Include="Views\Home\Statistics.cshtml" />
+    <Content Include="Views\Home\ActiveBrokers.cshtml" />
+    <Content Include="Views\Home\ActiveCompanies.cshtml" />
+    <Content Include="Views\Home\CargoStatistics.cshtml" />
+    <Content Include="Views\Home\CityCompanies.cshtml" />
+    <Content Include="Views\Home\FleetOperations.cshtml" />
+    <Content Include="Views\Home\NewRegistrations.cshtml" />
+    <Content Include="Views\Home\NewRegistrationsMonth.cshtml" />
+    <Content Include="Views\Home\NewRegistrationsMonthBrokers.cshtml" />
+    <Content Include="Views\Home\NewRegistrationsMonthCarriers.cshtml" />
+    <Content Include="Views\Home\StateCompanies.cshtml" />
+    <Content Include="Content\statistics-page.css" />
+    <Content Include="Content\us-states-110m.json" />
+    <Content Include="Scripts\topojson-client.min.js" />
+    <Content Include="robots.txt" />
     <Content Include="Themes\Bootstrap\plugins\bootstrap-3.3.7-custom\dist\css\bootstrap-theme.css.map" />
     <Content Include="Themes\Bootstrap\plugins\bootstrap-3.3.7-custom\dist\css\bootstrap-theme.min.css.map" />
     <Content Include="Themes\Bootstrap\plugins\bootstrap-3.3.7-custom\dist\css\bootstrap.css.map" />
@@ -839,12 +870,6 @@
     <Content Include="Views\Shared\_ReviewModal.cshtml" />
     <Content Include="Views\Shared\_ReviewsSummaryPartial.cshtml" />
     <Content Include="Views\Shared\_WriteReviewPartial.cshtml" />
-    <None Include="Web.Node1_QA.config">
-      <DependentUpon>Web.config</DependentUpon>
-    </None>
-    <None Include="Web.qa-internal.config">
-      <DependentUpon>Web.config</DependentUpon>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
@@ -920,6 +945,10 @@
   <Import Project="$(VSToolsPath)\WebApplications\Microsoft.WebApplication.targets" Condition="'$(VSToolsPath)' != ''" />
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v10.0\WebApplications\Microsoft.WebApplication.targets" Condition="false" />
   <Target Name="MvcBuildViews" AfterTargets="AfterBuild" Condition="'$(MvcBuildViews)'=='true'">
+    <!-- Publish leaves obj\release\aspnetcompilemerge\ containing a web.config; the
+         AspNetCompiler then sees application-level config sections below app level and
+         fails ("allowDefinition='MachineToApplication'"). Clear the residue first. -->
+    <RemoveDir Directories="$(BaseIntermediateOutputPath)release\aspnetcompilemerge;$(BaseIntermediateOutputPath)debug\aspnetcompilemerge;$(BaseIntermediateOutputPath)release\package;$(BaseIntermediateOutputPath)debug\package" />
     <AspNetCompiler VirtualPath="temp" PhysicalPath="$(WebProjectOutputDir)" />
   </Target>
   <ProjectExtensions>

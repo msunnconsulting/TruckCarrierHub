@@ -34,7 +34,7 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
         {
             db = _db;
             db.Database.CommandTimeout = 300;
-            _httpClient = new HttpClient();
+            _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(240) };
         }
 
         /// <summary>
@@ -639,7 +639,7 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
                 {
                     EmailUtility.Send(transportCompany.EmailAddress, "Reset Password", AppSettings.FromEmail, EmailUtility.GetTemplate(TemplateType.BusinessResetPassowdMail), replacevalues);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     throw new BusinessException("MailSendingFailed", "Email sending failed. Please try again later.");
                 }
@@ -1789,16 +1789,60 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
         /// Retrieves a list of cities for managing cities, excluding cities that already exist in the Cities table.
         /// </summary>
         /// <returns>A list of ManageCityListVM objects representing the cities.</returns>
-        public List<ManageCityListVM> GetAllCities()
+        public List<ManageCityListVM> GetAllCities() => GetAllCities(0, 0);
+
+        public List<ManageCityListVM> GetAllCities(int minCompanies, int maxCompanies, DateTime? lastRenewedBefore = null)
         {
-            var cities = db.Cities.ToList();
+            bool hasFilter = minCompanies > 0 || maxCompanies > 0 || lastRenewedBefore.HasValue;
+
+            IQueryable<City> query = db.Cities;
+            if (minCompanies > 0) query = query.Where(c => c.NumberOfCompanies >= minCompanies);
+            if (maxCompanies > 0) query = query.Where(c => c.NumberOfCompanies <= maxCompanies);
+            if (lastRenewedBefore.HasValue)
+            {
+                var dateThreshold = lastRenewedBefore.Value;
+                query = query.Where(c => c.LastRenewedDate == null || c.LastRenewedDate < dateThreshold);
+            }
+            var cities = query.ToList();
             var stateByCode = db.States.ToList()
                 .GroupBy(s => s.StateCode)
                 .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
+            // Live active counts only when a filter is applied — the result set is bounded so
+            // the GROUP BY is cheap. The no-filter initial page load (all cities) skips this
+            // to avoid holding the ASP.NET session lock for 30-60 s and blocking AJAX requests.
+            var liveCountDict = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            if (hasFilter && cities.Count > 0)
+            {
+                var stateCodes = cities.Select(c => c.StateCode).Distinct().ToList();
+                var liveCounts = db.TransportCompanies
+                    .Where(tc => tc.Status == "A" && stateCodes.Contains(tc.PhysicalAddressStateCode))
+                    .GroupBy(tc => new { tc.PhysicalAddressStateCode, tc.PhysicalAddressCity })
+                    .Select(g => new { StateCode = g.Key.PhysicalAddressStateCode, CityName = g.Key.PhysicalAddressCity, Count = g.Count() })
+                    .ToList();
+                foreach (var x in liveCounts)
+                {
+                    var key = (x.StateCode ?? "") + "|" + (x.CityName ?? "");
+                    if (liveCountDict.ContainsKey(key))
+                        liveCountDict[key] += x.Count;
+                    else
+                        liveCountDict[key] = x.Count;
+                }
+            }
+
             return cities.Select(c =>
             {
                 var state = stateByCode.ContainsKey(c.StateCode) ? stateByCode[c.StateCode] : null;
+                int noCompanies;
+                if (hasFilter)
+                {
+                    var liveKey = (c.StateCode ?? "") + "|" + (c.CityName ?? "");
+                    liveCountDict.TryGetValue(liveKey, out noCompanies);
+                }
+                else
+                {
+                    noCompanies = c.NumberOfCompanies ?? 0;
+                }
                 return new ManageCityListVM
                 {
                     Country = c.CountryCode == "US" ? "US" : "Canada",
@@ -1806,7 +1850,7 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
                     StateCode = c.StateCode,
                     City = c.CityName,
                     CityURL = c.StateCode + "/" + c.CityName.Replace(" ", "-"),
-                    NoCompanies = c.NumberOfCompanies ?? 0,
+                    NoCompanies = noCompanies,
                     Description = c.Description,
                     Article = c.Article,
                     LastRenewedDate = c.LastRenewedDate
@@ -1825,6 +1869,7 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
                 return "error:City not found";
             city.Description = string.IsNullOrWhiteSpace(vm.Description) ? null : vm.Description.Trim();
             city.Article = string.IsNullOrWhiteSpace(vm.Article) ? null : vm.Article.Trim();
+            city.LastRenewedDate = DateTime.Now;
             db.SaveChanges();
             return "success:Saved";
         }
@@ -1859,12 +1904,54 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
 
                     var cities = dbCtx.Cities.ToList()
                         .Where(c => urlSet.Contains(c.StateCode + "/" + c.CityName.Replace(" ", "-")))
+                        .Where(c => !request.LastRenewedBefore.HasValue
+                                    || c.LastRenewedDate == null
+                                    || c.LastRenewedDate < request.LastRenewedBefore)
                         .ToList();
                     _cityRenewProgress.Total = cities.Count;
 
-                    var stateByCode = dbCtx.States.ToList()
+                    var statesAll = dbCtx.States.ToList()
                         .GroupBy(s => s.StateCode)
-                        .ToDictionary(g => g.Key, g => g.First().State1, StringComparer.OrdinalIgnoreCase);
+                        .Select(g => g.First())
+                        .ToList();
+                    var stateByCode = statesAll.ToDictionary(s => s.StateCode, s => s.State1, StringComparer.OrdinalIgnoreCase);
+                    var countryByStateCode = statesAll.ToDictionary(s => s.StateCode, s => s.CountryCode, StringComparer.OrdinalIgnoreCase);
+
+                    // Fleet benchmarks — computed once, reused across all cities in the batch
+                    // National medians are split by country so US cities compare against US carriers
+                    // and Canadian cities compare against Canadian carriers.
+                    double? usNationalMedian = null;
+                    double? caNationalMedian = null;
+                    var stateFleetAvgs = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+                    try
+                    {
+                        var benchmarkRows = dbCtx.TransportCompanies
+                            .Where(c => c.Status == "A" && c.TrucksAndTractors != null && c.TrucksAndTractors > 0 && c.TrucksAndTractors <= 50000)
+                            .Select(c => new { c.PhysicalAddressStateCode, TT = c.TrucksAndTractors })
+                            .ToList();
+                        var validRows = benchmarkRows
+                            .Where(x => x.TT.HasValue)
+                            .Select(x => new {
+                                StateCode = x.PhysicalAddressStateCode ?? "",
+                                Fleet = (double)x.TT.Value,
+                                CountryCode = countryByStateCode.ContainsKey(x.PhysicalAddressStateCode ?? "")
+                                    ? countryByStateCode[x.PhysicalAddressStateCode ?? ""] : null
+                            })
+                            .ToList();
+                        if (validRows.Count > 0)
+                        {
+                            var usRows = validRows.Where(x => x.CountryCode == "US").Select(x => x.Fleet).OrderBy(x => x).ToList();
+                            if (usRows.Count > 0) usNationalMedian = usRows[usRows.Count / 2];
+                            var caRows = validRows.Where(x => x.CountryCode != "US" && x.CountryCode != null).Select(x => x.Fleet).OrderBy(x => x).ToList();
+                            if (caRows.Count > 0) caNationalMedian = caRows[caRows.Count / 2];
+                            foreach (var sg in validRows.GroupBy(x => x.StateCode, StringComparer.OrdinalIgnoreCase))
+                            {
+                                var ss = sg.Select(x => x.Fleet).OrderBy(x => x).ToList();
+                                stateFleetAvgs[sg.Key] = ss[ss.Count / 2];
+                            }
+                        }
+                    }
+                    catch { /* benchmarks are optional; continue without */ }
 
                     foreach (var city in cities)
                     {
@@ -1882,26 +1969,72 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
                                 ? stateByCode[city.StateCode]
                                 : city.StateCode;
 
-                            var prompt = BuildCityContentPrompt(city.CityName, stateName, companies);
+                            double? cityStateAvg = null;
+                            if (city.StateCode != null && stateFleetAvgs.ContainsKey(city.StateCode))
+                                cityStateAvg = stateFleetAvgs[city.StateCode];
+
+                            string regionLabel = string.Equals(city.CountryCode, "US", StringComparison.OrdinalIgnoreCase)
+                                ? "state" : "province";
+                            double? cityNationalMedian = regionLabel == "state" ? usNationalMedian : caNationalMedian;
+                            var displayCityName = ToTitleCaseCityName(city.CityName);
+                            var cityCountPhrase = CompanyCountPhrase(companies.Count);
+                            var prompt = BuildCityContentPrompt(displayCityName, stateName, companies, cityStateAvg, cityNationalMedian, regionLabel);
                             var aiResult = CallOpenAISync(prompt, aiAuth);
 
                             if (aiResult.Status && !string.IsNullOrEmpty(aiResult.ResponseText))
                             {
                                 var cleaned = StripCodeFences(aiResult.ResponseText);
+                                string resolvedDesc = null;
+                                string resolvedArticle = null;
                                 try
                                 {
                                     var parsed = JsonConvert.DeserializeObject<CityContentResponse>(cleaned);
-                                    city.Description = string.IsNullOrWhiteSpace(parsed?.Description)
-                                        ? null : parsed.Description.Trim();
-                                    city.Article = string.IsNullOrWhiteSpace(parsed?.Article)
-                                        ? null : parsed.Article.Trim();
+                                    var desc = parsed?.Description?.Trim();
+                                    resolvedArticle = string.IsNullOrWhiteSpace(parsed?.Article) ? null : parsed.Article.Trim();
+                                    var descReason = ValidateDescription(desc);
+                                    if (descReason != null)
+                                    {
+                                        var retryPrompt = "Your previous description was rejected because " + descReason + ". "
+                                            + "Previous attempt: \"" + (desc ?? "") + "\". "
+                                            + "Rewrite as a single complete sentence ending with a period, strictly within 175 characters. "
+                                            + "The sentence MUST open with '" + displayCityName + ", " + stateName + " has " + cityCountPhrase + " active trucking companies' — use '" + cityCountPhrase + "' verbatim, never 'about', 'around', 'few', or any other wording. "
+                                            + "Use 'has', never 'hosts'. Use 'median fleet size', never 'average fleet size'. "
+                                            + "Include the full state name '" + stateName + "', never abbreviate. "
+                                            + "Shorten by trimming the cargo list or dropping the fleet clause — never by abbreviating cargo labels or the size-tier phrase. "
+                                            + "Return only: {\"description\": \"...rewritten text...\"}";
+                                        var retryResult = CallOpenAISync(retryPrompt, aiAuth);
+                                        if (retryResult.Status && !string.IsNullOrEmpty(retryResult.ResponseText))
+                                        {
+                                            var retryParsed = JsonConvert.DeserializeObject<CityContentResponse>(StripCodeFences(retryResult.ResponseText));
+                                            var retryDesc = retryParsed?.Description?.Trim();
+                                            if (IsValidDescription(retryDesc))
+                                                resolvedDesc = retryDesc;
+                                            else
+                                                resolvedDesc = IsAcceptableFallbackDescription(desc) ? desc
+                                                             : IsAcceptableFallbackDescription(retryDesc) ? retryDesc
+                                                             : null;
+                                        }
+                                        else
+                                        {
+                                            resolvedDesc = IsAcceptableFallbackDescription(desc) ? desc : null;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        resolvedDesc = desc;
+                                    }
                                 }
                                 catch
                                 {
-                                    city.Article = cleaned;
+                                    // JSON parse failed; resolvedDesc and resolvedArticle remain null
                                 }
-                                city.LastRenewedDate = DateTime.Now;
-                                dbCtx.SaveChanges();
+                                if (resolvedDesc != null)
+                                {
+                                    city.Description = resolvedDesc;
+                                    city.Article = resolvedArticle;
+                                    city.LastRenewedDate = DateTime.Now;
+                                    dbCtx.SaveChanges();
+                                }
                             }
                             else if (!aiResult.Status)
                             {
@@ -1930,75 +2063,506 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
             }
         }
 
-        private string BuildCityContentPrompt(string cityName, string stateName, List<TransportCompany> companies)
+        private static string ToTitleCaseCityName(string cityName)
+        {
+            if (string.IsNullOrWhiteSpace(cityName)) return cityName;
+            var ti = System.Globalization.CultureInfo.InvariantCulture.TextInfo;
+            var words = ti.ToTitleCase(cityName.ToLowerInvariant()).Split(' ');
+            for (int i = 0; i < words.Length; i++)
+            {
+                var w = words[i];
+                // Fix "Mc" prefix: "Mccalla" → "McCalla"
+                if (w.Length > 2 && w[0] == 'M' && w[1] == 'c' && char.IsLower(w[2]))
+                    words[i] = "Mc" + char.ToUpper(w[2]) + w.Substring(3);
+            }
+            return string.Join(" ", words);
+        }
+
+        private static string CompanyCountPhrase(int count)
+        {
+            if (count <= 20)    return "a small number of";
+            if (count <= 50)    return "dozens of";
+            if (count <= 200)   return NearlyOrOver(count, 25);
+            if (count <= 500)   return "hundreds of";
+            if (count <= 2000)  return NearlyOrOver(count, 50);
+            if (count <= 10000) return NearlyOrOver(count, 500);
+            return NearlyOrOver(count, 1000);
+        }
+
+        private static string NearlyOrOver(int count, int step)
+        {
+            int rounded = (int)Math.Round((double)count / step) * step;
+            if (rounded == 0) rounded = step;
+            if (count < rounded && (double)count / rounded >= 0.97)
+                return "nearly " + rounded.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
+            int floor = (count / step) * step;
+            if (floor == 0) floor = step;
+            return "over " + floor.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private string BuildCityContentPrompt(
+            string cityName, string stateName, List<TransportCompany> companies,
+            double? stateAvgFleet, double? nationalAvgFleet, string regionLabel = "state")
         {
             int count = companies.Count;
+            string countPhrase = CompanyCountPhrase(count);
 
             // Entity type breakdown
-            var entityLines = companies
+            var entityTypeNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "C", "Carrier" }, { "S", "Shipper Only" }, { "B", "Broker" },
+                { "R", "Registrant" }, { "F", "Freight Forwarder" },
+                { "I", "Intermodal Equipment Provider" }, { "T", "Cargo Tank" }
+            };
+            var allCodes = companies
                 .Where(c => !string.IsNullOrEmpty(c.EntityType))
-                .GroupBy(c => c.EntityType)
+                .SelectMany(c => c.EntityType.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
+                .Select(code => code.Trim())
+                .Where(code => !string.IsNullOrEmpty(code))
+                .ToList();
+            int companiesWithMultiple = companies
+                .Count(c => !string.IsNullOrEmpty(c.EntityType) && c.EntityType.Contains(';'));
+            var entityTypePluralNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "C", "Carriers" }, { "S", "Shippers Only" }, { "B", "Brokers" },
+                { "R", "Registrants" }, { "F", "Freight Forwarders" },
+                { "I", "Intermodal Equipment Providers" }, { "T", "Cargo Tanks" }
+            };
+            // Canonical display order: Carrier, Broker, Shipper Only, Freight Forwarder, IEP, then others alphabetically.
+            var entityTypeOrder = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "C", 0 }, { "B", 1 }, { "S", 2 }, { "F", 3 }, { "I", 4 }
+            };
+            var entityGroups = allCodes
+                .GroupBy(code => code, StringComparer.OrdinalIgnoreCase)
                 .OrderByDescending(g => g.Count())
                 .Take(3)
-                .Select(g => g.Key + " (" + g.Count() + ")")
+                .Select(g =>
+                {
+                    string singularName, pluralName;
+                    if (!entityTypeNames.TryGetValue(g.Key, out singularName)) singularName = g.Key;
+                    if (!entityTypePluralNames.TryGetValue(g.Key, out pluralName)) pluralName = singularName + "s";
+                    double pctExact = count > 0 ? 100.0 * g.Count() / count : 0.0;
+                    int pctInt = (int)Math.Round(pctExact);
+                    if (pctInt == 99 && pctExact < 99.5) pctInt = 98;
+                    string pctStr = pctInt == 0 && g.Count() > 0 ? pctExact.ToString("F1") : pctInt.ToString();
+                    int sortOrder;
+                    if (!entityTypeOrder.TryGetValue(g.Key, out sortOrder)) sortOrder = 100;
+                    return new { SingularName = singularName, PluralName = pluralName, PctStr = pctStr, SortOrder = sortOrder };
+                })
+                .OrderBy(e => e.SortOrder)
+                .ThenBy(e => e.SingularName)
+                .Select(e => new { e.SingularName, e.PluralName, e.PctStr })
                 .ToList();
+            // When any type is 100%, additional types are subsets of companies holding multiple
+            // registrations simultaneously — keep only the 100% entry so the sentence doesn't
+            // imply separate non-overlapping groups (e.g. "Carriers 100%, Shippers Only 8%").
+            if (entityGroups.Any(e => e.PctStr == "100"))
+                entityGroups = entityGroups.Where(e => e.PctStr == "100").ToList();
+            var entityLines = entityGroups.Select(e => e.SingularName + " " + e.PctStr + "%").ToList();
+            string regSentence;
+            if (entityGroups.Count == 0)
+                regSentence = "";
+            else if (entityGroups.Count == 1)
+                regSentence = entityGroups[0].PluralName + " represent " + entityGroups[0].PctStr + "% of registered companies.";
+            else
+            {
+                var regParts = entityGroups
+                    .Select((e, i) => i == 0
+                        ? e.PluralName + " represent " + e.PctStr + "% of registered companies"
+                        : e.PluralName + " " + e.PctStr + "%")
+                    .ToList();
+                regSentence = string.Join(", ", regParts.Take(regParts.Count - 1)) + ", and " + regParts.Last() + ".";
+            }
 
-            // Top cargo types (non-null field = company carries that cargo)
+            // Cargo types
             var cargoCounts = new List<KeyValuePair<string, int>>
             {
-                new KeyValuePair<string, int>("general freight",        companies.Count(c => c.CargoTransportedAGeneralFreight != null)),
-                new KeyValuePair<string, int>("household goods",        companies.Count(c => c.CargoTransportedBHouseholdGoods != null)),
-                new KeyValuePair<string, int>("motor vehicles",         companies.Count(c => c.CargoTransportedDMotorVehicles != null)),
-                new KeyValuePair<string, int>("building materials",     companies.Count(c => c.CargoTransportedGBuildingMaterials != null)),
-                new KeyValuePair<string, int>("machinery/heavy objects",companies.Count(c => c.CargoTransportedIMachineryLargeObjects != null)),
-                new KeyValuePair<string, int>("fresh produce",          companies.Count(c => c.CargoTransportedJFreshProduce != null)),
-                new KeyValuePair<string, int>("liquids/gases",          companies.Count(c => c.CargoTransportedKLiquidsGases != null)),
-                new KeyValuePair<string, int>("intermodal containers",  companies.Count(c => c.CargoTransportedLIintermodalContainers != null)),
-                new KeyValuePair<string, int>("oilfield equipment",     companies.Count(c => c.CargoTransportedNOilfieldEquipment != null)),
-                new KeyValuePair<string, int>("grain/feed/hay",         companies.Count(c => c.CargoTransportedPGrainFeedHay != null)),
-                new KeyValuePair<string, int>("chemicals",              companies.Count(c => c.CargoTransportedUChemicals != null)),
-                new KeyValuePair<string, int>("dry bulk commodities",   companies.Count(c => c.CargoTransportedVCommoditiesDryBulk != null)),
-                new KeyValuePair<string, int>("refrigerated food",      companies.Count(c => c.CargoTransportedWRefrigeratedFood != null)),
+                new KeyValuePair<string, int>("general freight",             companies.Count(c => c.CargoTransportedAGeneralFreight != null)),
+                new KeyValuePair<string, int>("household goods",             companies.Count(c => c.CargoTransportedBHouseholdGoods != null)),
+                new KeyValuePair<string, int>("motor vehicles",              companies.Count(c => c.CargoTransportedDMotorVehicles != null)),
+                new KeyValuePair<string, int>("building materials",          companies.Count(c => c.CargoTransportedGBuildingMaterials != null)),
+                new KeyValuePair<string, int>("machinery and heavy objects", companies.Count(c => c.CargoTransportedIMachineryLargeObjects != null)),
+                new KeyValuePair<string, int>("fresh produce",               companies.Count(c => c.CargoTransportedJFreshProduce != null)),
+                new KeyValuePair<string, int>("liquids and gases",           companies.Count(c => c.CargoTransportedKLiquidsGases != null)),
+                new KeyValuePair<string, int>("intermodal containers",       companies.Count(c => c.CargoTransportedLIintermodalContainers != null)),
+                new KeyValuePair<string, int>("oilfield equipment",          companies.Count(c => c.CargoTransportedNOilfieldEquipment != null)),
+                new KeyValuePair<string, int>("grain, feed, and hay",        companies.Count(c => c.CargoTransportedPGrainFeedHay != null)),
+                new KeyValuePair<string, int>("chemicals",                   companies.Count(c => c.CargoTransportedUChemicals != null)),
+                new KeyValuePair<string, int>("dry bulk",                    companies.Count(c => c.CargoTransportedVCommoditiesDryBulk != null)),
+                new KeyValuePair<string, int>("refrigerated food",           companies.Count(c => c.CargoTransportedWRefrigeratedFood != null)),
             };
+            int companiesWithAnyCargo = companies.Count(c =>
+                c.CargoTransportedAGeneralFreight != null ||
+                c.CargoTransportedBHouseholdGoods != null ||
+                c.CargoTransportedDMotorVehicles != null ||
+                c.CargoTransportedGBuildingMaterials != null ||
+                c.CargoTransportedIMachineryLargeObjects != null ||
+                c.CargoTransportedJFreshProduce != null ||
+                c.CargoTransportedKLiquidsGases != null ||
+                c.CargoTransportedLIintermodalContainers != null ||
+                c.CargoTransportedNOilfieldEquipment != null ||
+                c.CargoTransportedPGrainFeedHay != null ||
+                c.CargoTransportedUChemicals != null ||
+                c.CargoTransportedVCommoditiesDryBulk != null ||
+                c.CargoTransportedWRefrigeratedFood != null);
+
+            double coveragePctExact = count > 0 ? 100.0 * companiesWithAnyCargo / count : 0.0;
+            int coveragePct = (int)Math.Round(coveragePctExact);
+            if (coveragePct == 99 && coveragePctExact < 99.5) coveragePct = 98;
+
             var topCargo = cargoCounts
                 .Where(kv => kv.Value > 0)
                 .OrderByDescending(kv => kv.Value)
-                .Take(4)
-                .Select(kv => kv.Key)
+                .Take(5)
+                .Select(kv =>
+                {
+                    double pctOfClassifiedExact = companiesWithAnyCargo > 0
+                        ? 100.0 * kv.Value / companiesWithAnyCargo : 0.0;
+                    int pctOfClassified = (int)Math.Round(pctOfClassifiedExact);
+                    if (pctOfClassified == 99 && pctOfClassifiedExact < 99.5) pctOfClassified = 98;
+                    return new { Label = kv.Key, Pct = pctOfClassified };
+                })
                 .ToList();
 
-            // Fleet size summary
+            // Description cargo selection:
+            // If GF is the top type: GF first, then top 2 non-GF by company count.
+            // If GF is not the top type: top 3 types by company count regardless of whether GF is among them.
+            var sortedAllCargo = cargoCounts
+                .Where(kv => kv.Value > 0)
+                .OrderByDescending(kv => kv.Value)
+                .ToList();
+            var descriptionCargo = new List<string>();
+            if (sortedAllCargo.Count > 0)
+            {
+                if (sortedAllCargo[0].Key == "general freight")
+                {
+                    descriptionCargo.Add("general freight");
+                    var nonGf = sortedAllCargo.Where(kv => kv.Key != "general freight").ToList();
+                    // Top 2 non-GF types, extended to include any additional tied at position 2
+                    var distinctiveSelected = nonGf.Count <= 2
+                        ? nonGf
+                        : nonGf.Take(2)
+                                .Concat(nonGf.Skip(2).TakeWhile(kv => kv.Value == nonGf[1].Value))
+                                .ToList();
+                    distinctiveSelected.Select(kv => kv.Key).ToList().ForEach(t => descriptionCargo.Add(t));
+                }
+                else
+                {
+                    // Top 3 types, extended to include any additional tied at position 3
+                    var topSelected = sortedAllCargo.Count <= 3
+                        ? sortedAllCargo
+                        : sortedAllCargo.Take(3)
+                                        .Concat(sortedAllCargo.Skip(3).TakeWhile(kv => kv.Value == sortedAllCargo[2].Value))
+                                        .ToList();
+                    topSelected.Select(kv => kv.Key).ToList().ForEach(t => descriptionCargo.Add(t));
+                }
+            }
+
+            // Fleet computation
             var fleetSizes = companies
-                .Where(c => c.TrucksAndTractors.HasValue && c.TrucksAndTractors.Value > 0)
+                .Where(c => c.TrucksAndTractors.HasValue && c.TrucksAndTractors.Value > 0 && c.TrucksAndTractors.Value <= 50000)
                 .Select(c => c.TrucksAndTractors.Value)
+                .OrderBy(x => x)
                 .ToList();
-            string fleetNote = fleetSizes.Count > 0
-                ? "fleet sizes from " + fleetSizes.Min() + " to " + fleetSizes.Max()
-                    + " trucks/tractors (avg " + (int)fleetSizes.Average() + ")"
-                : "varied fleet sizes";
+            int ownerOps   = fleetSizes.Count(x => x <= 3);
+            int midSized   = fleetSizes.Count(x => x >= 4 && x <= 20);
+            int largeSized = fleetSizes.Count(x => x > 20);
+            int? medianFleet = null;
+            int fleetCoveragePct = 0;
+            if (fleetSizes.Count > 0)
+            {
+                medianFleet = fleetSizes[fleetSizes.Count / 2];
+                fleetCoveragePct = (int)Math.Round(100.0 * fleetSizes.Count / count);
+            }
 
-            // Article length scaled to city size
-            int paragraphs = count >= 100 ? 4 : count >= 30 ? 3 : count >= 10 ? 2 : 1;
+            bool outlierFleet = fleetSizes.Count > 0 && medianFleet.HasValue && medianFleet.Value > 0
+                && fleetSizes.Max() > 20 * medianFleet.Value
+                && fleetSizes.Max() > 50000;
+
+            // Article length tier
+            int paragraphs;
+            string wordLimit;
+            if      (count >= 2001) { paragraphs = 4; wordLimit = "800"; }
+            else if (count >= 501)  { paragraphs = 4; wordLimit = "600"; }
+            else if (count >= 201)  { paragraphs = 4; wordLimit = "500"; }
+            else if (count >= 51)   { paragraphs = 3; wordLimit = "400"; }
+            else if (count >= 11)   { paragraphs = 2; wordLimit = "300"; }
+            else                    { paragraphs = 1; wordLimit = "150"; }
+
+            string countryLabel = regionLabel == "state" ? "US" : "Canada";
 
             var sb = new StringBuilder();
-            sb.AppendLine("You are writing SEO content for a trucking company directory page for "
-                + cityName + ", " + stateName + ".");
+
+            // Header
+            sb.AppendLine("Write a JSON object with exactly two fields — \"description\" and \"article\" — for the trucking directory page for " + cityName + ", " + stateName + ".");
+            sb.AppendLine("Return ONLY raw JSON. No markdown, no code fences, no preamble. Format: {\"description\":\"...\",\"article\":\"...\"}");
             sb.AppendLine();
-            sb.AppendLine("Use only the verified data below. Do not invent company names, phone numbers, addresses, or statistics not listed here.");
+
+            // INPUT DATA
+            sb.AppendLine("INPUT DATA (use only this data — invent nothing):");
             sb.AppendLine();
-            sb.AppendLine("Data:");
-            sb.AppendLine("- Active registered trucking companies: " + count);
+            sb.AppendLine("City: " + cityName + ", " + stateName);
+            sb.AppendLine("Country: " + countryLabel);
+            sb.AppendLine("Size tier phrase: " + countPhrase + " — use this exact phrase verbatim in both description and article; never substitute 'about', 'around', 'approximately', 'few', 'numerous', or the raw number (" + count + ").");
             if (entityLines.Any())
-                sb.AppendLine("- Company types: " + string.Join(", ", entityLines));
+                sb.AppendLine("Registration types: " + string.Join(", ", entityLines));
+            sb.AppendLine("Multiple registrations: " + (companiesWithMultiple > 0 ? "yes" : "no"));
+            sb.AppendLine("Cargo data coverage: " + coveragePct + "% of companies have cargo classifications on file with FMCSA");
             if (topCargo.Any())
-                sb.AppendLine("- Most common cargo: " + string.Join(", ", topCargo));
-            sb.AppendLine("- Fleet: " + fleetNote);
+                sb.AppendLine("Top cargo types: " + string.Join(", ", topCargo.Select(c => c.Label + ": " + c.Pct + "%")));
+            sb.AppendLine("Fleet data coverage: " + (fleetSizes.Count > 0 ? fleetCoveragePct + "%" : "no data"));
+            if (medianFleet.HasValue)
+                sb.AppendLine("Median fleet size: " + medianFleet.Value + " " + (medianFleet.Value == 1 ? "vehicle" : "vehicles"));
+            if (fleetSizes.Count > 0)
+            {
+                int ownerOpPct = (int)Math.Round(100.0 * ownerOps   / fleetSizes.Count);
+                int midPct     = (int)Math.Round(100.0 * midSized   / fleetSizes.Count);
+                int largePct   = (int)Math.Round(100.0 * largeSized / fleetSizes.Count);
+                sb.AppendLine("Fleet scale (of reporting companies): owner-operator-scale (1–3 vehicles): " + ownerOpPct + "%, mid-size (4–20 vehicles): " + midPct + "%, large (21+): " + largePct + "%");
+            }
+            sb.AppendLine("Outlier fleet: " + (outlierFleet ? "yes" : "no"));
+            if (stateAvgFleet.HasValue)
+            {
+                int stateMedVal = (int)Math.Round(stateAvgFleet.Value);
+                sb.AppendLine(stateName + " median fleet size: " + stateMedVal + " " + (stateMedVal == 1 ? "vehicle" : "vehicles"));
+            }
+            if (nationalAvgFleet.HasValue)
+            {
+                int natMedVal = (int)Math.Round(nationalAvgFleet.Value);
+                sb.AppendLine(countryLabel + " national median fleet size: " + natMedVal + " " + (natMedVal == 1 ? "vehicle" : "vehicles"));
+            }
+            sb.AppendLine("Article length tier: " + paragraphs + " paragraph" + (paragraphs == 1 ? "" : "s") + ", " + wordLimit + " words maximum");
             sb.AppendLine();
-            sb.AppendLine("Generate a JSON object with exactly two fields:");
-            sb.AppendLine("\"description\": A 140-160 character meta description. Lead with the city name. Include the company count and top cargo or service type. Factual and specific.");
-            sb.AppendLine("\"article\": A " + paragraphs + "-paragraph body article. Describe the types of carriers, the cargo they move, fleet characteristics, and the city's role in regional freight. Use only the data provided. Plain factual prose — no invented specifics, no company names, no clichés like 'bustling hub'.");
+
+            // DESCRIPTION RULES
+            // Shorter label forms used only in the description — article uses full labels unchanged
+            var descriptionLabelMap = new Dictionary<string, string>
+            {
+                { "machinery and heavy objects", "machinery" },
+                { "grain, feed, and hay",        "grain and feed" },
+            };
+            var descCargoLabels = descriptionCargo
+                .Select(t => descriptionLabelMap.ContainsKey(t) ? descriptionLabelMap[t] : t)
+                .ToList();
+            // Build description sentence entirely in C# — every word hardcoded, nothing left to model
+            string descFleetClause = medianFleet.HasValue
+                ? ", with a median fleet size of " + medianFleet.Value + " " + (medianFleet.Value == 1 ? "vehicle" : "vehicles")
+                : "";
+            string descBase = cityName + ", " + stateName + " has " + countPhrase + " active trucking companies";
+            string targetDescription;
+            if (descCargoLabels.Count == 0)
+            {
+                targetDescription = descBase + descFleetClause + ".";
+            }
+            else
+            {
+                // Full cargo phrase
+                string cargoAll = descCargoLabels.Count == 1 ? descCargoLabels[0]
+                    : descCargoLabels.Count == 2 ? descCargoLabels[0] + " and " + descCargoLabels[1]
+                    : string.Join(", ", descCargoLabels.Take(descCargoLabels.Count - 1)) + ", and " + descCargoLabels.Last();
+                // Cargo phrase with general freight dropped
+                var distinctiveLabels = descCargoLabels.Where(l => l != "general freight").ToList();
+                string cargoNoGf = distinctiveLabels.Count == 0 ? ""
+                    : distinctiveLabels.Count == 1 ? distinctiveLabels[0]
+                    : distinctiveLabels.Count == 2 ? distinctiveLabels[0] + " and " + distinctiveLabels[1]
+                    : string.Join(", ", distinctiveLabels.Take(distinctiveLabels.Count - 1)) + ", and " + distinctiveLabels.Last();
+                // Single most-distinctive type
+                string cargoOne = distinctiveLabels.Count > 0 ? distinctiveLabels[0] : descCargoLabels[0];
+                // Try candidates in shortening order; pick first that fits 175 chars.
+                // Rule: drop general freight only if keeping it would exceed 175 — never before.
+                var candidates = new List<string>
+                {
+                    descBase + " specializing in " + cargoAll     + descFleetClause + ".",
+                    descBase + " transporting "    + cargoAll     + descFleetClause + ".",
+                };
+                // Before dropping GF, try GF + first distinctive only (drops extra distinctives first)
+                if (descCargoLabels.Contains("general freight") && distinctiveLabels.Count >= 2)
+                {
+                    string gfPlusOne = "general freight and " + distinctiveLabels[0];
+                    if (gfPlusOne != cargoAll)
+                    {
+                        candidates.Add(descBase + " specializing in " + gfPlusOne  + descFleetClause + ".");
+                        candidates.Add(descBase + " transporting "    + gfPlusOne  + descFleetClause + ".");
+                    }
+                }
+                if (!string.IsNullOrEmpty(cargoNoGf) && cargoNoGf != cargoAll)
+                {
+                    candidates.Add(descBase + " specializing in " + cargoNoGf  + descFleetClause + ".");
+                    candidates.Add(descBase + " transporting "    + cargoNoGf  + descFleetClause + ".");
+                }
+                if (cargoOne != cargoAll)
+                {
+                    candidates.Add(descBase + " specializing in " + cargoOne   + descFleetClause + ".");
+                    candidates.Add(descBase + " transporting "    + cargoOne   + descFleetClause + ".");
+                }
+                candidates.Add(descBase + descFleetClause + ".");
+                targetDescription = candidates.FirstOrDefault(c => c.Length <= 175) ?? candidates.Last();
+            }
+
+            sb.AppendLine("DESCRIPTION RULES:");
+            sb.AppendLine("Write this exact sentence verbatim: \"" + targetDescription + "\"");
             sb.AppendLine();
-            sb.AppendLine("Return ONLY the JSON object. No markdown, no code fences, no extra text.");
+
+            // ARTICLE RULES
+            sb.AppendLine("ARTICLE RULES:");
+            sb.AppendLine("Write " + paragraphs + " paragraph" + (paragraphs == 1 ? "" : "s") + ", " + wordLimit + " words maximum. Use only the data above. Separate each paragraph with a blank line (two newlines).");
+            sb.AppendLine("Opening sentence: \"" + cityName + ", " + stateName + " is home to " + countPhrase + " active trucking companies.\" — '" + countPhrase + "' verbatim, never paraphrased. This is the first sentence of paragraph 1 — do not insert a blank line after it.");
+
+            // Registration paragraph — embed exact sentence built in C#, model copies verbatim
+            string regParaText = !string.IsNullOrEmpty(regSentence)
+                ? "Write this exact sentence verbatim: \"" + regSentence + "\""
+                : "State the percentage for each registration type.";
+            if (companiesWithMultiple > 0)
+                regParaText += " Add one sentence: \"A small number of companies hold multiple simultaneous registrations, indicating a degree of operational flexibility.\"";
+            regParaText += " Then stop. Never explain what entity types mean. Never say carriers transport goods. Never say brokers coordinate shipments. Never comment on what the percentages imply.";
+
+            // Cargo paragraph — each type gets its own semicolon-separated entry, no grouping by percentage
+            string flowingCargoSentence = "";
+            if (topCargo.Any())
+            {
+                var flowParts = topCargo
+                    .Select((c, i) => i == 0
+                        ? c.Pct + "% of classified companies transport " + c.Label
+                        : c.Pct + "% transport " + c.Label)
+                    .ToList();
+                flowingCargoSentence = flowParts.Count == 1
+                    ? flowParts[0] + "."
+                    : string.Join("; ", flowParts.Take(flowParts.Count - 1)) + "; and " + flowParts.Last() + ".";
+            }
+            var cargoParaSb = new StringBuilder();
+            cargoParaSb.Append("Write this exact sentence verbatim: \"" + coveragePct + "% of companies have cargo classifications on file with FMCSA.\"");
+            if (!string.IsNullOrEmpty(flowingCargoSentence))
+                cargoParaSb.Append(" Then write this exact sentence verbatim: \"" + flowingCargoSentence + "\" Then stop.");
+            cargoParaSb.Append(" Do not summarize, interpret, or characterize the cargo mix.");
+            string cargoParaText = cargoParaSb.ToString();
+
+            // Fleet scale paragraph — embed exact sentence templates with live data
+            int ownerOpPctF = 0, midPctF = 0, largePctF = 0;
+            string fleetScaleText;
+            if (fleetSizes.Count > 0 && medianFleet.HasValue)
+            {
+                ownerOpPctF = (int)Math.Round(100.0 * ownerOps   / fleetSizes.Count);
+                midPctF     = (int)Math.Round(100.0 * midSized   / fleetSizes.Count);
+                largePctF   = (int)Math.Round(100.0 * largeSized / fleetSizes.Count);
+                var fsb = new StringBuilder();
+                fsb.AppendLine("Write these three sentences in order — never combine into one:");
+                fsb.AppendLine("\"" + fleetCoveragePct + "% of companies have reported fleet data.\"");
+                fsb.AppendLine("\"Among these, the median fleet size is " + medianFleet.Value + " " + (medianFleet.Value == 1 ? "vehicle" : "vehicles") + ".\"");
+                string scaleBreakdownSentence = largePctF == 0
+                    ? "In terms of scale, " + ownerOpPctF + "% operate on an owner-operator-scale with 1–3 vehicles and " + midPctF + "% are mid-size with 4–20 vehicles, with no large-fleet operations reported."
+                    : "In terms of scale, " + ownerOpPctF + "% operate on an owner-operator-scale with 1–3 vehicles, " + midPctF + "% are mid-size with 4–20 vehicles, and " + largePctF + "% are large with 21 or more vehicles.";
+                fsb.Append("\"" + scaleBreakdownSentence + "\"");
+                if (outlierFleet)
+                    fsb.Append(" Then add: \"One company reports a significantly larger fleet, standing out clearly in a market dominated by small operators.\"");
+                fsb.Append(" Then stop. No interpretation.");
+                fleetScaleText = fsb.ToString();
+            }
+            else
+            {
+                fleetScaleText = "No fleet data available — omit fleet scale statements.";
+            }
+
+            // Fleet comparison paragraph — opening sentence built in C# with fixed format
+            string fleetCompareText;
+            if (medianFleet.HasValue && (stateAvgFleet.HasValue || nationalAvgFleet.HasValue))
+            {
+                int cityMed = medianFleet.Value;
+                var fcb = new StringBuilder();
+                // Build the fixed-format opening verbatim: "The median fleet size in [city] is [comparison] the [state] median of [N] vehicle(s)..."
+                fcb.Append("Write this exact opening verbatim: \"The median fleet size in " + cityName + " is ");
+                if (stateAvgFleet.HasValue && nationalAvgFleet.HasValue)
+                {
+                    int stateMed = (int)Math.Round(stateAvgFleet.Value);
+                    int natMed  = (int)Math.Round(nationalAvgFleet.Value);
+                    string stateComp = cityMed > stateMed ? "above" : cityMed < stateMed ? "below" : "equal to";
+                    string natComp   = cityMed > natMed   ? "above" : cityMed < natMed   ? "below" : "equal to";
+                    if (stateComp == natComp)
+                        fcb.Append(stateComp + " the " + stateName + " median of " + stateMed + " " + (stateMed == 1 ? "vehicle" : "vehicles") + " and the " + countryLabel + " national median of " + natMed + " " + (natMed == 1 ? "vehicle" : "vehicles") + ".");
+                    else
+                        fcb.Append(stateComp + " the " + stateName + " median of " + stateMed + " " + (stateMed == 1 ? "vehicle" : "vehicles") + " and " + natComp + " the " + countryLabel + " national median of " + natMed + " " + (natMed == 1 ? "vehicle" : "vehicles") + ".");
+                }
+                else if (stateAvgFleet.HasValue)
+                {
+                    int stateMed = (int)Math.Round(stateAvgFleet.Value);
+                    string stateComp = cityMed > stateMed ? "above" : cityMed < stateMed ? "below" : "equal to";
+                    fcb.Append(stateComp + " the " + stateName + " median of " + stateMed + " " + (stateMed == 1 ? "vehicle" : "vehicles") + ".");
+                }
+                else
+                {
+                    int natMed = (int)Math.Round(nationalAvgFleet.Value);
+                    string natComp = cityMed > natMed ? "above" : cityMed < natMed ? "below" : "equal to";
+                    fcb.Append(natComp + " the " + countryLabel + " national median of " + natMed + " " + (natMed == 1 ? "vehicle" : "vehicles") + ".");
+                }
+                fcb.Append("\" Use 'median' never 'average' or 'mean'. Use exact numbers.");
+                if (count >= 2000 && fleetSizes.Count > 0)
+                {
+                    string largeFleetClause = largePctF == 0
+                        ? "and no large-fleet operations"
+                        : "vs. " + largePctF + "% at large-fleet scale";
+                    fcb.Append(" Also state: \"" + ownerOpPctF + "% of reporting companies operate at owner-operator-scale " + largeFleetClause + ".\"");
+                };
+                fcb.Append(" Then stop.");
+                fleetCompareText = fcb.ToString();
+            }
+            else
+            {
+                fleetCompareText = "No comparison data available — omit fleet comparison.";
+            }
+
+            // Assemble paragraph instructions
+            if (paragraphs == 1)
+            {
+                sb.AppendLine("1 paragraph covering registration types, cargo, and fleet:");
+                sb.AppendLine("Registration: " + regParaText);
+                sb.AppendLine("Cargo: " + cargoParaText);
+                if (fleetSizes.Count > 0)
+                    sb.AppendLine("Fleet: " + fleetScaleText);
+            }
+            else if (paragraphs == 2)
+            {
+                sb.AppendLine("Paragraph 1 — Registration types + cargo:");
+                sb.AppendLine("Registration: " + regParaText);
+                sb.AppendLine("Cargo: " + cargoParaText);
+                sb.AppendLine("Paragraph 2 — Fleet scale + fleet comparison:");
+                if (fleetSizes.Count > 0)
+                    sb.AppendLine("Fleet scale: " + fleetScaleText);
+                sb.AppendLine("Fleet comparison: " + fleetCompareText);
+            }
+            else if (paragraphs == 3)
+            {
+                sb.AppendLine("Paragraph 1 — Registration types:");
+                sb.AppendLine(regParaText);
+                sb.AppendLine("Paragraph 2 — Cargo:");
+                sb.AppendLine(cargoParaText);
+                sb.AppendLine("Paragraph 3 — Fleet scale + fleet comparison:");
+                sb.AppendLine(fleetScaleText);
+                sb.AppendLine(fleetCompareText);
+            }
+            else
+            {
+                sb.AppendLine("Paragraph 1 — Registration types:");
+                sb.AppendLine(regParaText);
+                sb.AppendLine("Paragraph 2 — Cargo:");
+                sb.AppendLine(cargoParaText);
+                sb.AppendLine("Paragraph 3 — Fleet scale and distribution:");
+                sb.AppendLine(fleetScaleText);
+                sb.AppendLine("Paragraph 4 — Fleet comparison to " + regionLabel + " and national medians:");
+                sb.AppendLine(fleetCompareText);
+            }
+            sb.AppendLine();
+            sb.AppendLine("End every paragraph on a data point — never on an editorial summary or characterization.");
+            sb.AppendLine();
+
+            // ABSOLUTE BANS
+            sb.AppendLine("ABSOLUTE BANS — never use any of these in any output:");
+            sb.AppendLine("Words/phrases: vibrant, thriving, bustling, dynamic, hub, gateway, crucial, vital, significant, nestled, testament to, plays a key role, staggering, remarkable, interestingly, surprisingly, impressively, boasts, robust, agile, notably, clearly, heavily reliant on, concentrated presence, demonstrates, underscores, highlights, reveals, paints a picture.");
+            sb.AppendLine("Entity-type explanations (any variation): 'directly involved in the transportation of goods', 'rather than coordinating or arranging for transportation', 'companies that own and operate their own trucks', 'direct transportation services', 'coordinating shipments', 'forwarding freight', 'physically transport', 'as opposed to arranging', 'market focused on direct transportation.'");
+            sb.AppendLine("Cargo: Never use 'vehicles' alone — always 'motor vehicles.' Never abbreviate or paraphrase cargo labels — 'general freight' not 'general cargo', 'oilfield equipment' not 'oilfield gear', 'building materials' not 'building supplies', 'intermodal containers' not 'intermodal loads' or 'intermodal units', 'machinery and heavy objects' not 'heavy machinery' or 'heavy equipment.'");
+            sb.AppendLine("Size/count language: 'about X', 'around X', 'approximately X', 'few', 'numerous', 'several' as count approximations — always use the size tier phrase '" + countPhrase + "'.");
+            sb.AppendLine("Editorializing: 'could imply', 'might suggest', 'given the right circumstances', 'operators can flourish', 'highly competitive', 'competing for business', 'room for growth', 'favorable conditions', 'it can be inferred that', 'this suggests that' as a sentence opener, 'this indicates that' as a sentence opener, 'this demonstrates that' as a sentence opener, 'agile operators', 'small nimble operations', 'corporate operations.'");
+            sb.AppendLine("Comparisons: Any comparison not grounded in the exact " + regionLabel + " and national medians provided — never 'more fragmented than other markets', 'unusually small', 'compared to other cities', 'than might be found elsewhere.'");
+            sb.AppendLine("Endings: Never end any paragraph on an editorial summary or characterization.");
 
             return sb.ToString();
         }
@@ -2013,7 +2577,7 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
                     model = aiAuth.Model,
                     messages = new List<object>
                     {
-                        new { role = "system", content = aiAuth.SystemContent },
+                        new { role = "system", content = aiAuth.SystemContent ?? "" },
                         new { role = "user", content = prompt }
                     },
                     temperature = 0.5
@@ -2069,13 +2633,58 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
                     return result;
                 }
                 var stateName = db.States.FirstOrDefault(s => s.StateCode == stateCode)?.State1 ?? stateCode;
+                var cityEntity = db.Cities.FirstOrDefault(c => c.StateCode == stateCode && c.CityName == cityName);
+                string regionLabel = string.Equals(cityEntity?.CountryCode, "US", StringComparison.OrdinalIgnoreCase)
+                    ? "state" : "province";
+
+                // Fleet benchmarks for comparison (computed per preview; acceptable cost)
+                // National median is scoped to the same country as the city being previewed.
+                double? nationalAvgFleet = null;
+                double? stateAvgFleet = null;
+                try
+                {
+                    bool isCityUS = string.Equals(cityEntity?.CountryCode, "US", StringComparison.OrdinalIgnoreCase);
+                    var countryByStateCode = db.States.ToList()
+                        .GroupBy(s => s.StateCode)
+                        .ToDictionary(g => g.Key, g => g.First().CountryCode, StringComparer.OrdinalIgnoreCase);
+                    var benchmarkRows = db.TransportCompanies
+                        .Where(c => c.Status == "A" && c.TrucksAndTractors != null && c.TrucksAndTractors > 0 && c.TrucksAndTractors <= 50000)
+                        .Select(c => new { c.PhysicalAddressStateCode, TT = c.TrucksAndTractors })
+                        .ToList();
+                    var validRows = benchmarkRows
+                        .Where(x => x.TT.HasValue)
+                        .Select(x => new {
+                            StateCode = x.PhysicalAddressStateCode ?? "",
+                            Fleet = (double)x.TT.Value,
+                            CountryCode = countryByStateCode.ContainsKey(x.PhysicalAddressStateCode ?? "")
+                                ? countryByStateCode[x.PhysicalAddressStateCode ?? ""] : null
+                        })
+                        .ToList();
+                    if (validRows.Count > 0)
+                    {
+                        var nationalRows = isCityUS
+                            ? validRows.Where(x => x.CountryCode == "US").Select(x => x.Fleet).OrderBy(x => x).ToList()
+                            : validRows.Where(x => x.CountryCode != "US" && x.CountryCode != null).Select(x => x.Fleet).OrderBy(x => x).ToList();
+                        if (nationalRows.Count > 0)
+                            nationalAvgFleet = nationalRows[nationalRows.Count / 2];
+                        var stateRows = validRows
+                            .Where(x => string.Equals(x.StateCode, stateCode, StringComparison.OrdinalIgnoreCase))
+                            .Select(x => x.Fleet).OrderBy(x => x).ToList();
+                        if (stateRows.Count > 0)
+                            stateAvgFleet = stateRows[stateRows.Count / 2];
+                    }
+                }
+                catch { /* benchmarks optional */ }
+
                 var aiAuth = new OpenAIAuthDetails
                 {
                     APIKey = Config.GetValue("OpenAIAPIKey"),
                     SystemContent = Config.GetValue("OpenAISystemContent"),
                     Model = Config.GetValue("OpenAIModel")
                 };
-                var prompt = BuildCityContentPrompt(cityName, stateName, companies);
+                var displayCityName = ToTitleCaseCityName(cityName);
+                var cityCountPhrase = CompanyCountPhrase(companies.Count);
+                var prompt = BuildCityContentPrompt(displayCityName, stateName, companies, stateAvgFleet, nationalAvgFleet, regionLabel);
                 var aiResult = CallOpenAISync(prompt, aiAuth);
                 if (!aiResult.Status)
                 {
@@ -2086,7 +2695,39 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
                 try
                 {
                     var parsed = JsonConvert.DeserializeObject<CityContentResponse>(cleaned);
-                    result.Description = parsed?.Description?.Trim();
+                    var desc = parsed?.Description?.Trim();
+                    var descReason = ValidateDescription(desc);
+                    if (descReason != null)
+                    {
+                        var retryPrompt = "Your previous description was rejected because " + descReason + ". "
+                            + "Previous attempt: \"" + (desc ?? "") + "\". "
+                            + "Rewrite as a single complete sentence ending with a period, strictly within 175 characters. "
+                            + "The sentence MUST open with '" + displayCityName + ", " + stateName + " has " + cityCountPhrase + " active trucking companies' — use '" + cityCountPhrase + "' verbatim, never 'about', 'around', 'few', or any other wording. "
+                            + "Use 'has', never 'hosts'. Use 'median fleet size', never 'average fleet size'. "
+                            + "Include the full state name '" + stateName + "', never abbreviate. "
+                            + "Shorten by trimming the cargo list or dropping the fleet clause — never by abbreviating cargo labels or the size-tier phrase. "
+                            + "Return only: {\"description\": \"...rewritten text...\"}";
+                        var retryResult = CallOpenAISync(retryPrompt, aiAuth);
+                        if (retryResult.Status && !string.IsNullOrEmpty(retryResult.ResponseText))
+                        {
+                            var retryParsed = JsonConvert.DeserializeObject<CityContentResponse>(StripCodeFences(retryResult.ResponseText));
+                            var retryDesc = retryParsed?.Description?.Trim();
+                            if (IsValidDescription(retryDesc))
+                                result.Description = retryDesc;
+                            else
+                                result.Description = IsAcceptableFallbackDescription(desc) ? desc
+                                                   : IsAcceptableFallbackDescription(retryDesc) ? retryDesc
+                                                   : null;
+                        }
+                        else
+                        {
+                            result.Description = IsAcceptableFallbackDescription(desc) ? desc : null;
+                        }
+                    }
+                    else
+                    {
+                        result.Description = desc;
+                    }
                     result.Article = parsed?.Article?.Trim();
                 }
                 catch
@@ -2100,6 +2741,42 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
                 result.Error = ex.Message;
             }
             return result;
+        }
+
+        private static string ValidateDescription(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return "description is empty";
+            if (s.Length > 175) return "it is " + s.Length + " characters (limit 175)";
+            if (!s.EndsWith(".") && !s.EndsWith("?")) return "it does not end with a period";
+            if (s.Contains(". ")) return "it contains multiple sentences — must be a single sentence";
+            var lower = s.ToLowerInvariant();
+            if (lower.Contains(" hosts ") || lower.StartsWith("hosts ")) return "it uses 'hosts' — must use 'has'";
+            if (lower.Contains("average fleet") || lower.Contains("mean fleet")) return "it says 'average fleet' or 'mean fleet' — must say 'median fleet'";
+            if (System.Text.RegularExpressions.Regex.IsMatch(lower, @"\babout\s+[\d,]") ||
+                System.Text.RegularExpressions.Regex.IsMatch(lower, @"\baround\s+[\d,]"))
+                return "it uses 'about' or 'around' before a number — must use the size-tier phrase ('nearly', 'over', 'a small number of', etc.)";
+            if (System.Text.RegularExpressions.Regex.IsMatch(lower, @"\bfew\b"))
+                return "it uses 'few' — must use 'a small number of'";
+            if (lower.Contains("trucking firms") || lower.Contains("truck firms"))
+                return "it uses 'firms' — must use 'companies'";
+            return null;
+        }
+        private static bool IsValidDescription(string s) => ValidateDescription(s) == null;
+
+        // Relaxed check used as a fallback when strict validation fails after retry.
+        // Accepts descriptions up to 185 chars but enforces the hard quality rules.
+        private static bool IsAcceptableFallbackDescription(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return false;
+            if (s.Length > 185) return false;
+            if (!s.EndsWith(".") && !s.EndsWith("?")) return false;
+            var lower = s.ToLowerInvariant();
+            if (lower.Contains(" hosts ") || lower.StartsWith("hosts ")) return false;
+            if (lower.Contains("average fleet") || lower.Contains("mean fleet")) return false;
+            if (System.Text.RegularExpressions.Regex.IsMatch(lower, @"\babout\s+[\d,]") ||
+                System.Text.RegularExpressions.Regex.IsMatch(lower, @"\baround\s+[\d,]")) return false;
+            if (System.Text.RegularExpressions.Regex.IsMatch(lower, @"\bfew\b")) return false;
+            return true;
         }
 
         private static string StripCodeFences(string text)
@@ -2223,7 +2900,6 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
                     var key = city.StateCode + "|" + city.CityName;
                     if (existingByKey.TryGetValue(key, out var existingCity))
                     {
-                        // Update the count if it has changed; leave Article untouched.
                         if (existingCity.NumberOfCompanies != city.NumberOfCompanies)
                             existingCity.NumberOfCompanies = city.NumberOfCompanies;
                     }
@@ -2252,6 +2928,12 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
 
                 // Save all changes to the database.
                 await db.SaveChangesAsync();
+
+                // Cache the total active company count in Admin so the homepage
+                // can read it without running COUNT(*) on the full TransportCompany table.
+                int totalActiveCompanies = allCities.Sum(c => c.NumberOfCompanies);
+                await db.Database.ExecuteSqlCommandAsync(
+                    "UPDATE Admin SET NumberOfCompanies = {0}", totalActiveCompanies);
 
                 return "success : Cities are updated successfully.";
             }
@@ -2297,6 +2979,28 @@ namespace PartnerCarrier.Infrastructure.Services.Admin.AdminManagement
             reviewFilter.SelectedFilterValue = globalHiring;
 
             return reviewFilter;
+        }
+
+        #endregion
+
+        #region Statistics Nav
+
+        public ShowStatisticsNavVM GetShowStatisticsNav()
+        {
+            try
+            {
+                bool show = db.Database.SqlQuery<bool>("SELECT ShowStatisticsNav FROM Admin").FirstOrDefault();
+                return new ShowStatisticsNavVM { ShowStatisticsNav = show };
+            }
+            catch
+            {
+                return new ShowStatisticsNavVM { ShowStatisticsNav = false };
+            }
+        }
+
+        public void SaveShowStatisticsNav(ShowStatisticsNavVM vm)
+        {
+            db.Database.ExecuteSqlCommand("UPDATE Admin SET ShowStatisticsNav = " + (vm.ShowStatisticsNav ? "1" : "0"));
         }
 
         #endregion

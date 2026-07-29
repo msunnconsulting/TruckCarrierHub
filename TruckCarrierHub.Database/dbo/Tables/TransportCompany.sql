@@ -161,6 +161,7 @@
     [Latitude]                                    FLOAT (53)     NULL,
     [Longitude]                                   FLOAT (53)     NULL,
     [SortRelevance]                               INT            NULL,
+    [CompanyName]                                 NVARCHAR (255) NOT NULL,
     CONSTRAINT [PK_Main] PRIMARY KEY CLUSTERED ([USDOTNumber] ASC)
 );
 
@@ -188,4 +189,47 @@ CREATE NONCLUSTERED INDEX [IX_TrucksAndTractors]
 GO
 CREATE NONCLUSTERED INDEX [IX_SortRelevance]
     ON [dbo].[TransportCompany]([SortRelevance] ASC);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stats_Status_State]
+    ON [dbo].[TransportCompany]([Status] ASC, [PhysicalAddressStateCode] ASC)
+    INCLUDE ([PhysicalAddressCity], [TotalNumberOfPowerUnits], [DateAdded], [PhysicalAddressCountyCode]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stats_Status_State_City]
+    ON [dbo].[TransportCompany]([Status] ASC, [PhysicalAddressStateCode] ASC, [PhysicalAddressCity] ASC)
+    INCLUDE ([TotalNumberOfPowerUnits], [DateAdded], [DateLastChanged], [EntityType],
+             [IccDocketNumber1Prefix], [NNDriversGrandTotalInterstateAndIntrastate]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stats_Status_DateAdded]
+    ON [dbo].[TransportCompany]([Status] ASC, [DateAdded] ASC)
+    INCLUDE ([PhysicalAddressStateCode], [PhysicalAddressCity]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stats_Status_PowerUnits]
+    ON [dbo].[TransportCompany]([Status] ASC, [TotalNumberOfPowerUnits] ASC)
+    INCLUDE ([PhysicalAddressStateCode], [PhysicalAddressCity]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stats_Status_State_County]
+    ON [dbo].[TransportCompany]([Status] ASC, [PhysicalAddressStateCode] ASC, [PhysicalAddressCountyCode] ASC)
+    INCLUDE ([TotalNumberOfPowerUnits], [DateAdded]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_Stats_Status_EntityType]
+    ON [dbo].[TransportCompany]([Status] ASC, [PhysicalAddressStateCode] ASC)
+    INCLUDE ([EntityType], [PhysicalAddressCity], [DateAdded], [DateLastChanged]);
+
+
+GO
+CREATE NONCLUSTERED INDEX [IX_CompanyName]
+    ON [dbo].[TransportCompany]([CompanyName] ASC)
+    INCLUDE ([PhysicalAddressCity], [PhysicalAddressStateCode]);
 

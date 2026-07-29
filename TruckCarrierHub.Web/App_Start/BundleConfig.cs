@@ -25,15 +25,20 @@ namespace PartnerCarrier.Web
                       "~/Themes/Bootstrap/plugins/bootstrap-3.3.7-custom/dist/js/bootstrap.js",
                       "~/Themes/Bootstrap/plugins/respond-1.2.0/respond.js"));
 
-            bundles.Add(new StyleBundle("~/Content/css-frontend").Include(
-                    "~/Themes/Bootstrap/plugins/bootstrap-3.3.7-custom/dist/css/bootstrap.css",
-                    "~/Themes/Bootstrap/plugins/bootstrap-3.3.7-custom/bootstrap-override.css",
-                    "~/Themes/Bootstrap/plugins/fontAwesome-4.7.0/css/font-awesome.min.css",
-                    "~/Themes/Bootstrap/plugins/jquery.ui-1.9.2/css/jquery-ui.css",
-                                      "~/Themes/Bootstrap/plugins/jquery.tagsinput-1.3.3/css/jquery.tagsinput.css",
-                      "~/Themes/Bootstrap/CSS/Site.css"
-
-                    ));
+            // CssRewriteUrlTransform is required on every file here: StyleBundle does NOT rewrite
+            // relative url(...) references by default, so without it each file's relative image/
+            // font paths (e.g. jquery-ui's "images/ui-bg_flat_75_ffffff_40x100.png") resolve
+            // against the bundle's own virtual path (~/Content/css-frontend) instead of the
+            // source file's real folder, producing 404s like /Content/images/ui-bg_flat_75_ffffff_40x100.png
+            // (confirmed via Search Console — real file lives under
+            // Themes/Bootstrap/plugins/jquery.ui-1.9.2/css/images/).
+            bundles.Add(new StyleBundle("~/Content/css-frontend")
+                    .Include("~/Themes/Bootstrap/plugins/bootstrap-3.3.7-custom/dist/css/bootstrap.css", new CssRewriteUrlTransform())
+                    .Include("~/Themes/Bootstrap/plugins/bootstrap-3.3.7-custom/bootstrap-override.css", new CssRewriteUrlTransform())
+                    .Include("~/Themes/Bootstrap/plugins/fontAwesome-4.7.0/css/font-awesome.min.css", new CssRewriteUrlTransform())
+                    .Include("~/Themes/Bootstrap/plugins/jquery.ui-1.9.2/css/jquery-ui.css", new CssRewriteUrlTransform())
+                    .Include("~/Themes/Bootstrap/plugins/jquery.tagsinput-1.3.3/css/jquery.tagsinput.css", new CssRewriteUrlTransform())
+                    .Include("~/Themes/Bootstrap/CSS/Site.css", new CssRewriteUrlTransform()));
             bundles.Add(new ScriptBundle("~/bundles/common-ajax-frontend").Include(
                "~/Scripts/Common.AJAX.js"
                ));

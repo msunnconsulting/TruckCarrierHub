@@ -90,11 +90,11 @@
 
         public string Status { get; set; }
         public OutboundBannerDataModel OutboundBanner { get; set; }
-        public int NumberOfWordsForCityArticle { get; set; }
 
 
         public double AverageRating { get; set; }
         public int TotalReviews { get; set; }
+        public bool NowHiring { get; set; }
     }
     public class BusinessVM
     {
@@ -315,6 +315,13 @@
         public string CityName { get; set; }
         public string Value { get; set; }
         public string CompanyName { get; set; }
+    }
+
+    public class SearchRedirectResult
+    {
+        public int USDOTNumber { get; set; }
+        public string PhysicalAddressCity { get; set; }
+        public string PhysicalAddressStateCode { get; set; }
     }
 
     public class SearchFilterVM

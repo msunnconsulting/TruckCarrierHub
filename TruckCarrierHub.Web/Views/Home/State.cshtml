@@ -1,4 +1,4 @@
-@using PartnerCarrier.ViewModels.User
+﻿@using PartnerCarrier.ViewModels.User
 @using PartnerCarrier.ViewModels.Admin;
 @using PartnerCarrier.Web.App_Start;
 @using PartnerCarrier.Infrastructure.Contracts.Admin.AdminManagement;
@@ -29,24 +29,19 @@
     ViewBag.IsReviewsFilterCheckboxIsChecked = SessionManager.Instance.IsReviewsFilterCheckboxIsChecked;
     ViewBag.CanonicalUrl = Request.Url.GetLeftPart(UriPartial.Path);
 
-    // Meta description from first paragraph
-    string metaDescription;
-    var firstParagraphMatch = Regex.Match(
-        Model.PageDescription ?? "",
-        @"<p>(.*?)</p>",
-        RegexOptions.Singleline | RegexOptions.IgnoreCase
-    );
-    if (!firstParagraphMatch.Success)
-    {
-        metaDescription = Model.PageDescription ?? "";
-    }
-    else
-    {
-        metaDescription = Regex.Replace(firstParagraphMatch.Groups[1].Value, "<.*?>", "");
-        metaDescription = metaDescription.Replace("\"", "'");
-    }
+    // Stats derived from the full cities list (active-only via GetCityList)
+    int totalCities = Model.Cities != null ? Model.Cities.Count : 0;
+    int totalCompanies = Model.Cities != null ? Model.Cities.Sum(c => c.CompanyCount) : 0;
 
-    // State article: strip HTML, truncate to 100 words
+    // Meta description \u2014 dynamic format, hard-capped at 160 chars
+    string xStr = totalCompanies.ToString("N0");
+    string yStr = totalCities.ToString();
+    string stateName = Model.StateName ?? "";
+    string metaFull  = "Find " + stateName + " trucking companies and freight brokers \u2014 " + xStr + " active companies across " + yStr + " cities, searchable by name, city, USDOT, cargo type, and more.";
+    string metaShort = "Find " + stateName + " trucking companies and freight brokers \u2014 " + xStr + " active companies across " + yStr + " cities.";
+    string metaDescription = metaFull.Length <= 160 ? metaFull : (metaShort.Length <= 160 ? metaShort : metaShort.Substring(0, 157) + "...");
+
+    // State article: strip HTML for display
     var stateArticleRaw = Regex.Replace(Model.PageDescription ?? "", "<.*?>", " ");
     stateArticleRaw = System.Net.WebUtility.HtmlDecode(
         Regex.Replace(stateArticleRaw, @"\s+", " ").Trim()
@@ -57,14 +52,22 @@
         ? string.Join(" ", stateArticleWords, 0, stateWordLimit) + "..."
         : null;
 
-    // Stats derived from the full cities list
-    int totalCities = Model.Cities != null ? Model.Cities.Count : 0;
-    int totalCompanies = Model.Cities != null ? Model.Cities.Sum(c => c.CompanyCount) : 0;
+    // JSON-LD: ItemList for state directory
+    string stateCode = Request.Url.AbsolutePath.Trim('/').Split('/').FirstOrDefault() ?? "";
+    var stateLd = new Newtonsoft.Json.Linq.JObject {
+        ["@context"]      = "https://schema.org",
+        ["@type"]         = "ItemList",
+        ["name"]          = "Trucking Companies in " + stateName,
+        ["description"]   = "Directory of " + xStr + " trucking companies and freight brokers across " + yStr + " cities in " + stateName,
+        ["url"]           = "https://truckcarrierhub.com/" + stateCode,
+        ["numberOfItems"] = totalCompanies
+    };
 }
 
 @section AdditionalMeta {
     <meta name="description" content="@metaDescription" />
     <link rel="canonical" href="@ViewBag.CanonicalUrl" />
+    <script type="application/ld+json">@Html.Raw(stateLd.ToString(Newtonsoft.Json.Formatting.None))</script>
 }
 
 <style>
@@ -108,7 +111,8 @@
         line-height: 1.7;
         color: var(--ink-900);
     }
-    .state-article-text { margin: 0 0 10px; }
+    .state-article-text { margin: 0 0 10px; overflow: hidden; max-height: 240px; }
+    .state-article-text.expanded { max-height: none; }
     .state-article-toggle { font-size: 12px; padding: 3px 10px; }
 
     /* ---- Section titles ---- */
@@ -198,6 +202,28 @@
         text-decoration: none;
     }
     .state-city-link:hover { color: var(--signal-600); text-decoration: underline; }
+
+    /* ---- State data module (cm-* classes mirror city module) ---- */
+    .cm-wrap { margin-bottom: 16px; }
+    .cm-cards-grid .hpb-icon { width: 38px; height: 38px; margin-bottom: 10px; }
+    .cm-cards-grid .hpb-icon .fa { font-size: 17px; }
+    .cm-cards-grid .hpb-num { font-size: 1.45em; }
+    .cm-cards-grid .hpb-label { font-size: 0.83em; }
+    .cm-section { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 18px; margin-bottom: 12px; }
+    .cm-section-title { font-size: 0.78em; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+    .cm-hl-list { list-style: none; padding: 0; margin: 0; }
+    .cm-hl-item { position: relative; padding: 6px 0 6px 22px; font-size: 0.9em; color: #374151; border-bottom: 1px solid #f3f4f6; line-height: 1.5; }
+    .cm-hl-item:last-child { border-bottom: none; }
+    .cm-hl-item::before { content: "\2192"; position: absolute; left: 0; color: #3b82f6; font-weight: 700; }
+    .cm-footer { display: -webkit-box; display: -ms-flexbox; display: flex; gap: 14px; -ms-flex-wrap: wrap; flex-wrap: wrap; font-size: 0.83em; margin-bottom: 4px; }
+    .cm-footer a { color: #2563eb; text-decoration: none; }
+    .cm-footer a:hover { text-decoration: underline; }
+    .sm-badge { display: inline-block; font-size: 0.75em; font-weight: 700; padding: 1px 6px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
+    .sm-badge-up { background: #dcfce7; color: #166534; }
+    .sm-badge-dn { background: #fee2e2; color: #991b1b; }
+    @@media (max-width: 640px) {
+        .cm-cards-grid .hpb-card { -webkit-box-flex: 1; -ms-flex: 1 1 calc(50% - 6px); flex: 1 1 calc(50% - 6px); }
+    }
 </style>
 
 <input type="hidden" id="fromStatePage" value="true">
@@ -220,19 +246,104 @@
             </div>
             <div class="state-stat">
                 <span class="state-stat-value">@totalCompanies.ToString("N0")</span>
-                <span class="state-stat-label">Companies</span>
+                <span class="state-stat-label">Active Companies</span>
             </div>
         </div>
     </div>
 
-    @* State article with Read more *@
+    @* Trucking in {StateName} data module *@
+    @{
+        var stateModule     = ViewBag.StateModule     as PartnerCarrier.ViewModels.Admin.StatisticsStateCompaniesVM;
+        var stateHighlights = ViewBag.StateModuleHighlights as List<string>;
+    }
+    @if (stateModule != null)
+    {
+        var smStateUrl = "/statistics/state/" + stateModule.StateCode;
+        bool smShowHl  = stateHighlights != null && stateHighlights.Count > 0;
+
+        int smReporting = stateModule.SizeDistribution != null ? stateModule.SizeDistribution.TotalReporting : 0;
+        decimal smOOPct = smReporting > 0 && stateModule.SizeDistribution != null
+            ? Math.Round((decimal)stateModule.SizeDistribution.OneUnit / smReporting * 100m, 1)
+            : 0m;
+
+        decimal smGrowthPct = 0m;
+        bool smHasGrowth = stateModule.NewPriorRegistrations12 > 0;
+        if (smHasGrowth)
+        {
+            smGrowthPct = Math.Round(
+                (decimal)(stateModule.NewRegistrations12 - stateModule.NewPriorRegistrations12)
+                / stateModule.NewPriorRegistrations12 * 100m, 1);
+        }
+
+        <div class="cm-wrap">
+            <div class="hpb-grid cm-cards-grid" style="margin-bottom:12px;">
+                <div class="hpb-card">
+                    <div class="hpb-icon hpb-icon-blue"><i class="fa fa-building"></i></div>
+                    <div class="hpb-num">@stateModule.TotalActiveCompanies.ToString("N0")</div>
+                    <div class="hpb-label">Active Companies</div>
+                    <div class="hpb-note">@stateModule.PercentOfUSTotal.ToString("F1")% of U.S. total</div>
+                </div>
+                @if (stateModule.TotalPowerUnits > 0)
+                {
+                    <div class="hpb-card">
+                        <div class="hpb-icon hpb-icon-green"><i class="fa fa-truck"></i></div>
+                        <div class="hpb-num">@stateModule.TotalPowerUnits.ToString("N0")</div>
+                        <div class="hpb-label">Active Power Units</div>
+                        <div class="hpb-note">reported by @smReporting.ToString("N0") carriers</div>
+                    </div>
+                }
+                @if (stateModule.NewRegistrations12 > 0)
+                {
+                    <div class="hpb-card">
+                        <div class="hpb-icon hpb-icon-purple"><i class="fa fa-line-chart"></i></div>
+                        <div class="hpb-num">
+                            @stateModule.NewRegistrations12.ToString("N0")
+                            @if (smHasGrowth)
+                            {
+                                string smBadgeClass = smGrowthPct >= 0 ? "sm-badge-up" : "sm-badge-dn";
+                                string smSign       = smGrowthPct >= 0 ? "+" : "";
+                                <span class="sm-badge @smBadgeClass">@smSign@smGrowthPct.ToString("F1")%</span>
+                            }
+                        </div>
+                        <div class="hpb-label">New Registrations (12 mo)</div>
+                        <div class="hpb-note">vs. @stateModule.NewPriorRegistrations12.ToString("N0") prior 12 months</div>
+                    </div>
+                }
+                @if (smOOPct > 0m)
+                {
+                    <div class="hpb-card">
+                        <div class="hpb-icon hpb-icon-orange"><i class="fa fa-user"></i></div>
+                        <div class="hpb-num">@smOOPct.ToString("F1")%</div>
+                        <div class="hpb-label">Owner-Operator Share</div>
+                        <div class="hpb-note">of carriers reporting fleet size</div>
+                    </div>
+                }
+            </div>
+            @if (smShowHl)
+            {
+                <div class="cm-section">
+                    <div class="cm-section-title"><i class="fa fa-bolt"></i> What stands out</div>
+                    <ul class="cm-hl-list">
+                        @foreach (var hl in stateHighlights)
+                        {
+                            <li class="cm-hl-item">@hl</li>
+                        }
+                    </ul>
+                </div>
+            }
+            <div class="cm-footer">
+                <a href="@smStateUrl">@stateModule.StateName trucking statistics &rarr;</a>
+                <a href="/statistics/active-companies">National overview &rarr;</a>
+            </div>
+        </div>
+    }
+
+    @* State article with Read more — below the module, same order as the homepage *@
     @if (!string.IsNullOrEmpty(stateArticleRaw))
     {
         <div class="state-article">
-            <div id="stateArticle"
-                 class="state-article-text"
-                 data-fulltext="@stateArticleRaw">
-                @(stateArticleTruncated ?? stateArticleRaw)
+            <div id="stateArticle" class="state-article-text">
+                @stateArticleRaw
             </div>
             @if (stateArticleTruncated != null)
             {
@@ -275,15 +386,12 @@
                 @foreach (var city in Model.popularcities)
                 {
                     var cityName = city.CityName;
-                    if (city.CityName.Contains(" "))
-                    {
-                        city.CityName = city.CityName.Replace(" ", "-");
-                    }
-                    <a href="@Url.Content("~/" + city.StateCode + "/" + city.CityName)"
+                    var cityUrlSegment = (city.CityName ?? "").Replace(" ", "-");
+                    <a href="@Url.Content("~/" + city.StateCode + "/" + cityUrlSegment)"
                        class="state-popular-card"
                        onClick="$('#al').show();">
                         <span class="state-popular-name">@cityName</span>
-                        <span class="state-popular-count">@city.CompanyCount.ToString("N0") companies</span>
+                        <span class="state-popular-count">@city.CompanyCount.ToString("N0") active companies</span>
                     </a>
                 }
             </div>
@@ -324,14 +432,11 @@
                             @foreach (var city in avalaibleCity)
                             {
                                 var cityName = city.CityName;
-                                if (city.CityName.Contains(" "))
-                                {
-                                    city.CityName = city.CityName.Replace(" ", "-");
-                                }
+                                var cityUrlSegment = (city.CityName ?? "").Replace(" ", "-");
                                 <div class="col-md-4 col-sm-6 col-xs-12">
                                     <a class="state-city-link" onClick="$('#al').show();"
-                                       href="@Url.Content("~/" + city.StateCode + "/" + city.CityName)">
-                                        @cityName Trucking Companies (@city.CompanyCount)
+                                       href="@Url.Content("~/" + city.StateCode + "/" + cityUrlSegment)">
+                                        @cityName Trucking Companies (@city.CompanyCount active)
                                     </a>
                                 </div>
                             }
@@ -364,20 +469,14 @@
 
     // Read more / Read less for state article
     $(document).ready(function () {
-        var stateExpanded = false;
-        var stateWordLimit = @stateWordLimit;
-        $("#stateArticle, #btnStateArticle").click(function () {
+        $("#btnStateArticle").click(function () {
             var el = $('#stateArticle');
-            var fullText = el.data("fulltext");
-            if (stateExpanded) {
-                var truncated = fullText.split(' ').slice(0, stateWordLimit).join(' ') + '...';
-                el.text(truncated);
-                $('#btnStateArticle').text('Read more');
-                stateExpanded = false;
+            if (el.hasClass('expanded')) {
+                el.removeClass('expanded');
+                $(this).text('Read more');
             } else {
-                el.text(fullText);
-                $('#btnStateArticle').text('Read less');
-                stateExpanded = true;
+                el.addClass('expanded');
+                $(this).text('Read less');
             }
         });
     });

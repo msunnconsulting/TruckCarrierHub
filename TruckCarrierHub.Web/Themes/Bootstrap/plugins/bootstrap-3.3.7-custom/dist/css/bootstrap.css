@@ -254,8 +254,14 @@ th {
 }
 @font-face {
   font-family: 'Glyphicons Halflings';
-  src: url('../fonts/glyphicons-halflings-regular.eot');
-  src: url('../fonts/glyphicons-halflings-regular.eot?#iefix') format('embedded-opentype'), url('../fonts/glyphicons-halflings-regular.woff2') format('woff2'), url('../fonts/glyphicons-halflings-regular.woff') format('woff'), url('../fonts/glyphicons-halflings-regular.ttf') format('truetype'), url('../fonts/glyphicons-halflings-regular.svg#glyphicons_halflingsregular') format('svg');
+  /* Hardcoded to the real absolute path rather than relying on the bundle's
+     CssRewriteUrlTransform: that transform correctly rewrites the equivalent
+     relative refs in font-awesome.min.css and jquery-ui.css in this same
+     ~/Content/css-frontend bundle, but leaves this specific file's url()s
+     untouched even after a rebuild/republish — cause not identified, so
+     bypassing it here instead of relying on further transform behavior. */
+  src: url('/Themes/Bootstrap/plugins/bootstrap-3.3.7-custom/dist/fonts/glyphicons-halflings-regular.eot');
+  src: url('/Themes/Bootstrap/plugins/bootstrap-3.3.7-custom/dist/fonts/glyphicons-halflings-regular.eot?#iefix') format('embedded-opentype'), url('/Themes/Bootstrap/plugins/bootstrap-3.3.7-custom/dist/fonts/glyphicons-halflings-regular.woff2') format('woff2'), url('/Themes/Bootstrap/plugins/bootstrap-3.3.7-custom/dist/fonts/glyphicons-halflings-regular.woff') format('woff'), url('/Themes/Bootstrap/plugins/bootstrap-3.3.7-custom/dist/fonts/glyphicons-halflings-regular.ttf') format('truetype'), url('/Themes/Bootstrap/plugins/bootstrap-3.3.7-custom/dist/fonts/glyphicons-halflings-regular.svg#glyphicons_halflingsregular') format('svg');
 }
 .glyphicon {
   position: relative;

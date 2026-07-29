@@ -49,7 +49,11 @@
                         <label>Max Companies:</label>
                         <input type="number" id="maxCompanies" class="form-control input-sm" value="0" min="0" style="width:80px; margin-left:6px;" title="0 = no upper limit">
                     </div>
-                    <button type="button" class="btn btn-default btn-sm" onclick="applyFilter()" style="margin-left:12px;">Filter Table</button>
+                    <div class="form-group" style="margin-left:16px;">
+                        <label>Last renewed before:</label>
+                        <input type="date" id="lastRenewedBefore" class="form-control input-sm" style="width:150px; margin-left:6px;" title="Include cities with LastRenewedDate older than this date, or never renewed (NULL)">
+                    </div>
+                    <button type="button" id="filterBtn" class="btn btn-default btn-sm" onclick="applyFilter(this)" style="margin-left:12px;">Filter Table</button>
                     <button type="button" class="btn btn-link btn-sm" onclick="clearFilter()">Clear</button>
                     <span id="filteredCount" class="text-muted small" style="margin-left:8px;"></span>
                 </div>
@@ -194,7 +198,7 @@ function saveCity(btn) {
     var statusEl = editRow.find('.save-status');
 
     $(btn).prop('disabled', true);
-    statusEl.removeClass('text-success text-danger').text('Saving…');
+    statusEl.removeClass('text-success text-danger').text('Saving...');
 
     $.ajax({
         url: '/admin/business/save-city-content',
@@ -206,9 +210,10 @@ function saveCity(btn) {
             if (res.success) {
                 statusEl.addClass('text-success').text('Saved');
                 var dataRow = editRow.prev('.city-row');
-                var preview = description.length > 70 ? description.substring(0, 70) + '…' : description;
+                var preview = description.length > 70 ? description.substring(0, 70) + '...' : description;
                 dataRow.find('.desc-preview').text(description ? preview : '-');
                 dataRow.find('.article-indicator').text(article ? 'Yes' : '-');
+                dataRow.find('.renewed-date').text(new Date().toLocaleDateString());
                 setTimeout(function () { statusEl.text(''); }, 3000);
             } else {
                 statusEl.addClass('text-danger').text(res.message || 'Error');
@@ -223,34 +228,125 @@ function saveCity(btn) {
 
 // ── Filter ───────────────────────────────────────────────────────────────────
 
-function applyFilter() {
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+function formatDotNetDate(val) {
+    if (!val) return '-';
+    var m = /\/Date\((-?\d+)\)\//.exec(val);
+    if (!m) return '-';
+    var d = new Date(parseInt(m[1]));
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+}
+
+function escHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function buildCityRowsHtml(cities) {
+    if (!cities || !cities.length) {
+        return '<tr><td colspan="9" class="text-center well">No cities match the filter.</td></tr>';
+    }
+    var parts = [];
+    for (var i = 0; i < cities.length; i++) {
+        var c = cities[i];
+        var renewedStr = formatDotNetDate(c.LastRenewedDate);
+        var hasDesc = c.Description && c.Description.length > 0;
+        var descPreview = hasDesc
+            ? (c.Description.length > 70 ? c.Description.substring(0, 70) + '...' : c.Description)
+            : '-';
+        var articleIndicator = (c.Article && c.Article.length > 0) ? 'Yes' : '-';
+        parts.push(
+            '<tr class="city-row"'
+            + ' data-companies="' + c.NoCompanies + '"'
+            + ' data-url="' + escHtml(c.CityURL) + '"'
+            + ' data-statecode="' + escHtml(c.StateCode) + '"'
+            + ' data-cityname="' + escHtml(c.City) + '">'
+            + '<td><input type="checkbox" class="city-checkbox"></td>'
+            + '<td>' + escHtml(c.Country) + '</td>'
+            + '<td>' + escHtml(c.State) + '</td>'
+            + '<td><a href="/' + escHtml(c.CityURL) + '" target="_blank">' + escHtml(c.City) + '</a></td>'
+            + '<td>' + c.NoCompanies + '</td>'
+            + '<td class="desc-preview">' + escHtml(descPreview) + '</td>'
+            + '<td class="text-center article-indicator">' + articleIndicator + '</td>'
+            + '<td class="small renewed-date">' + renewedStr + '</td>'
+            + '<td>'
+            + '<button type="button" class="btn btn-xs btn-default edit-btn" onclick="toggleEdit(this)">Edit</button>'
+            + '<button type="button" class="btn btn-xs btn-info preview-btn" onclick="previewCity(this)" style="margin-left:3px;" title="Generate preview with AI">AI</button>'
+            + '</td>'
+            + '</tr>'
+            + '<tr class="edit-row" style="display:none;"'
+            + ' data-statecode="' + escHtml(c.StateCode) + '"'
+            + ' data-cityname="' + escHtml(c.City) + '">'
+            + '<td colspan="9">'
+            + '<div class="form-group">'
+            + '<label>Description <small class="text-muted">(max 500 chars, ~140-160 ideal for SEO)</small></label>'
+            + '<textarea class="form-control edit-description" rows="2" maxlength="500">' + escHtml(c.Description || '') + '</textarea>'
+            + '<span class="desc-char-count text-muted small"></span>'
+            + '</div>'
+            + '<div class="form-group" style="margin-top:8px;">'
+            + '<label>Article <small class="text-muted">(leave blank to hide article section on city page)</small></label>'
+            + '<textarea class="form-control edit-article" rows="6">' + escHtml(c.Article || '') + '</textarea>'
+            + '</div>'
+            + '<div style="margin-top:8px;">'
+            + '<button type="button" class="btn btn-sm btn-primary save-btn" onclick="saveCity(this)">Save</button>'
+            + '<button type="button" class="btn btn-sm btn-default" onclick="cancelEdit(this)" style="margin-left:6px;">Cancel</button>'
+            + '<span class="save-status small" style="margin-left:10px;"></span>'
+            + '</div>'
+            + '</td>'
+            + '</tr>'
+        );
+    }
+    return parts.join('');
+}
+
+function applyFilter(btn) {
     var min = parseInt($('#minCompanies').val()) || 0;
     var max = parseInt($('#maxCompanies').val()) || 0;
-    var shown = 0;
-
-    $('.city-row').each(function () {
-        var n = parseInt($(this).data('companies'));
-        var pass = (min === 0 || n >= min) && (max === 0 || n <= max);
-        if (pass) {
-            $(this).show();
-            shown++;
-        } else {
-            $(this).hide();
-            $(this).next('.edit-row').hide();
-            $(this).find('.city-checkbox').prop('checked', false);
+    var lastRenewedBefore = $('#lastRenewedBefore').val() || '';
+    var $btn = $(btn);
+    $btn.prop('disabled', true).text('Filtering...');
+    $('#filteredCount').text('Loading...');
+    var filterData = { min: min, max: max };
+    if (lastRenewedBefore) filterData.lastRenewedBefore = lastRenewedBefore;
+    $.ajax({
+        url: '/admin/business/filter-cities',
+        type: 'GET',
+        dataType: 'json',
+        cache: false,
+        global: false,
+        data: filterData,
+        success: function (cities) {
+            try {
+                var $tbody = $('#citiesTable tbody');
+                $tbody[0].innerHTML = '';
+                $tbody.append(buildCityRowsHtml(cities));
+                $('#filteredCount').text((cities && cities.length ? cities.length : 0) + ' cities visible');
+                updateSelectedCount();
+            } catch (e) {
+                alert('Filter render error: ' + e.message);
+                $('#filteredCount').text('');
+            }
+        },
+        error: function (xhr) {
+            $('#filteredCount').text('');
+            alert('Filter failed (HTTP ' + xhr.status + ').');
+        },
+        complete: function () {
+            $btn.prop('disabled', false).text('Filter Table');
         }
     });
-
-    $('#filteredCount').text(shown + ' cities visible');
-    updateSelectedCount();
 }
 
 function clearFilter() {
     $('#minCompanies').val('1');
     $('#maxCompanies').val('0');
-    $('.city-row').show();
-    $('#filteredCount').text('');
-    updateSelectedCount();
+    $('#lastRenewedBefore').val('');
+    window.location.reload();
 }
 
 // ── Selection ────────────────────────────────────────────────────────────────
@@ -281,6 +377,7 @@ $(document).on('change', '.city-checkbox', function () { updateSelectedCount(); 
 // ── Renew ────────────────────────────────────────────────────────────────────
 
 var renewPollTimer = null;
+var renewJobStartedThisSession = false;
 
 function getVisibleUrls(checkedOnly) {
     var urls = [];
@@ -300,7 +397,7 @@ function renewSelected() {
 
 function renewAllFiltered() {
     var urls = getVisibleUrls(false);
-    if (urls.length === 0) { alert('No cities visible — adjust the filter first.'); return; }
+    if (urls.length === 0) { alert('No cities visible - adjust the filter first.'); return; }
     if (!confirm('Renew content for ' + urls.length + ' cities?')) return;
     startRenew(urls);
 }
@@ -308,15 +405,19 @@ function renewAllFiltered() {
 function startRenew(urls) {
     var min = parseInt($('#minCompanies').val()) || 0;
     var max = parseInt($('#maxCompanies').val()) || 0;
+    var lastRenewedBefore = $('#lastRenewedBefore').val() || null;
 
     $.ajax({
         url: '/admin/business/start-city-renew',
         type: 'POST',
+        global: false,
         contentType: 'application/json',
-        data: JSON.stringify({ minCompanies: min, maxCompanies: max, cityURLs: urls }),
+        data: JSON.stringify({ minCompanies: min, maxCompanies: max, cityURLs: urls, lastRenewedBefore: lastRenewedBefore }),
         success: function () {
+            renewJobStartedThisSession = true;
             $('#renewStatus').show();
             $('#renewProgressBar').addClass('active').css('width', '0%').text('0%');
+            $('#renewMessage').text('');
             pollRenewProgress();
         },
         error: function () { alert('Failed to start renew job.'); }
@@ -328,15 +429,25 @@ function pollRenewProgress() {
     $.ajax({
         url: '/admin/business/city-renew-progress',
         type: 'GET',
+        global: false,
         success: function (res) {
-            $('#renewStatus').show();
-            var pct = res.Total > 0 ? Math.round(res.Processed / res.Total * 100) : 0;
-            $('#renewProgressBar').css('width', pct + '%').text(pct + '%');
-            $('#renewMessage').text(res.Message || '');
             if (res.IsInProgress) {
+                renewJobStartedThisSession = true;
+                $('#renewStatus').show();
+                var pct = res.Total > 0 ? Math.round(res.Processed / res.Total * 100) : 0;
+                $('#renewProgressBar').css('width', pct + '%').text(pct + '%');
+                $('#renewMessage').text(res.Message || '');
                 renewPollTimer = setTimeout(pollRenewProgress, 2000);
             } else {
                 $('#renewProgressBar').removeClass('active');
+                if (renewJobStartedThisSession) {
+                    $('#renewStatus').show();
+                    $('#renewProgressBar').css('width', '100%').text('100%');
+                    $('#renewMessage').text((res.Message || 'Complete') + ' — reloading...');
+                    setTimeout(function () { location.reload(); }, 1500);
+                } else {
+                    $('#renewStatus').hide();
+                }
             }
         }
     });
@@ -345,7 +456,7 @@ function pollRenewProgress() {
 // ── City count update (existing) ─────────────────────────────────────────────
 
 function onStartCitiesUpdateButtonClick() {
-    $('#updateStatus').text('Loading…');
+    $('#updateStatus').text('Loading...');
     $.ajax({
         url: '/admin/business/get-city-list-for-manage-city',
         type: 'GET',
@@ -380,18 +491,40 @@ function onStartCitiesUpdateButtonClick() {
 }
 
 function onFinishCitiesUpdateButtonClick() {
-    $('#updateStatus').text('Running…');
+    var $btn = $('button[onclick="onFinishCitiesUpdateButtonClick()"]');
+    $btn.prop('disabled', true);
+    var fcuStart = Date.now();
+    var fcuTimer = setInterval(function () {
+        var secs = Math.round((Date.now() - fcuStart) / 1000);
+        $('#updateStatus').text('Running... ' + secs + 's (this can take a minute or two - please wait)');
+    }, 1000);
+    $('#updateStatus').text('Running... 0s (this can take a minute or two - please wait)');
     $.ajax({
         url: '/admin/business/finish-cities-update',
         type: 'GET',
+        timeout: 600000,
         success: function (response) {
-            if (response) {
-                var parts = response.split(':');
-                showAlertMessage('#dvNotification', parts[0].toLowerCase(), parts[1]);
-                $('#updateStatus').text('Done. Reload page to see updated list.');
+            clearInterval(fcuTimer);
+            $btn.prop('disabled', false);
+            var secs = Math.round((Date.now() - fcuStart) / 1000);
+            if (response && response.split) {
+                var parts = response.split(/:(.+)/);
+                var type = (parts[0] || '').trim().toLowerCase();
+                var msg  = (parts[1] || response).trim();
+                showAlertMessage('#dvNotification', type === 'success' ? 'success' : 'danger', msg + ' (' + secs + 's)');
+                $('#updateStatus').text(type === 'success' ? 'Done in ' + secs + 's. Reload page to see updated list.' : 'Finished with errors - see message above.');
+            } else {
+                showAlertMessage('#dvNotification', 'danger', 'Unexpected response from server.');
+                $('#updateStatus').text('Finished with an unexpected response.');
             }
         },
-        error: function () { $('#updateStatus').text('Error running update.'); }
+        error: function (xhr, status) {
+            clearInterval(fcuTimer);
+            $btn.prop('disabled', false);
+            var detail = status === 'timeout' ? 'Request timed out - the update may still be running on the server; check the city list in a few minutes.' : 'Request failed (' + status + ').';
+            showAlertMessage('#dvNotification', 'danger', detail);
+            $('#updateStatus').text('Error running update.');
+        }
     });
 }
 
@@ -441,9 +574,10 @@ function previewCity(btn) {
     $.ajax({
         url: '/admin/business/preview-city-content',
         type: 'POST',
+        global: false,
         contentType: 'application/json',
         data: JSON.stringify({ stateCode: _previewStateCode, cityName: _previewCityName }),
-        timeout: 60000,
+        timeout: 240000,
         success: function (res) {
             $('#previewLoading').hide();
             if (!res.Success) {
@@ -460,7 +594,7 @@ function previewCity(btn) {
         },
         error: function (xhr, status) {
             $('#previewLoading').hide();
-            $('#previewError').text(status === 'timeout' ? 'Request timed out (60 s). Try again.' : 'Request failed.').show();
+            $('#previewError').text(status === 'timeout' ? 'Request timed out (240 s). Large cities can be slow — try again.' : 'Request failed.').show();
         }
     });
 }
@@ -472,6 +606,7 @@ function acceptPreview() {
     $.ajax({
         url: '/admin/business/save-city-content',
         type: 'POST',
+        global: false,
         contentType: 'application/json',
         data: JSON.stringify({ stateCode: _previewStateCode, cityName: _previewCityName,
                                description: description, article: article }),
@@ -479,9 +614,10 @@ function acceptPreview() {
             if (res.success) {
                 // Update the table row in place
                 var dataRow = $('.city-row[data-statecode="' + _previewStateCode + '"][data-cityname="' + _previewCityName + '"]');
-                var preview = description.length > 70 ? description.substring(0, 70) + '…' : description;
+                var preview = description.length > 70 ? description.substring(0, 70) + '...' : description;
                 dataRow.find('.desc-preview').text(description ? preview : '-');
                 dataRow.find('.article-indicator').text(article ? 'Yes' : '-');
+                dataRow.find('.renewed-date').text(new Date().toLocaleDateString());
                 // Also populate the edit row textareas if expanded
                 var editRow = dataRow.next('.edit-row');
                 editRow.find('.edit-description').val(description);
@@ -503,7 +639,7 @@ $(document).on('input', '.edit-description', function () {
 
 $(document).on('input', '#previewDescription', function () {
     var len = $(this).val().length;
-    $('#previewDescLen').text(len + ' chars' + (len < 140 || len > 160 ? ' ⚠ target 140–160' : ' ✓'));
+    $('#previewDescLen').text(len + ' chars' + (len < 140 || len > 160 ? ' (target 140-160)' : ' OK'));
 });
 
 $(document).ready(function () {
@@ -526,7 +662,7 @@ $(document).ready(function () {
             <div class="modal-body">
                 <div id="previewLoading" class="text-center" style="padding:30px;">
                     <span class="glyphicon glyphicon-refresh" style="font-size:24px;"></span>
-                    <p class="text-muted" style="margin-top:10px;">Calling OpenAI - this may take 10-30 seconds...</p>
+                    <p class="text-muted" style="margin-top:10px;">Calling OpenAI — this may take 30–120 seconds for large cities...</p>
                 </div>
                 <div id="previewError" class="alert alert-danger" style="display:none;"></div>
                 <div id="previewResult" style="display:none;">

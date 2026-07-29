@@ -32,5 +32,15 @@
         public GetAQuoteVM GetAQuoteVM { get; set; }
 
         public OutboundBannerDataModel OutboundBanner { get; set; }
+
+        // Homepage statistics band — populated from GetStatisticsData() (30-day cached)
+        public int HpTotalCompanies { get; set; }
+        public int HpActiveBrokers { get; set; }
+        public int HpNewRegistrations12m { get; set; }
+        public int HpCitiesCount { get; set; }
+        public string HpLastDataUpdate { get; set; }
+
+        // Homepage monthly teaser — null means render nothing (graceful degradation)
+        public StatisticsNewRegistrationsMonthVM HpMonthTeaser { get; set; }
     }
 }

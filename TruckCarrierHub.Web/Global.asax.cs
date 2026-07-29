@@ -3,9 +3,13 @@ using Common.Utility.ExceptionExtension;
 using Common.Utility.Logger;
 using ExpressiveAnnotations.Attributes;
 using ExpressiveAnnotations.MvcUnobtrusive.Validators;
+using PartnerCarrier.Infrastructure.Contracts.Admin.AdminManagement;
+using PartnerCarrier.Infrastructure.Contracts.User;
 using PartnerCarrier.MyRazorViewEngines;
+using PartnerCarrier.Web.Helpers;
 using System;
 using System.Web;
+using System.Web.Hosting;
 using System.Web.Mvc;
 using System.Web.Optimization;
 using System.Web.Routing;
@@ -30,6 +34,29 @@ namespace PartnerCarrier.Web
             ViewEngines.Engines.Add(new MyRazorViewEngine());
 
             DataAnnotationsModelValidatorProvider.RegisterAdapter(typeof(RequiredIfAttribute), typeof(RequiredIfValidator));
+
+            // Regenerate sitemap.xml + child sitemaps on every app start (deploy / app-pool
+            // recycle), so they can no longer go stale or get wiped by a publish and be
+            // forgotten about - previously only ever produced by a manual admin button click.
+            // Queued as a background work item so a slow DB read can't delay app startup, and
+            // wrapped in try/catch so a failure here never takes the whole site down.
+            // DependencyResolver.Current is safely available already at this point - StructureMap
+            // is wired up via [assembly: PreApplicationStartMethod(typeof(StructuremapMvc), "Start")]
+            // in App_Start/StructuremapMvc.cs, which runs before Application_Start.
+            HostingEnvironment.QueueBackgroundWorkItem(ct =>
+            {
+                try
+                {
+                    var homepageService = DependencyResolver.Current.GetService<IHomepageService>();
+                    var businessMangementService = DependencyResolver.Current.GetService<IBusinessMangementService>();
+                    SitemapGenerator.GenerateAll(homepageService, businessMangementService, HostingEnvironment.MapPath);
+                    AppLogger.Instance.Log("Sitemaps regenerated on application start.", LogType.Info);
+                }
+                catch (Exception ex)
+                {
+                    AppLogger.Instance.Log(ex);
+                }
+            });
         }
 
         /// <summary>

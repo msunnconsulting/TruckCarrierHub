@@ -26,6 +26,33 @@ quote requests ("Get a Quote").
 - SQL Server Express has no SQL Agent (scheduled jobs need an external trigger, e.g. Windows
   Task Scheduler calling a console app, not a SQL job) and a 10GB per-database cap.
 
+## Standing rules for every new heavy/public page (specs AND implementations)
+- **csproj registration (July 2026 production incident)**: every NEW file created in a project
+  MUST be added to that project's .csproj — `<Content Include>` for .cshtml/.css/.js/.json/static
+  files, `<Compile Include>` for .cs. MSBuild publish only ships files listed in the csproj;
+  locally IIS Express serves views from the source folder, so a missing entry is invisible until
+  production throws "view not found" (instant generic Error page, nothing logged). After adding
+  files, verify with a disk-vs-csproj diff before calling the task done.
+- **Caching**: cache the ViewModel in `HttpRuntime.Cache` (30-day absolute expiration), give the
+  key a versioned prefix (e.g. `ActiveBrokersData_v1`), and register that prefix in
+  `HomepageService.InvalidateStatisticsCache()` (or the applicable invalidator) so the admin
+  "Refresh Statistics Cache" button clears it. Decide explicitly whether the page is pre-warmed
+  by `BusinessController.RefreshStatisticsCache()` or lazily cached.
+- **Meta tags/SEO**: title, plain-text meta description ≤160 chars (no leaked HTML), canonical
+  URL, JSON-LD (WebPage + BreadcrumbList minimum), and cross-links from related pages.
+- Data-update copy is always "updated weekly" (FMCSA data sync runs weekly).
+- **Entity classification (site-wide, decided July 2026)**: Broker = `EntityType` contains "B"
+  (companies with both carrier and broker authority, e.g. "B;C", count as BOTH a carrier AND a
+  broker — never use "B and not C" for broker counts). Carrier = contains "C". Because the two
+  overlap, carrier + broker counts may exceed the total; wherever both appear together, disclose
+  the overlap (e.g. "N companies hold both authorities") instead of forcing exclusive buckets.
+  Donuts that must sum to 100% use explicit segments: Carrier only / Broker only / Both / Other.
+- **"Trucking companies" count (statistics section + homepage band)**: active companies MINUS
+  pure brokers, where pure broker = `EntityType = 'B'` exactly. Companies holding both
+  authorities count in BOTH the trucking-companies and brokers numbers (disclose). Directory
+  listing counts (state/city pages, "Alabama Trucking Companies (N)") stay all-active — brokers
+  are listed in the directory, so those counts are correct as-is.
+
 ## Design system — Content/modern-theme.css
 Loaded from the shared layout, so it applies site-wide. Deliberately keeps Bootstrap 3's grid
 (`.row`, `.col-md-*`) intact and only restyles chrome/components, since most pages still depend
@@ -53,6 +80,12 @@ on that grid and a full Bootstrap version upgrade was never in scope.
   legacy styles, buttons staying colored after a click (`:focus` vs `:focus-visible`), the
   List/Map toggle conflict above, and the homepage text inheriting the wrong font/size from
   its wrapping `<h2>` (used purely for SEO weight, not as a real heading).
+
+## Deployment caution
+- The production server's Web.config contains a hand-maintained `<rewrite>` block (HTTPS
+  enforcement, www-stripping, and the partnercarrier.com legacy-domain 301) that is NOT in the
+  repo. Never overwrite production Web.config wholesale — merge, then verify redirects. Full
+  block + test URLs: `production-rewrite-rules.md` in the solution root.
 
 ## Navigation / search conventions
 - **Never glob or read under `\obj`, `\bin`, or `.vs\`** — those are build/IDE artefacts. All real source is under the five named project folders and `packages\`.

@@ -46,14 +46,69 @@
     var canonicalQuery = !string.IsNullOrEmpty(pageParam) && pageParam != "1" ? "?p=" + pageParam : "";
     ViewBag.CanonicalUrl = uri.Scheme + "://" + uri.Authority + path + canonicalQuery;
 
-    var textHelperResponse = TextHelper.TruncateText(Model.PageDescription, Model.NumberOfWordsForCityArticle);
+    if (!string.IsNullOrEmpty(pageParam) && pageParam != "1")
+    {
+        ViewBag.Title = Model.PageTitle + " | Page " + pageParam;
+    }
+
 
     var totalCount = Model.Companies != null ? Model.Companies.Pagination.TotalCount : 0;
+
+    var cityDisplayName = System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase(
+        (Model.hdnCityName ?? "").Replace("-", " ").ToLower());
+    var cityMetaFull  = "Find " + cityDisplayName + ", " + (Model.StateName ?? "") + " trucking companies and freight brokers \u2014 " + totalCount.ToString("N0") + " active companies, searchable by name, USDOT, cargo type, and more.";
+    var cityMetaShort = "Find " + cityDisplayName + ", " + (Model.StateName ?? "") + " trucking companies and freight brokers \u2014 " + totalCount.ToString("N0") + " active companies.";
+    var cityMetaDescription = cityMetaFull.Length <= 160 ? cityMetaFull : (cityMetaShort.Length <= 160 ? cityMetaShort : cityMetaShort.Substring(0, 157) + "...");
+
+    // JSON-LD: ItemList for city listing (page 1 only)
+    Newtonsoft.Json.Linq.JObject cityLd = null;
+    if (string.IsNullOrEmpty(pageParam) || pageParam == "1")
+    {
+        string[] caProvinces = { "AB","BC","MB","NB","NL","NS","NT","NU","ON","PE","QC","SK","YT" };
+        var cityItems = new Newtonsoft.Json.Linq.JArray();
+        if (Model.Companies != null && Model.Companies.Items != null)
+        {
+            for (int ci = 0; ci < Model.Companies.Items.Count; ci++)
+            {
+                var co = Model.Companies.Items[ci];
+                if (string.IsNullOrEmpty(co.CompanyName) || string.IsNullOrEmpty(co.PhysicalAddressCity)) { continue; }
+                string coCountry = System.Array.IndexOf(caProvinces, (co.PhysicalAddressStateCode ?? "").ToUpper()) >= 0 ? "CA" : "US";
+                cityItems.Add(new Newtonsoft.Json.Linq.JObject {
+                    ["@type"]    = "ListItem",
+                    ["position"] = ci + 1,
+                    ["item"]     = new Newtonsoft.Json.Linq.JObject {
+                        ["@type"]   = "LocalBusiness",
+                        ["name"]    = co.CompanyName,
+                        ["url"]     = "https://truckcarrierhub.com/" + (co.PhysicalAddressStateCode ?? "") + "/USDOT-" + co.USDOTNumber,
+                        ["address"] = new Newtonsoft.Json.Linq.JObject {
+                            ["@type"]           = "PostalAddress",
+                            ["streetAddress"]   = co.PhysicalAddressStreet ?? "",
+                            ["addressLocality"] = co.PhysicalAddressCity ?? "",
+                            ["addressRegion"]   = co.PhysicalAddressStateCode ?? "",
+                            ["postalCode"]      = co.PhysicalAddressZipCode ?? "",
+                            ["addressCountry"]  = coCountry
+                        }
+                    }
+                });
+            }
+        }
+        cityLd = new Newtonsoft.Json.Linq.JObject {
+            ["@context"]       = "https://schema.org",
+            ["@type"]          = "ItemList",
+            ["name"]           = "Trucking Companies in " + cityDisplayName + ", " + (Model.StateName ?? ""),
+            ["url"]            = "https://truckcarrierhub.com/" + (parts.Length > 0 ? parts[0] : "") + "/" + (Model.hdnCityName ?? ""),
+            ["numberOfItems"]  = totalCount,
+            ["itemListElement"] = cityItems
+        };
+    }
 }
 
 @section AdditionalMeta {
-    <meta name="description" content="@Model.CityMetaDescription" />
+    <meta name="description" content="@cityMetaDescription" />
     <link rel="canonical" href="@ViewBag.CanonicalUrl" />
+    @if (cityLd != null) {
+    <script type="application/ld+json">@Html.Raw(cityLd.ToString(Newtonsoft.Json.Formatting.None))</script>
+    }
 }
 
 @Html.Partial("_ReviewModal")
@@ -100,6 +155,8 @@
         color: var(--ink-900);
     }
     .city-article-text { margin: 0 0 10px; }
+    .city-article-text.is-truncated { overflow: hidden; max-height: 120px; }
+    .city-article-text.expanded { max-height: none; overflow: visible; }
     .city-article-toggle {
         font-size: 12px;
         padding: 3px 10px;
@@ -235,6 +292,32 @@
         .city-co-right { align-items: flex-start; flex-direction: row; flex-wrap: wrap; }
         .city-filter-wrap .facet-options-list { flex-wrap: wrap; }
     }
+
+    /* ---- City data module ---- */
+    .cm-wrap { margin-bottom: 16px; }
+    .cm-heading { font-size: 17px; font-weight: 700; color: var(--ink-900); margin: 0 0 12px; }
+    .cm-cards-grid .hpb-icon { width: 38px; height: 38px; margin-bottom: 10px; }
+    .cm-cards-grid .hpb-icon .fa { font-size: 17px; }
+    .cm-cards-grid .hpb-num { font-size: 1.45em; }
+    .cm-cards-grid .hpb-label { font-size: 0.83em; }
+    .cm-section { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 18px; margin-bottom: 12px; }
+    .cm-section-title { font-size: 0.78em; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+    .cm-cargo-row { display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-align: center; -ms-flex-align: center; align-items: center; gap: 10px; padding: 5px 0; border-bottom: 1px solid #f3f4f6; }
+    .cm-cargo-row:last-child { border-bottom: none; }
+    .cm-cargo-name { -webkit-box-flex: 1; -ms-flex: 1; flex: 1; font-size: 0.88em; color: #374151; }
+    .cm-cargo-bar  { width: 56px; background: #e5e7eb; border-radius: 3px; height: 5px; -ms-flex-negative: 0; flex-shrink: 0; }
+    .cm-cargo-fill { background: #3b82f6; border-radius: 3px; height: 5px; }
+    .cm-cargo-pct  { font-size: 0.83em; font-weight: 700; color: #111827; min-width: 40px; text-align: right; white-space: nowrap; }
+    .cm-hl-list { list-style: none; padding: 0; margin: 0; }
+    .cm-hl-item { position: relative; padding: 6px 0 6px 22px; font-size: 0.9em; color: #374151; border-bottom: 1px solid #f3f4f6; line-height: 1.5; }
+    .cm-hl-item:last-child { border-bottom: none; }
+    .cm-hl-item::before { content: "\2192"; position: absolute; left: 0; color: #3b82f6; font-weight: 700; }
+    .cm-footer { display: -webkit-box; display: -ms-flexbox; display: flex; gap: 14px; -ms-flex-wrap: wrap; flex-wrap: wrap; font-size: 0.83em; margin-bottom: 4px; }
+    .cm-footer a { color: #2563eb; text-decoration: none; }
+    .cm-footer a:hover { text-decoration: underline; }
+    @@media (max-width: 640px) {
+        .cm-cards-grid .hpb-card { -webkit-box-flex: 1; -ms-flex: 1 1 calc(50% - 6px); flex: 1 1 calc(50% - 6px); }
+    }
 </style>
 
 <div class="container">
@@ -243,16 +326,21 @@
     <ul class="breadcrumb">
         <li><a href="@Url.Content("~/")">Home</a></li>
         <li><a class="stateName" href="@Url.Content("~/" + Model.StateCode)">@Model.StateName</a></li>
-        <li class="active" id="anchorCityName">@Model.hdnCityName</li>
+        <li class="active" id="anchorCityName">@(System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase((Model.hdnCityName ?? "").ToLower()))</li>
     </ul>
 
     @* Header row: heading + result count + List/Map toggle *@
+    @{
+        var cityModule     = ViewBag.CityModule    as PartnerCarrier.ViewModels.Admin.StatisticsCityCompaniesVM;
+        var cityHighlights = ViewBag.CityModuleHighlights as List<string>;
+        bool cmRenders     = cityModule != null && (string.IsNullOrEmpty(pageParam) || pageParam == "1");
+    }
     <div class="city-header">
         <div class="city-header-left">
-            <h1 class="city-title">Trucking companies in @Model.hdnCityName, @Model.StateCode</h1>
+            <h1 class="city-title">Trucking companies in @(System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase((Model.hdnCityName ?? "").ToLower())), @Model.StateCode</h1>
             <div class="city-result-count">
                 <span class="total-companies">@totalCount</span>
-                @(totalCount == 1 ? "company" : "companies") found
+                @(totalCount == 1 ? "active company" : "active companies") found
             </div>
         </div>
         <div class="city-header-toggle">
@@ -263,22 +351,86 @@
         </div>
     </div>
 
-    @* City article — page 1 only, with truncation + expand *@
-    @if (Model.Companies != null && Model.Companies.Pagination.PageIndex == 1 && !string.IsNullOrEmpty(Model.PageDescription))
+    @* City data module — page 1 only, gates on 50+ active companies *@
+    @if (cmRenders)
     {
-        <div class="city-article">
-            <div id="cityArticle"
-                 class="city-article-text truncated-text"
-                 data-fulltext="@Model.PageDescription">
-                @textHelperResponse.truncatedText
+        var cmCityUrl   = "/statistics/city/" + cityModule.StateCode + "/" + cityModule.CityName.Replace(" ", "-");
+        var cmStateUrl  = "/statistics/state/" + cityModule.StateCode;
+        bool cmShowCargo = cityModule.TopCargoTypes != null
+                           && cityModule.TopCargoTypes.Any(c => c.CargoTypeName != "Other" && c.CompanyCount >= 30);
+        bool cmShowHl    = cityHighlights != null && cityHighlights.Count > 0;
+        <div class="cm-wrap"@(ViewBag.CityModuleHidden == true ? Html.Raw(" style=\"display:none;\"") : null)>
+            <div class="hpb-grid cm-cards-grid" style="margin-bottom:12px;">
+                <div class="hpb-card">
+                    <div class="hpb-icon hpb-icon-blue"><i class="fa fa-truck"></i></div>
+                    <div class="hpb-num">@cityModule.TotalActiveCompanies.ToString("N0")</div>
+                    <div class="hpb-label">Active Companies</div>
+                    <div class="hpb-note">@cityModule.PercentOfStateTotal.ToString("F1")% of @cityModule.StateName total</div>
+                </div>
+                @if (cityModule.MedianFleetSize > 0)
+                {
+                    <div class="hpb-card">
+                        <div class="hpb-icon hpb-icon-green"><i class="fa fa-dashboard"></i></div>
+                        <div class="hpb-num">@cityModule.MedianFleetSize</div>
+                        <div class="hpb-label">Median Fleet Size</div>
+                        <div class="hpb-note">of companies reporting fleet data</div>
+                    </div>
+                }
+                @if (cityModule.NewRegistrationsLast24Months > 0)
+                {
+                    <div class="hpb-card">
+                        <div class="hpb-icon hpb-icon-purple"><i class="fa fa-line-chart"></i></div>
+                        <div class="hpb-num">@cityModule.NewRegistrationsLast24Months.ToString("N0")</div>
+                        <div class="hpb-label">New Registrations (24 mo)</div>
+                        <div class="hpb-note">avg @cityModule.AvgNewPerMonth.ToString("F1")/month</div>
+                    </div>
+                }
+                @if (cityModule.OwnerOperatorPercent > 0
+                     && cityModule.SizeDistribution != null
+                     && cityModule.SizeDistribution.TotalReporting > 0)
+                {
+                    <div class="hpb-card">
+                        <div class="hpb-icon hpb-icon-orange"><i class="fa fa-user"></i></div>
+                        <div class="hpb-num">@cityModule.OwnerOperatorPercent.ToString("F1")%</div>
+                        <div class="hpb-label">Owner-Operator Share</div>
+                        <div class="hpb-note">of companies reporting fleet size</div>
+                    </div>
+                }
             </div>
-            <button id="btnCityArticle" class="btn btn-default city-article-toggle">Read more</button>
-        </div>
-    }
-    else if (!string.IsNullOrEmpty(Model.PageDescription))
-    {
-        <div class="city-article">
-            <p id="cityArticle" class="city-article-text full-text">@Model.PageDescription</p>
+            @if (cmShowCargo)
+            {
+                var cmCargo = cityModule.TopCargoTypes.Where(c => c.CargoTypeName != "Other").ToList();
+                decimal cmCargoMax = cmCargo.Count > 0 ? cmCargo[0].PercentOfTotal : 1m;
+                <div class="cm-section">
+                    <div class="cm-section-title"><i class="fa fa-list-ul"></i> Top Cargo Types</div>
+                    @foreach (var ct in cmCargo.Take(5))
+                    {
+                        decimal cmBarW = cmCargoMax > 0 ? Math.Round(ct.PercentOfTotal / cmCargoMax * 100m, 0) : 0;
+                        <div class="cm-cargo-row">
+                            <span class="cm-cargo-name">@ct.CargoTypeName</span>
+                            <div class="cm-cargo-bar"><div class="cm-cargo-fill" style="width:@((int)cmBarW)%"></div></div>
+                            <span class="cm-cargo-pct">@ct.PercentOfTotal.ToString("F1")%</span>
+                        </div>
+                    }
+                    <div class="hpb-note" style="margin-top:8px;">Companies may select multiple cargo types &mdash; percentages are of @cityModule.TotalActiveCompanies.ToString("N0") active companies. Updated weekly.</div>
+                </div>
+            }
+            @if (cmShowHl)
+            {
+                <div class="cm-section">
+                    <div class="cm-section-title"><i class="fa fa-bolt"></i> What stands out</div>
+                    <ul class="cm-hl-list">
+                        @foreach (var hl in cityHighlights)
+                        {
+                            <li class="cm-hl-item">@hl</li>
+                        }
+                    </ul>
+                </div>
+            }
+            <div class="cm-footer">
+                <a href="@cmCityUrl">Full @cityDisplayName trucking statistics &rarr;</a>
+                <a href="@cmStateUrl">@cityModule.StateName statistics &rarr;</a>
+            </div>
         </div>
     }
 
@@ -545,9 +697,22 @@
                         <div class="city-co-stats">
                             @if (!string.IsNullOrEmpty(company.EntityType))
                             {
-                                <span class="city-co-stat">
-                                    <span class="city-co-stat-value">@company.EntityType</span>
-                                </span>
+                                var entityMap = new System.Collections.Generic.Dictionary<string, string>
+                                {
+                                    { "C", "Carrier" }, { "B", "Broker" }, { "S", "Shipper" },
+                                    { "F", "Freight Forwarder" }, { "I", "Intermodal Equip." }, { "T", "Cargo Tank" }
+                                };
+                                var entityNames = company.EntityType.Split(';')
+                                    .Select(c => c.Trim())
+                                    .Where(c => entityMap.ContainsKey(c))
+                                    .Select(c => entityMap[c]);
+                                var entityDisplay = string.Join(" · ", entityNames);
+                                if (!string.IsNullOrEmpty(entityDisplay))
+                                {
+                                    <span class="city-co-stat">
+                                        <span class="city-co-stat-value">@entityDisplay</span>
+                                    </span>
+                                }
                             }
                             <span class="city-co-stat">
                                 <span class="city-co-stat-label">USDOT</span>
@@ -563,6 +728,17 @@
                             <span class="city-co-stat">
                                 <span class="city-co-stat-label">Trucks</span>
                                 <span class="city-co-stat-value">@(company.TruckOrTractor.HasValue ? company.TruckOrTractor.ToString() : "N/A")</span>
+                            </span>
+                            <span class="city-co-stat">
+                                <span class="city-co-stat-label">Hiring</span>
+                                @if (company.NowHiring)
+                                {
+                                    <span class="city-co-stat-value" style="color:var(--verified-600);font-weight:600;">@(company.CompanyDriverType != null && company.CompanyDriverType.Count > 0 ? string.Join(", ", company.CompanyDriverType) : "Yes")</span>
+                                }
+                                else
+                                {
+                                    <span class="city-co-stat-value" style="color:#9ca3af;">N/A</span>
+                                }
                             </span>
                         </div>
                         @if (!string.IsNullOrEmpty(company.PhysicalAddressStreet))
@@ -611,27 +787,21 @@
 @section scripts {
     <script src="https://maps.googleapis.com/maps/api/js?key=@googleAPIKey"></script>
     <script src="~/Scripts/Common.AJAX.js"></script>
-    <script src="~/Content/User/search-filter-on-company.js"></script>
+    <script src="~/Content/User/search-filter-on-company.js?v=@(System.IO.File.GetLastWriteTimeUtc(Server.MapPath("~/Content/User/search-filter-on-company.js")).Ticks)"></script>
     <script src="~/Content/User/add-edit-review.js"></script>
     <script>
         $(document).ready(function () {
-            var isExpanded = false;
-
-            $("#cityArticle, #btnCityArticle").click(function () {
-                var articleControl = $('#cityArticle');
-                var fullText = articleControl.data("fulltext");
-                if (isExpanded) {
-                    var wordLimit = @Model.NumberOfWordsForCityArticle;
-                    var truncated = fullText.split(' ').slice(0, wordLimit).join(' ') + '...';
-                    articleControl.text(truncated);
-                    $('#btnCityArticle').text('Read more');
-                    isExpanded = false;
-                } else {
-                    articleControl.text(fullText);
-                    $('#btnCityArticle').text('Read less');
-                    isExpanded = true;
-                }
-            });
+@if (Request.QueryString["view"] == "map")
+{
+    var mapAutoCityName = System.Web.HttpUtility.JavaScriptStringEncode((Model.hdnCityName ?? Model.City ?? "").Replace("-", " "));
+    var mapAutoStateCode = System.Web.HttpUtility.JavaScriptStringEncode(Model.StateCode ?? "");
+    @: // Arrived here via the /interactive-map landing page's city search (?view=map) - pre-fill
+    @: // the same search box the existing Map/List toggle already uses, then open Map view
+    @: // exactly as if the user had clicked the "Map" button themselves. Left entirely to
+    @: // search-filter-on-company.js's own vm.MapView() - nothing here duplicates its logic.
+    @: $(".searchFilterTextbox").val("@mapAutoCityName,@mapAutoStateCode");
+    @: vm.MapView();
+}
         });
     </script>
 }

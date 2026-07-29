@@ -67,6 +67,7 @@ namespace PartnerCarrier.Infrastructure.Contracts.Admin.AdminManagement
         List<SelectListVM> GetCitiesForManageCityArticle(string countryCode, string stateCode, bool? isAllowed);
         bool IsCityArticleAvailable(string countryCode, string stateCode, string cityName);
         List<ManageCityListVM> GetAllCities();
+        List<ManageCityListVM> GetAllCities(int minCompanies, int maxCompanies, DateTime? lastRenewedBefore = null);
         List<ManageCityListVM> GetCityListForManageCities();
         Task<string> FinishCityUpdate();
         string SaveCityContent(SaveCityContentVM vm);
@@ -76,5 +77,7 @@ namespace PartnerCarrier.Infrastructure.Contracts.Admin.AdminManagement
         ManageReviewsVM GetReviewsFilter();
         void SaveReviewsFilter(ManageReviewsVM manageReviewsVM);
         ManageReviewsVM GetCompanyReviewsFilterValue();
+        ShowStatisticsNavVM GetShowStatisticsNav();
+        void SaveShowStatisticsNav(ShowStatisticsNavVM vm);
     }
 }

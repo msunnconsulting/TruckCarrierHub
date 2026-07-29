@@ -5,9 +5,7 @@
 @{
     ViewBag.Title = Model.PageTitle;
     var cityName = "";
-    var legalName = "";
     var state = "";
-    var companyNameForUrl = "";
 }
 <div class="row hidden-sm hidden-xs">
     <div class="col-md-5 col-sm-12 hidden-xs nopadding-left">
@@ -48,6 +46,10 @@
                                 <a class="" href="@Url.Content("~/"+state+"/USDOT-"+@company.USDOTNumber)">
                                     <h4>
                                         @company.CompanyName
+                                        @if (company.NowHiring)
+                                        {
+                                            <span class="hiring-badge">Now Hiring</span>
+                                        }
                                         @if (company.Status.ToLower() == "i")
                                         {
                                             <b class="inactive-status">- Inactive</b>
@@ -78,6 +80,23 @@
                                     {
                                         var notAvailable = "N/A";
                                         <strong>Drivers : </strong>@notAvailable
+                                    }
+                                </div>
+                                <div>
+                                    <strong>Hiring : </strong>@if (company.NowHiring)
+                                    {
+                                        if (company.CompanyDriverType != null && company.CompanyDriverType.Count > 0)
+                                        {
+                                            @(string.Join(", ", company.CompanyDriverType))
+                                        }
+                                        else
+                                        {
+                                            <text>Yes</text>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <text>N/A</text>
                                     }
                                 </div>
                             </div>
@@ -121,6 +140,22 @@
                                 }
                             </div>
                             <div class="col-md-3">
+                                @if (company.TotalReviews > 0)
+                                {
+                                    double pRating = company.AverageRating;
+                                    int pFull = (int)Math.Floor(pRating);
+                                    double pFrac = pRating - pFull;
+                                    bool pHalf = pFrac >= 0.25 && pFrac < 0.75;
+                                    if (pFrac >= 0.75) { pFull++; }
+                                    int pEmpty = 5 - pFull - (pHalf ? 1 : 0);
+                                    <div class="cursor-pointer" style="margin-bottom:4px;" onclick="reviewVm.openReviewOverlay(@company.USDOTNumber)">
+                                        <span>@company.AverageRating</span>
+                                        @for (int s = 0; s < pFull; s++) { <i class="fa fa-star" style="color:#f5a623;"></i> }
+                                        @if (pHalf) { <i class="fa fa-star-half-o" style="color:#f5a623;"></i> }
+                                        @for (int s = 0; s < pEmpty; s++) { <i class="fa fa-star-o" style="color:#f5a623;"></i> }
+                                        <span>(@company.TotalReviews)</span>
+                                    </div>
+                                }
                                 <a class="btn btn-primary pull-right" href="@Url.Content("~/"+state+"/USDOT-"+@company.USDOTNumber)"> View Details</a>
                             </div>
                         </div>

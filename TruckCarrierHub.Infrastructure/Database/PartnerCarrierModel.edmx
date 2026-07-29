@@ -102,6 +102,8 @@
           <Property Name="NumberOfCompanies" Type="int" />
           <Property Name="Article" Type="text" />
           <Property Name="CityArticleAllowed" Type="bit" />
+          <Property Name="Description" Type="nvarchar" MaxLength="500" />
+          <Property Name="LastRenewedDate" Type="datetime" />
         </EntityType>
         <EntityType Name="DbVersion">
           <Key>
@@ -2877,6 +2879,8 @@ warning 6002: The table/view 'PartnerCarrier_Dev.dbo.States' does not have a pri
           <Property Name="NumberOfCompanies" Type="Int32" />
           <Property Name="Article" Type="String" MaxLength="Max" FixedLength="false" Unicode="false" />
           <Property Name="CityArticleAllowed" Type="Boolean" />
+          <Property Name="Description" Type="String" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="LastRenewedDate" Type="DateTime" />
         </EntityType>
         <EntityType Name="ReviewReply">
           <Key>
@@ -3724,6 +3728,8 @@ warning 6002: The table/view 'PartnerCarrier_Dev.dbo.States' does not have a pri
 					<ScalarProperty Name="CityName" ColumnName="CityName" />
 					<ScalarProperty Name="StateCode" ColumnName="StateCode" />
 					<ScalarProperty Name="CountryCode" ColumnName="CountryCode" />
+					<ScalarProperty Name="Description" ColumnName="Description" />
+					<ScalarProperty Name="LastRenewedDate" ColumnName="LastRenewedDate" />
 				</MappingFragment>
 			</EntityTypeMapping>
 		  </EntitySetMapping>

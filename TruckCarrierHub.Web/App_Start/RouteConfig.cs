@@ -185,6 +185,78 @@
              namespaces: new string[] { "PartnerCarrier.Web.Controllers" });
 
             routes.MapRoute(
+                name: "Statistics",
+                url: "statistics",
+                defaults: new { controller = "Home", action = "Statistics" },
+                namespaces: new string[] { "PartnerCarrier.Web.Controllers" });
+
+            routes.MapRoute(
+                name: "StatisticsActiveCompanies",
+                url: "statistics/active-companies",
+                defaults: new { controller = "Home", action = "ActiveCompanies" },
+                namespaces: new string[] { "PartnerCarrier.Web.Controllers" });
+
+            routes.MapRoute(
+                name: "StatisticsActiveBrokers",
+                url: "statistics/active-brokers",
+                defaults: new { controller = "Home", action = "ActiveBrokers" },
+                namespaces: new string[] { "PartnerCarrier.Web.Controllers" });
+
+            routes.MapRoute(
+                name: "StatisticsFleetOperations",
+                url: "statistics/fleet-operations",
+                defaults: new { controller = "Home", action = "FleetOperations" },
+                namespaces: new string[] { "PartnerCarrier.Web.Controllers" });
+
+            routes.MapRoute(
+                name: "StatisticsCargo",
+                url: "statistics/cargo",
+                defaults: new { controller = "Home", action = "Cargo" },
+                namespaces: new string[] { "PartnerCarrier.Web.Controllers" });
+
+            routes.MapRoute(
+                name: "StatisticsNewRegistrationsMonthCarriers",
+                url: "statistics/new-registrations/{year}/{month}/carriers",
+                defaults: new { controller = "Home", action = "NewRegistrationsMonthCarriers" },
+                namespaces: new string[] { "PartnerCarrier.Web.Controllers" });
+
+            routes.MapRoute(
+                name: "StatisticsNewRegistrationsMonthBrokers",
+                url: "statistics/new-registrations/{year}/{month}/brokers",
+                defaults: new { controller = "Home", action = "NewRegistrationsMonthBrokers" },
+                namespaces: new string[] { "PartnerCarrier.Web.Controllers" });
+
+            routes.MapRoute(
+                name: "StatisticsNewRegistrationsMonth",
+                url: "statistics/new-registrations/{year}/{month}",
+                defaults: new { controller = "Home", action = "NewRegistrationsMonth" },
+                namespaces: new string[] { "PartnerCarrier.Web.Controllers" });
+
+            routes.MapRoute(
+                name: "StatisticsNewRegistrations",
+                url: "statistics/new-registrations",
+                defaults: new { controller = "Home", action = "NewRegistrations" },
+                namespaces: new string[] { "PartnerCarrier.Web.Controllers" });
+
+            routes.MapRoute(
+                name: "StatisticsStateCompanies",
+                url: "statistics/state/{stateCode}",
+                defaults: new { controller = "Home", action = "StateCompanies" },
+                namespaces: new string[] { "PartnerCarrier.Web.Controllers" });
+
+            routes.MapRoute(
+                name: "StatisticsCityCompanies",
+                url: "statistics/city/{stateCode}/{cityName}",
+                defaults: new { controller = "Home", action = "CityCompanies" },
+                namespaces: new string[] { "PartnerCarrier.Web.Controllers" });
+
+            routes.MapRoute(
+                name: "InteractiveMap",
+                url: "interactive-map",
+                defaults: new { controller = "Home", action = "InteractiveMap" },
+                namespaces: new string[] { "PartnerCarrier.Web.Controllers" });
+
+            routes.MapRoute(
                name: "State",
                url: "{stateCode}",
                defaults: new { controller = "Home", action = "State", stateCode = UrlParameter.Optional },

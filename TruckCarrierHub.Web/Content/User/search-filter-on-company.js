@@ -36,7 +36,21 @@
 
         //when user want to go back and forward after history.pushstate used
         window.onpopstate = function (event) {
-            window.location.href = document.location.href;
+            window.location.reload();
+        };
+        //when the page is restored from the back-forward cache (returning from a
+        //company page), reload to clear stale spinners/scroll animations
+        window.addEventListener('pageshow', function (event) {
+            if (event.persisted) { window.location.reload(); }
+        });
+        //Filters/sort/pagination are VIEW STATE, not navigation: update the URL in place
+        //(shareable) without adding history entries, so the browser Back button always
+        //returns to the genuinely previous page (e.g. the state page), never to an
+        //intermediate filter state.
+        window.pushUrlIfChanged = function (u) {
+            try {
+                window.history.replaceState("Details", "Title", u);
+            } catch (e) { }
         };
 
         $(".hide-list-map-toggle-column").hide();
@@ -149,14 +163,15 @@
         CheckTagInputIsAvailable();
 
 
-        //if filter value is null or its object is null then get filter value from local storage for apply filter 
+        //if filter value is null or its object is null then get filter value from local storage for apply filter
+        //(session persistence; safe for the Back button because filter URL updates use replaceState)
         if (filter == undefined || filter == '' || filter == null || jQuery.isEmptyObject(filter)) {
             //Get filter from local storage .
             var getFilterFromLocalStorage = window.localStorage.getItem("filter");
             //Convert json string to object value
             filter = JSON.parse(getFilterFromLocalStorage);
 
-            //After convert json string to object  then check filter value is not null or its object is not empty 
+            //After convert json string to object  then check filter value is not null or its object is not empty
             if (filter != undefined && filter != '' && filter != null && !jQuery.isEmptyObject(filter)) {
                 //if filter has value, and its contains position list and position is not same for other city so remove "pos_lst" and "pos" from filter array
                 if ("pos_lst" in filter)
@@ -737,12 +752,12 @@
         $(".cityNameText").text(response.hdnCityName);
         if ("pos" in filter) {
             response.NewUrl = "/" + response.NewUrl;
-            window.history.pushState("Details", "Title", response.NewUrl);
+            window.pushUrlIfChanged(response.NewUrl);
             //load map and set markers on filtered companies
             LoadMapAfterFilterSuccessfullyApplied(response.Companies.Items, response.Companies.Pagination.TotalCount);
         }
         else {
-            window.history.pushState("Details", "Title", $("#filterCompanyForm").attr("action"));
+            window.pushUrlIfChanged($("#filterCompanyForm").attr("action"));
             //load map after successfullyy applied filter
             $('#companyList').html(response.AjaxReturn);
             $(".total-companies").text(response.TotalCompanies);
@@ -794,6 +809,11 @@
         var url = windowUrl;
         //set pagination values
         url += "?" + urlvalues[1];
+        //city data module: page 1 only (pagination is ajax, no server re-render)
+        var pMatch = /(?:^|[?&])p=(\d+)/.exec("?" + urlvalues[1]);
+        var pageNum = pMatch ? parseInt(pMatch[1], 10) : 1;
+        var isMapActive = $(".map-toggle-button").hasClass("btn-primary");
+        if (pageNum > 1 || isMapActive) { $(".cm-wrap").hide(); } else { $(".cm-wrap").show(); }
         //set url to form 
         $("#filterCompanyForm").attr('action', url);
         //submit form
@@ -941,6 +961,8 @@
             //hide company list
             $("#companyList").hide();
             $(".sort-by-option").hide();
+            //hide city data module in map view
+            $(".cm-wrap").hide();
             //add class for displaying active button
             $('.map-toggle-button').addClass('btn-primary');
             //remove class from list button
@@ -1147,7 +1169,7 @@
                         $(".total-companies").text(response.Companies.Pagination.TotalCount);
                         $(".company-result-in-map").text(response.Companies.Pagination.TotalCount);
                         //after data recieved successfully set url in browser window.
-                        window.history.pushState("Details", "Title", $("#filterCompanyForm").attr("action"));
+                        window.pushUrlIfChanged($("#filterCompanyForm").attr("action"));
                     }
                         //if geocode request failure to getting response from full address then display error message in alertboox
                     else {
@@ -1214,7 +1236,7 @@
                 $(".hide-list-map-toggle-column").hide();
                 $(".total-companies").text(response.Companies.Pagination.TotalCount);
                 //change url after successfully display map
-                window.history.pushState("Details", "Title", $("#filterCompanyForm").attr("action"));
+                window.pushUrlIfChanged($("#filterCompanyForm").attr("action"));
             },
             error: function (response) {
             },
@@ -1305,6 +1327,8 @@
             $('.list-toggle-button').addClass('btn-primary');
             $("#mapView").hide();
             $(".sort-by-option").show();
+            //restore city data module in list view
+            $(".cm-wrap").show();
             //get url from form action
             url = $("#filterCompanyForm").attr("action").replace("pos", "pos_lst");
 

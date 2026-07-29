@@ -1153,21 +1153,17 @@ div.outboundLinkForm {
 
 /********* Style for city article *********/
 .truncated-text {
-    cursor: pointer;
+    cursor: auto;
     color: #333;
     opacity: 1;
     white-space: pre-line;
 }
 
-.truncated-text:hover {
-    color: #0070c9;
-    text-decoration: underline;
-}
 /********* Ends *********/
 
 /********* Style for state article *********/
 .state-article-text {
-    cursor: pointer;
+    cursor: auto;
     color: #333;
     opacity: 1;
     white-space: pre-line;

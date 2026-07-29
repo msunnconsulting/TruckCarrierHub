@@ -47,7 +47,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 
     @Styles.Render("~/Content/css-frontend")
-    <link href="~/Content/modern-theme.css" rel="stylesheet" type="text/css" />
+    <link href="~/Content/modern-theme.css?v=@(System.IO.File.GetLastWriteTimeUtc(Server.MapPath("~/Content/modern-theme.css")).Ticks)" rel="stylesheet" type="text/css" />
     @Scripts.Render("~/bundles/modernizr")
     <link rel="icon" href="/favicon.ico" type="image/x-icon" />
 </head>
@@ -59,6 +59,15 @@
     </noscript>
     <!-- End Google Tag Manager (noscript) -->
     <img src="~/Images/ajax-loader.gif" id="al" class="ajax-loader" style="display:none;" />
+    <script>
+        // Hide the global ajax loader whenever a page is shown — including restores
+        // from the back-forward cache, where it would otherwise keep spinning forever
+        // (it gets shown just before navigating away, e.g. state-page city links).
+        window.addEventListener('pageshow', function () {
+            var al = document.getElementById('al');
+            if (al) { al.style.display = 'none'; }
+        });
+    </script>
     <div id="disabledpage"></div>
     <div class="navbar navbar-inverse">
         <div class="navbar-header">
@@ -78,6 +87,7 @@
             var _businessManagement = StructuremapMvc.StructureMapDependencyScope.CurrentNestedContainer.GetInstance<IBusinessMangementService>();
             var successStory = _businessManagement.GetSuccessStory();
             var outboundLinks = _businessManagement.GetOutBoundLinks(true);
+            var showStatisticsNav = _businessManagement.GetShowStatisticsNav();
         }
         <div class="navbar-collapse collapse">
 
@@ -150,6 +160,13 @@
                     <li>
                         <a><input type="checkbox" name="GlobalHirings" value="" checked="@ViewBag.IsHiringCheckboxIsChecked" id="globalHiring"> <label for="globalHiring">Companies Now Hiring</label></a>
                     </li>
+                </ul>
+            }
+
+            @if (showStatisticsNav.ShowStatisticsNav)
+            {
+                <ul class="nav navbar-nav navbar-right">
+                    <li><a href="@Url.Content("~/statistics")">Statistics</a></li>
                 </ul>
             }
 

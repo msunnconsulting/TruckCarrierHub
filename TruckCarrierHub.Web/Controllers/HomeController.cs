@@ -76,6 +76,25 @@ namespace PartnerCarrier.Web.Controllers
 
             stateVM.GetAQuoteVM = new GetAQuoteVM();
             stateVM.GetAQuoteVM.ListLoad = _homepageService.GetDropDownListForLoadType();
+
+            var hpStats = _homepageService.GetStatisticsData();
+            stateVM.HpTotalCompanies      = hpStats.TotalCompanies;
+            stateVM.HpActiveBrokers       = hpStats.ActiveBrokers;
+            stateVM.HpNewRegistrations12m = hpStats.NewRegistrations12MonthsCount;
+            stateVM.HpCitiesCount         = hpStats.CitiesCount;
+            stateVM.HpLastDataUpdate      = hpStats.LastDataUpdate;
+
+            try
+            {
+                var hpNow       = DateTime.Now;
+                var hpLastMonth = new DateTime(hpNow.Year, hpNow.Month, 1).AddMonths(-1);
+                stateVM.HpMonthTeaser = _homepageService.GetNewRegistrationsMonthData(hpLastMonth.Year, hpLastMonth.Month);
+            }
+            catch
+            {
+                stateVM.HpMonthTeaser = null;
+            }
+
             return View(stateVM);
         }
 
@@ -104,10 +123,9 @@ namespace PartnerCarrier.Web.Controllers
             int GlobalHire = _businessMangementService.GetGlobalHiring().GlobalHire;
             int ReviewFilterValue = _businessMangementService.GetReviewsFilter().SelectedFilterValue;
 
-            //first get Popular cities
-            cityVM.popularcities = _homepageService.GetPopularCities(stateCode, isHiringCheckboxIsChecked, GlobalHire, isReviewsFilterCheckboxIsChecked, ReviewFilterValue);
-            //get city list for selected state
+            //get city list for selected state, then derive popular cities from it in memory (no second query)
             cityVM.Cities = _homepageService.GetCityList(stateCode, isHiringCheckboxIsChecked, GlobalHire, isReviewsFilterCheckboxIsChecked, ReviewFilterValue);
+            cityVM.popularcities = cityVM.Cities.OrderByDescending(c => c.CompanyCount).Take(10).ToList();
 
             // Get outbound banner for State page
             cityVM.OutboundBanner = _homepageService.GetOutboundBanner((byte)OutboundBannerPageLevelEnum.State);
@@ -115,6 +133,22 @@ namespace PartnerCarrier.Web.Controllers
             //Binding Load Type for State page
             cityVM.GetAQuoteVM = new GetAQuoteVM();
             cityVM.GetAQuoteVM.ListLoad = _homepageService.GetDropDownListForLoadType();
+
+            try
+            {
+                var stateModule = _homepageService.GetStateCompaniesData(stateCode);
+                if (stateModule != null)
+                {
+                    ViewModels.Admin.StatisticsFleetOperationsVM smFleet  = null;
+                    ViewModels.Admin.StatisticsNewRegistrationsVM smNewReg = null;
+                    try { smFleet  = _homepageService.GetFleetOperationsData(); }      catch { }
+                    try { smNewReg = _homepageService.GetNewRegistrationsData("12m"); } catch { }
+                    ViewBag.StateModule           = stateModule;
+                    ViewBag.StateModuleHighlights = PartnerCarrier.Web.Helpers.StateModuleHelper.BuildHighlights(
+                        stateModule, smFleet, smNewReg);
+                }
+            }
+            catch { }
 
             return View(cityVM);
         }
@@ -134,7 +168,7 @@ namespace PartnerCarrier.Web.Controllers
         public ActionResult City(string stateCode, string city, string SearchText, string filter1, string filter2, string filter3, string filter4, string filter5, string filter6, string filter7, string filter8, string filter9, PageSortPara ps, bool? isRestrictResultToCity)
         {
             //Get CityName from Url if cityname found return CityName else throw exception 404
-            var cityNameFromDb = _homepageService.GetCityNameFromURLCityName(city);
+            var cityNameFromDb = _homepageService.GetCityNameFromURLCityName(city, stateCode);
 
             if (cityNameFromDb == null)
             {
@@ -161,10 +195,6 @@ namespace PartnerCarrier.Web.Controllers
             //set page title
             companyVM.StateName = _homepageService.GetStateName(stateCode);
             companyVM.PageTitle = _homepageService.GetPageTitle(pageName, companyVM.StateName, city);
-            //set page description
-            companyVM.PageDescription = _homepageService.GetPageDescription(pageName, companyVM.StateName, city, ps == null ? null : ps.p);
-            companyVM.CityMetaDescription = _homepageService.GetCityMetaDescription(companyVM.StateName, city);
-            companyVM.NumberOfWordsForCityArticle = _homepageService.GetNumberOfWordsAllowedByAdmin();
             //set statecode to set in url
             companyVM.StateCode = stateCode;
             //create new Url if user search or filter anything
@@ -312,6 +342,38 @@ namespace PartnerCarrier.Web.Controllers
             companyVM.GetAQuoteVM = new GetAQuoteVM();
             companyVM.GetAQuoteVM.ListLoad = _homepageService.GetDropDownListForLoadType();
 
+            // City data module — page 1 only, non-map requests
+            {
+                var pageParam = Request.QueryString["p"];
+                bool isPage1 = string.IsNullOrEmpty(pageParam) || pageParam == "1";
+                var filterArr = new[] { filter1, filter2, filter3, filter4, filter5, filter6, filter7, filter8, filter9 };
+                // "pos-..." = map view: module renders but starts hidden (client toggle shows it on List)
+                bool isMapRequest = System.Array.Exists(filterArr, f => f != null && f.StartsWith("pos-", StringComparison.OrdinalIgnoreCase));
+                ViewBag.CityModuleHidden = isMapRequest;
+                if (isPage1)
+                {
+                    try
+                    {
+                        var cityModule = _homepageService.GetCityCompaniesData(stateCode, city, "24m");
+                        if (cityModule != null && cityModule.TotalActiveCompanies >= 50)
+                        {
+                            ViewModels.Admin.StatisticsCargoVM          cargoBaseline  = null;
+                            ViewModels.Admin.StatisticsIndexVM           statsBaseline  = null;
+                            ViewModels.Admin.StatisticsFleetOperationsVM fleetBaseline  = null;
+                            ViewModels.Admin.StatisticsNewRegistrationsVM newRegBaseline = null;
+                            try { cargoBaseline  = _homepageService.GetCargoData(); }            catch { }
+                            try { statsBaseline  = _homepageService.GetStatisticsData(); }       catch { }
+                            try { fleetBaseline  = _homepageService.GetFleetOperationsData(); }  catch { }
+                            try { newRegBaseline = _homepageService.GetNewRegistrationsData("12m"); } catch { }
+                            ViewBag.CityModule = cityModule;
+                            ViewBag.CityModuleHighlights = PartnerCarrier.Web.Helpers.CityModuleHelper.BuildHighlights(
+                                cityModule, cargoBaseline, statsBaseline, fleetBaseline, newRegBaseline);
+                        }
+                    }
+                    catch { }
+                }
+            }
+
             return View(companyVM);
         }
 
@@ -406,48 +468,18 @@ namespace PartnerCarrier.Web.Controllers
         [HttpPost]
         public ActionResult Search(string searchText, string selectedValue, PageSortPara ps)
         {
-            var pageName = "";
             try
             {
-                //Get Global Hire value from Admin table
                 int GlobalHire = _businessMangementService.GetGlobalHiring().GlobalHire;
-                pageName = "Citypage";
-                CompanyVM companyVM = new CompanyVM();
                 bool isHiringCheckboxIsChecked = SessionManager.Instance.IsHiringCheckboxIsChecked;
 
-                // get all companies of selected city
-                companyVM.Companies = _homepageService.GetCompanyListFromSearch(searchText, selectedValue, ps, isHiringCheckboxIsChecked, GlobalHire);
-                companyVM.SearchFilter = new SearchFilterVM();
-                companyVM.SearchFilter.ServiceTypeList = _homepageService.GetServiceTypes();
-                companyVM.SearchFilter.CargoTypeList = _homepageService.GetCargoTypes();
-                //get city name from list
-                companyVM.City = _homepageService.GetCityNameFromCompanyList(companyVM.Companies.Items);
-                //get statecode from list
-                companyVM.StateCode = _homepageService.GetStateCodeFromCompanyList(companyVM.Companies.Items);
-                companyVM.StateName = _homepageService.GetStateName(companyVM.StateCode);
-                //if user search any city then it will redirect to company list page
-                if (string.IsNullOrEmpty(selectedValue) || selectedValue == "City")
-                {
-                    //set page title
-                    companyVM.PageTitle = _homepageService.GetPageTitle(pageName, companyVM.StateCode, companyVM.City);
-                    //set page description
-                    companyVM.PageDescription = _homepageService.GetPageDescription(pageName, companyVM.StateName, companyVM.City, ps.p);
-                    string url = "";
-                    url = "/" + companyVM.StateCode + "/" + companyVM.City;
-                    return Json(url, JsonRequestBehavior.AllowGet);
-                }
-                else
-                {
-                    pageName = "CompanyPage";
-                    var usDotNumber = companyVM.Companies.Items.Select(a => a.USDOTNumber).First();
-                    //set browser title
-                    companyVM.PageTitle = _homepageService.SetPageTitleForCompanyInformation(usDotNumber);
-                    //set page description
-                    companyVM.PageDescription = _homepageService.SetPageDescriptionForCompanyInformation(usDotNumber);
+                var info = _homepageService.GetSearchRedirectInfo(searchText, selectedValue, isHiringCheckboxIsChecked, GlobalHire);
+                var row = info[0];
 
-                    string newUrl = GenerateCompanyNewUrl(companyVM.StateCode, usDotNumber, "");
-                    return Json(newUrl, JsonRequestBehavior.AllowGet);
-                }
+                if (string.IsNullOrEmpty(selectedValue) || selectedValue == "City")
+                    return Json("/" + row.PhysicalAddressStateCode + "/" + row.PhysicalAddressCity, JsonRequestBehavior.AllowGet);
+                else
+                    return Json(GenerateCompanyNewUrl(row.PhysicalAddressStateCode, row.USDOTNumber, ""), JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {
@@ -1095,7 +1127,7 @@ namespace PartnerCarrier.Web.Controllers
         /// <param name="getAQuoteVM"></param>
         /// <returns></returns>
         [HttpPost]
-        public async Task<ActionResult> SubmitGetAQuotePage(GetAQuoteVM getAQuoteVM)
+        public ActionResult SubmitGetAQuotePage(GetAQuoteVM getAQuoteVM)
         {
             //gettting string date then parse to Exact date format and set to view model property after converting to date format
             getAQuoteVM.PickupDate = DateTime.ParseExact(getAQuoteVM.StringPickupDate, "MM/dd/yyyy", null);
@@ -1112,7 +1144,7 @@ namespace PartnerCarrier.Web.Controllers
             getAQuoteVM = _homepageService.submitGetAQuoteDetails(getAQuoteVM);
 
             var urlForCallsenEmailForQuote = Config.SiteURL + $"SendEmailsForQuote/" + getAQuoteVM.QuoteId;
-            Task.Run(async () => await WebRequestUtil.DownloadPageAsync(urlForCallsenEmailForQuote));
+            var _ = Task.Run(() => WebRequestUtil.DownloadPageAsync(urlForCallsenEmailForQuote));
 
             return Json(true, JsonRequestBehavior.AllowGet);
         }
@@ -1355,6 +1387,172 @@ namespace PartnerCarrier.Web.Controllers
         {
             var response = _homepageService.GetResponseDetailsById(responseId);
             return PartialView("_AddEditReviewResponePartial", response);
+        }
+
+        #endregion
+
+        #region Interactive Map
+
+        /// <summary>
+        /// Landing/instruction page for the interactive map feature (which already exists as
+        /// the Map toggle on the City page). Gives the feature its own crawlable, linkable URL
+        /// with a city search box; on submit, reuses the existing /search + /searchautocomplete
+        /// endpoints (selectedValue hardcoded to "City") and appends ?view=map to the redirect
+        /// target so City.cshtml's init script (see the "view=map" block near the bottom of that
+        /// view) opens straight into Map view instead of the default List view.
+        /// No ViewModel/DB query backs this page - it's static instructional content plus a
+        /// client-side search box - so there's nothing here to cache per the usual
+        /// HttpRuntime.Cache pattern used on other heavy pages.
+        /// </summary>
+        [HttpGet]
+        public ActionResult InteractiveMap()
+        {
+            ViewBag.Title = "Interactive Map " + System.Char.ConvertFromUtf32(0x2014) + " Search Trucking Companies by City | Truck Carrier Hub";
+            return View();
+        }
+
+        #endregion
+
+        #region Statistics
+
+        [HttpGet]
+        public ActionResult Statistics()
+        {
+            var vm = _homepageService.GetStatisticsData();
+            ViewBag.Title = "Trucking Industry Statistics & Analytics | Truck Carrier Hub";
+            return View(vm);
+        }
+
+        [HttpGet]
+        public ActionResult ActiveCompanies()
+        {
+            var vm = _homepageService.GetActiveCompaniesData();
+            ViewBag.Title = "Active Trucking Companies Statistics " + System.Char.ConvertFromUtf32(0x2014) + " U.S. | Truck Carrier Hub";
+            return View(vm);
+        }
+
+        [HttpGet]
+        public ActionResult ActiveBrokers()
+        {
+            var vm = _homepageService.GetActiveBrokersData();
+            ViewBag.Title = "Active Freight Brokers Statistics " + System.Char.ConvertFromUtf32(0x2014) + " U.S. | Truck Carrier Hub";
+            return View(vm);
+        }
+
+        [HttpGet]
+        public ActionResult StateCompanies(string stateCode)
+        {
+            if (string.IsNullOrWhiteSpace(stateCode))
+                return RedirectToAction("ActiveCompanies");
+            var vm = _homepageService.GetStateCompaniesData(stateCode.ToUpper());
+            if (vm == null)
+                return RedirectToAction("ActiveCompanies");
+            ViewBag.Title = vm.StateName + " Trucking Statistics & Analytics | Truck Carrier Hub";
+            return View(vm);
+        }
+
+        [HttpGet]
+        public ActionResult CityCompanies(string stateCode, string cityName, string range = "24m")
+        {
+            if (string.IsNullOrWhiteSpace(stateCode) || string.IsNullOrWhiteSpace(cityName))
+                return RedirectToAction("ActiveCompanies");
+            string dbCityName = cityName.Replace("-", " ").ToUpper();
+            var vm = _homepageService.GetCityCompaniesData(stateCode.ToUpper(), dbCityName, range);
+            if (vm == null)
+                return Redirect("/statistics/state/" + stateCode.ToUpper());
+            var ti = System.Globalization.CultureInfo.CurrentCulture.TextInfo;
+            string cityDisplay = ti.ToTitleCase(dbCityName.ToLower());
+            ViewBag.Title = cityDisplay + ", " + stateCode.ToUpper() + " Trucking Statistics & Analytics | Truck Carrier Hub";
+            return View(vm);
+        }
+
+        private ActionResult ValidateMonthRoute(int year, int month, out DateTime requested)
+        {
+            requested = DateTime.MinValue;
+            if (year < 2000 || year > 9999 || month < 1 || month > 12)
+                return RedirectPermanent("/statistics/new-registrations");
+            var now2         = DateTime.Today;
+            var lastComplete = new DateTime(now2.Year, now2.Month, 1).AddMonths(-1);
+            requested        = new DateTime(year, month, 1);
+            if (requested > lastComplete)
+                return RedirectPermanent("/statistics/new-registrations");
+            return null;
+        }
+
+        [HttpGet]
+        public ActionResult NewRegistrationsMonthCarriers(int year = 0, int month = 0)
+        {
+            DateTime requested;
+            var redirect = ValidateMonthRoute(year, month, out requested);
+            if (redirect != null) return redirect;
+            var rawMonth = RouteData.Values["month"] as string;
+            if (rawMonth != null && rawMonth.Length == 1)
+                return RedirectPermanent(string.Format("/statistics/new-registrations/{0}/{1:D2}/carriers", year, month));
+            var vm = _homepageService.GetNewRegistrationsMonthData(year, month);
+            string mdash = System.Char.ConvertFromUtf32(0x2014);
+            ViewBag.Title = "New Motor Carriers " + mdash + " " + requested.ToString("MMMM yyyy") + " | Truck Carrier Hub";
+            return View(vm);
+        }
+
+        [HttpGet]
+        public ActionResult NewRegistrationsMonthBrokers(int year = 0, int month = 0)
+        {
+            DateTime requested;
+            var redirect = ValidateMonthRoute(year, month, out requested);
+            if (redirect != null) return redirect;
+            var rawMonth = RouteData.Values["month"] as string;
+            if (rawMonth != null && rawMonth.Length == 1)
+                return RedirectPermanent(string.Format("/statistics/new-registrations/{0}/{1:D2}/brokers", year, month));
+            var vm = _homepageService.GetNewRegistrationsMonthData(year, month);
+            string mdash = System.Char.ConvertFromUtf32(0x2014);
+            ViewBag.Title = "New Freight Brokers " + mdash + " " + requested.ToString("MMMM yyyy") + " | Truck Carrier Hub";
+            return View(vm);
+        }
+
+        [HttpGet]
+        public ActionResult NewRegistrationsMonth(int year = 0, int month = 0)
+        {
+            DateTime requested;
+            var redirect = ValidateMonthRoute(year, month, out requested);
+            if (redirect != null) return redirect;
+            var rawMonth = RouteData.Values["month"] as string;
+            if (rawMonth != null && rawMonth.Length == 1)
+                return RedirectPermanent(string.Format("/statistics/new-registrations/{0}/{1:D2}", year, month));
+            var vm = _homepageService.GetNewRegistrationsMonthData(year, month);
+            string mdash     = System.Char.ConvertFromUtf32(0x2014);
+            ViewBag.Title    = "New FMCSA Registrations " + mdash + " " + requested.ToString("MMMM yyyy") + " | Truck Carrier Hub";
+            return View(vm);
+        }
+
+        [HttpGet]
+        public ActionResult NewRegistrations(string range = "24m")
+        {
+            string mdash = System.Char.ConvertFromUtf32(0x2014);
+            var allowedRanges = new[] { "12m", "24m", "36m", "48m" };
+            bool validRange = false;
+            foreach (var r in allowedRanges) { if (r == range) { validRange = true; break; } }
+            if (!validRange) range = "24m";
+            var vm = _homepageService.GetNewRegistrationsData(range);
+            ViewBag.Title = "New FMCSA Registrations " + mdash + " U.S. Trucking & Broker Data | Truck Carrier Hub";
+            return View(vm);
+        }
+
+        [HttpGet]
+        public ActionResult FleetOperations()
+        {
+            string mdash = System.Char.ConvertFromUtf32(0x2014);
+            ViewBag.Title = "Fleet & Operations Statistics " + mdash + " U.S. Trucking | Truck Carrier Hub";
+            var vm = _homepageService.GetFleetOperationsData();
+            return View(vm);
+        }
+
+        [HttpGet]
+        public ActionResult Cargo()
+        {
+            string mdash = System.Char.ConvertFromUtf32(0x2014);
+            ViewBag.Title = "Cargo Statistics " + mdash + " U.S. Trucking | Truck Carrier Hub";
+            var vm = _homepageService.GetCargoData();
+            return View("CargoStatistics", vm);
         }
 
         #endregion

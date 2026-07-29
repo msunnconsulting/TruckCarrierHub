@@ -1009,6 +1009,34 @@ namespace PartnerCarrier.Web.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        [Route("filter-cities")]
+        public ActionResult FilterCities(int min = 0, int max = 0, string lastRenewedBefore = null)
+        {
+            try
+            {
+                DateTime? parsedDate = null;
+                if (!string.IsNullOrWhiteSpace(lastRenewedBefore))
+                {
+                    DateTime d;
+                    if (DateTime.TryParse(lastRenewedBefore, System.Globalization.CultureInfo.InvariantCulture,
+                            System.Globalization.DateTimeStyles.None, out d))
+                        parsedDate = d;
+                }
+                var cities = _businessMangementService.GetAllCities(min, max, parsedDate);
+                return new JsonResult
+                {
+                    Data = cities,
+                    JsonRequestBehavior = JsonRequestBehavior.AllowGet,
+                    MaxJsonLength = int.MaxValue
+                };
+            }
+            catch (Exception ex)
+            {
+                return ReturnExceptionResult(ex);
+            }
+        }
+
+        [HttpGet]
         [Route("get-city-list-for-manage-city")]
         public ActionResult GetCityListForManageCities()
         {
@@ -1120,6 +1148,81 @@ namespace PartnerCarrier.Web.Areas.Admin.Controllers
                 return ReturnExceptionResult(ex);
             }
 
+        }
+
+        #endregion
+
+        #region Statistics
+
+        [HttpGet]
+        [Route("statistics-settings")]
+        public ActionResult StatisticsSettings()
+        {
+            var vm = _businessMangementService.GetShowStatisticsNav();
+            return View("~/Areas/Admin/Views/Statistics/Settings.cshtml", vm);
+        }
+
+        [Route("save-statistics-settings")]
+        public ActionResult SaveStatisticsSettings(ShowStatisticsNavVM vm)
+        {
+            try
+            {
+                _businessMangementService.SaveShowStatisticsNav(vm);
+                return Json(true, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return ReturnExceptionResult(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("manage-statistics")]
+        public ActionResult ManageStatistics()
+        {
+            return View("~/Areas/Admin/Views/Statistics/ManageStatistics.cshtml");
+        }
+
+        [HttpPost]
+        [Route("refresh-statistics-cache")]
+        public ActionResult RefreshStatisticsCache()
+        {
+            try
+            {
+                _homepageService.InvalidateStatisticsCache();
+                _homepageService.GetStatisticsData();
+                _homepageService.GetActiveCompaniesData();
+                _homepageService.GetActiveBrokersData();
+                _homepageService.GetNewRegistrationsData("24m");
+                _homepageService.GetFleetOperationsData();
+                _homepageService.GetCargoData();
+                return Json(new { success = true, timestamp = DateTime.Now.ToString("MMMM d, yyyy 'at' h:mm:ss tt") }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        [HttpPost]
+        [Route("generate-sitemaps")]
+        public ActionResult GenerateSitemaps()
+        {
+            try
+            {
+                // Shared with the automatic regeneration hook in Global.asax.cs - actual
+                // file-writing logic lives in Helpers/SitemapGenerator.cs so both call paths
+                // (this admin button, and the post-deploy auto-regen) stay in sync. Builds
+                // sitemap.xml (index) + sitemap_pages.xml + sitemap_states.xml +
+                // sitemap_cities.xml + sitemap_registrations.xml.
+                var result = Helpers.SitemapGenerator.GenerateAll(_homepageService, _businessMangementService, Server.MapPath);
+
+                return Json(new { success = true, count = result.TotalUrlCount, timestamp = DateTime.Now.ToString("MMMM d, yyyy 'at' h:mm:ss tt") }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
         }
 
         #endregion

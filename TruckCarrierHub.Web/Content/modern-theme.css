@@ -63,11 +63,37 @@ h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-body) !important;
     font-weight: 400;
     font-size: 14px;
+    display: block;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    -webkit-box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    padding: 26px 30px 22px;
+    margin: 4px 0 24px;
 }
 
     .homepage-page-decription p,
     .homepage-page-decription div {
-        font-size: 14px;
+        font-size: 14.5px;
+        line-height: 1.4;
+        color: var(--steel-500);
+    }
+
+    .homepage-page-decription > p:first-child {
+        font-size: 16.5px;
+        font-weight: 500;
+        color: var(--ink-900);
+        line-height: 1.45;
+        margin-bottom: 10px;
+    }
+
+    .homepage-page-decription .home-article p {
+        margin-bottom: 8px;
+    }
+
+    .homepage-page-decription .home-article p:last-child {
+        margin-bottom: 0;
     }
 
 a {
@@ -107,6 +133,26 @@ a {
     margin: 0 0 14px;
     font-weight: 400 !important;
 }
+
+/* Inline links inside admin-authored article copy (Admin.HomeArticle etc.) inherit the
+   sitewide "a { color: var(--ink-700); }" rule above, which is a dark navy close enough to
+   the surrounding --ink-900/--steel-500 body text - and with no underline by default (only
+   on hover), they read as plain text instead of links. Give them the accent color plus an
+   underline so they're visibly distinct, matching how a content link should look. */
+.home-article a,
+.homepage-page-decription a,
+.state-article a,
+.city-article a {
+    color: var(--signal-500);
+    text-decoration: underline;
+}
+
+    .home-article a:hover,
+    .homepage-page-decription a:hover,
+    .state-article a:hover,
+    .city-article a:hover {
+        color: var(--ink-700);
+    }
 
 .home-article b,
 .home-article strong,
@@ -349,6 +395,23 @@ a {
     }
 
 /* -------------------------------------------------------------------- */
+/* Hiring badge — company list rows                                       */
+/* -------------------------------------------------------------------- */
+
+.hiring-badge {
+    display: inline-block;
+    background: var(--verified-50);
+    color: var(--verified-600);
+    font-size: 0.70em;
+    font-weight: 700;
+    padding: 1px 8px;
+    border-radius: 20px;
+    margin-left: 6px;
+    vertical-align: middle;
+    letter-spacing: .03em;
+}
+
+/* -------------------------------------------------------------------- */
 /* Footer                                                                 */
 /* -------------------------------------------------------------------- */
 
@@ -390,4 +453,237 @@ footer {
 
 .ajax-loader {
     z-index: 1100;
+}
+
+/* -------------------------------------------------------------------- */
+/* Homepage statistics band (hpb-*)                                      */
+/* -------------------------------------------------------------------- */
+
+.hp-stats-strip {
+    background: var(--paper-50);
+    padding: 20px 0 16px;
+}
+
+.hpb-band {
+    padding: 0 0 12px;
+}
+
+.hpb-grid {
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    gap: 12px;
+    -ms-flex-wrap: wrap;
+    flex-wrap: wrap;
+}
+
+.hpb-card {
+    -webkit-box-flex: 1;
+    -ms-flex: 1 1 160px;
+    flex: 1 1 160px;
+    min-width: 0;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    -webkit-box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    padding: 16px 15px 14px;
+    display: block;
+    text-decoration: none !important;
+    color: inherit !important;
+}
+
+.hpb-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
+    align-items: center;
+    -webkit-box-pack: center;
+    -ms-flex-pack: center;
+    justify-content: center;
+    color: #fff;
+    margin-bottom: 14px;
+    -ms-flex-negative: 0;
+    flex-shrink: 0;
+}
+
+    .hpb-icon .fa { font-size: 21px; line-height: 1; }
+
+.hpb-icon-blue   { background: #3b82f6; }
+.hpb-icon-green  { background: #10b981; }
+.hpb-icon-purple { background: #8b5cf6; }
+.hpb-icon-orange { background: #f97316; }
+.hpb-icon-gold   { background: #f59e0b; }
+
+a.hpb-card-link {
+    -webkit-transition: border-color 0.15s;
+    transition: border-color 0.15s;
+}
+
+    a.hpb-card-link:hover,
+    a.hpb-card-link:focus {
+        border-color: #3b82f6;
+        text-decoration: none !important;
+        color: inherit !important;
+    }
+
+.hpb-num {
+    font-size: 1.7em;
+    font-weight: 700;
+    color: #111827;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 5px;
+}
+
+/* Date variant — smaller text, line-height tuned so labels align across cards */
+.hpb-num-date {
+    font-size: 1.25em;
+    line-height: 1.5;
+}
+
+.hpb-desc {
+    font-size: 0.78em;
+    color: var(--steel-500);
+    margin-top: 6px;
+    line-height: 1.4;
+}
+
+.hpb-label {
+    font-size: 0.95em;
+    font-weight: 600;
+    color: #111827;
+    line-height: 1.3;
+}
+
+.hpb-cue {
+    font-size: 0.82em;
+    color: #2563eb;
+    margin-top: 8px;
+    font-weight: 600;
+}
+
+.hpb-note {
+    font-size: 0.78em;
+    color: var(--steel-500);
+    margin-top: 10px;
+    line-height: 1.4;
+}
+
+/* -------------------------------------------------------------------- */
+/* Homepage monthly report teaser (hpt-*)                                */
+/* -------------------------------------------------------------------- */
+
+.hpt-wrap {
+    padding: 0 0 12px;
+}
+
+.hpt-teaser {
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
+    align-items: center;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    -webkit-box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    padding: 14px 18px;
+    text-decoration: none !important;
+    color: inherit !important;
+    gap: 14px;
+    -webkit-transition: border-color 0.15s;
+    transition: border-color 0.15s;
+}
+
+    .hpt-teaser:hover,
+    .hpt-teaser:focus {
+        border-color: #3b82f6;
+        text-decoration: none !important;
+        color: inherit !important;
+    }
+
+.hpt-left {
+    -webkit-box-flex: 1;
+    -ms-flex: 1;
+    flex: 1;
+    min-width: 0;
+}
+
+.hpt-badge {
+    display: inline-block;
+    background: var(--signal-500);
+    color: var(--white);
+    font-size: 0.68em;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-right: 7px;
+    vertical-align: middle;
+}
+
+.hpt-title {
+    font-family: var(--font-display) !important;
+    font-size: 0.94em;
+    font-weight: 600;
+    color: var(--ink-900);
+    vertical-align: middle;
+}
+
+.hpt-body {
+    display: block;
+    font-size: 0.81em;
+    color: var(--steel-500);
+    margin-top: 5px;
+    line-height: 1.45;
+}
+
+.hpt-right {
+    -ms-flex-negative: 0;
+    flex-shrink: 0;
+    color: var(--signal-500);
+    font-size: 0.9em;
+}
+
+@media (max-width: 640px) {
+    .hpb-num { font-size: 1.3em; }
+    .hpb-card { -webkit-box-flex: 1; -ms-flex: 1 1 calc(50% - 6px); flex: 1 1 calc(50% - 6px); }
+    .hpt-right { display: none; }
+}
+
+/* Glyphicons render on <span class="glyphicon ..."> elements, but the sitewide base
+   typography rule near the top of this file ("body, p, div, span, ... { font-family:
+   var(--font-body) !important; }") includes span and uses !important, so it silently
+   forces IBM Plex Sans onto every glyphicon and permanently overrides Bootstrap's own
+   .glyphicon:before { font-family: 'Glyphicons Halflings' } rule -- same category of bug
+   as the button-color !important/specificity issue already noted above in this file, just
+   not caught for this element. This is independent of (and in addition to) the font-file
+   path fix below: without this, the search/gear icons stay invisible even once the font
+   file itself loads correctly. */
+.glyphicon:before {
+    font-family: 'Glyphicons Halflings' !important;
+}
+
+/* Glyphicons font override (July 2026 search-icon fix).
+   The ~/Content/css-frontend bundle (System.Web.Optimization) keeps serving this
+   @font-face with the old broken relative paths (../fonts/glyphicons-halflings-regular.*)
+   even after the source bootstrap.css was fixed to absolute paths, a rebuild+republish,
+   and an app-pool recycle -- the bundle cache would not budge. This file loads right after
+   that bundle (see _Layout.cshtml) and is cache-busted per-edit via its own ?v= file-tick
+   query string, so redeclaring the font-face here reliably wins regardless of whatever the
+   bundle is doing. Fixes the missing search-icon (glyphicon-search) on the nav bar, homepage,
+   and City page filter button, plus the account-menu gear icon (glyphicon-cog). */
+@font-face {
+    font-family: 'Glyphicons Halflings';
+    src: url('/Themes/Bootstrap/plugins/bootstrap-3.3.7-custom/dist/fonts/glyphicons-halflings-regular.eot');
+    src: url('/Themes/Bootstrap/plugins/bootstrap-3.3.7-custom/dist/fonts/glyphicons-halflings-regular.eot?#iefix') format('embedded-opentype'), url('/Themes/Bootstrap/plugins/bootstrap-3.3.7-custom/dist/fonts/glyphicons-halflings-regular.woff2') format('woff2'), url('/Themes/Bootstrap/plugins/bootstrap-3.3.7-custom/dist/fonts/glyphicons-halflings-regular.woff') format('woff'), url('/Themes/Bootstrap/plugins/bootstrap-3.3.7-custom/dist/fonts/glyphicons-halflings-regular.ttf') format('truetype'), url('/Themes/Bootstrap/plugins/bootstrap-3.3.7-custom/dist/fonts/glyphicons-halflings-regular.svg#glyphicons_halflingsregular') format('svg');
 }

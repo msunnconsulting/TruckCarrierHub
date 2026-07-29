@@ -51,12 +51,14 @@
                 }
             }, false);
         });
-        var navpos = $('#mainnav').offset();
-        $(window).bind('scroll', function () {
-            if ($(window).scrollTop()) {
+        var _navIsFixed = false;
+        $(window).on('scroll', function () {
+            var shouldFix = $(window).scrollTop() > 0;
+            if (shouldFix === _navIsFixed) { return; }
+            _navIsFixed = shouldFix;
+            if (shouldFix) {
                 $('#mainnav').addClass('navbar-fixed-top');
-            }
-            else {
+            } else {
                 $('#mainnav').removeClass('navbar-fixed-top');
             }
         });
@@ -231,14 +233,18 @@
     function OnFailureGetAQuote() {
     }
 
- var isDeliverySelected = false;   
+ var isDeliverySelected = false;
+// Get A Quote widget is admin-toggleable per page (e.g. homepage "Show on homepage" flag),
+// so #DeliveryLocation may not exist in the DOM on every page this script runs on. Guard
+// against that instead of throwing on an empty jQuery selection.
+if ($("#DeliveryLocation").length) {
 $("#DeliveryLocation").autocomplete({
     delay: 100,
     minLength: 3,
     source: function (request, response) {
         // Suggest URL
         var suggestURL = "/SearchAutoCompleteCity";
-        //Create Javascript object    
+        //Create Javascript object
         var searchData = { SelctedSearchPrefix: request.term, SelectedValue: selectedValue };
 
         $.ajax({
@@ -285,15 +291,18 @@ $("#DeliveryLocation").autocomplete({
         .append("<a class='auto-complete'><i class='fa fa-building'></i> " + item.label + "<br />" + "</a>")
         .appendTo(ul);
 };
+}
 
  var isPickupSelected = false;
+// Same guard as #DeliveryLocation above — this field lives in the same optional widget.
+if ($("#PickupLocation").length) {
 $("#PickupLocation").autocomplete({
     delay: 100,
     minLength: 3,
     source: function (request, response) {
         // Suggest URL
         var suggestURL = "/SearchAutoCompleteCity";
-        //Create Javascript object    
+        //Create Javascript object
         var searchData = { SelctedSearchPrefix: request.term, SelectedValue: selectedValue };
 
         $.ajax({
@@ -320,7 +329,7 @@ $("#PickupLocation").autocomplete({
             }
         });
     },
-    select: function (event, ui) {    
+    select: function (event, ui) {
         isPickupSelected = true;
         $("#PickupLocation").val(ui.item.value);
     },
@@ -340,6 +349,7 @@ $("#PickupLocation").autocomplete({
         .append("<a class='auto-complete'><i class='fa fa-building'></i> " + item.label + "<br />" + "</a>")
         .appendTo(ul);
 };
+}
 
 
 })(this);

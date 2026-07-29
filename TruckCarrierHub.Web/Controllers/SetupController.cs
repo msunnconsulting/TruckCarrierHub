@@ -309,17 +309,8 @@
 
                 return View("~/Views/Setup/SendEmailToMultiple.cshtml");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                //int? countyId = null, userId = null;
-                //var loggedInUser = FormsAuthService.Instance.LoggedInUser();
-                //if (loggedInUser != null)
-                //{
-                //    userId = loggedInUser.UserId;
-                //}
-
-                //AppLogger.Instance.Log(ex, LogStorageType.Both, logType: LogType.Error, userId: userId, coutyId: countyId);
-
                 //ViewBag.EmailSendingFailedMessage = "Email sending failed";
                 return View("~/Views/Setup/SendEmailToMultiple.cshtml");
 

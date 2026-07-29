@@ -58,11 +58,45 @@
     bool hHalf = hFrac >= 0.25 && hFrac < 0.75;
     if (hFrac >= 0.75) { hFull++; }
     int hEmpty = 5 - hFull - (hHalf ? 1 : 0);
+
+    // JSON-LD: LocalBusiness — skip entirely if no meaningful address data
+    Newtonsoft.Json.Linq.JObject companyLd = null;
+    if (!string.IsNullOrEmpty(Model.PhysicalAddressCity) && !string.IsNullOrEmpty(Model.PhysicalAddressStateCode))
+    {
+        string[] caProvinces = { "AB","BC","MB","NB","NL","NS","NT","NU","ON","PE","QC","SK","YT" };
+        string coCountry = System.Array.IndexOf(caProvinces, (Model.PhysicalAddressStateCode ?? "").ToUpper()) >= 0 ? "CA" : "US";
+        string companyName = !string.IsNullOrEmpty(Model.DoingBusinessAsName) ? Model.DoingBusinessAsName : (Model.LegalName ?? "");
+
+        var addrObj = new Newtonsoft.Json.Linq.JObject { ["@type"] = "PostalAddress" };
+        if (!string.IsNullOrEmpty(Model.PhysicalAddressStreet))    { addrObj["streetAddress"]   = Model.PhysicalAddressStreet; }
+        if (!string.IsNullOrEmpty(Model.PhysicalAddressCity))      { addrObj["addressLocality"] = Model.PhysicalAddressCity; }
+        if (!string.IsNullOrEmpty(Model.PhysicalAddressStateCode)) { addrObj["addressRegion"]   = Model.PhysicalAddressStateCode; }
+        if (!string.IsNullOrEmpty(Model.PhysicalAddressZipCode))   { addrObj["postalCode"]      = Model.PhysicalAddressZipCode; }
+        addrObj["addressCountry"] = coCountry;
+
+        companyLd = new Newtonsoft.Json.Linq.JObject {
+            ["@context"] = "https://schema.org",
+            ["@type"]    = "LocalBusiness",
+            ["name"]     = companyName,
+            ["url"]      = canonicalUrl,
+            ["address"]  = addrObj
+        };
+        if (!string.IsNullOrEmpty(officePhoneFmt)) { companyLd["telephone"] = officePhoneFmt; }
+        if (!string.IsNullOrEmpty(Model.CompanysEmailAddress)) { companyLd["email"] = Model.CompanysEmailAddress; }
+        companyLd["identifier"] = new Newtonsoft.Json.Linq.JObject {
+            ["@type"]      = "PropertyValue",
+            ["propertyID"] = "USDOT",
+            ["value"]      = Model.USDOTNumber.ToString()
+        };
+    }
 }
 
 @section AdditionalMeta {
     <meta name="description" content="@Model.PageDescription" />
     <link rel="canonical" href="@ViewBag.CanonicalUrl" />
+    @if (companyLd != null) {
+    <script type="application/ld+json">@Html.Raw(companyLd.ToString(Newtonsoft.Json.Formatting.None))</script>
+    }
 }
 
 @{
@@ -393,28 +427,11 @@
                 }
                 @if (!string.IsNullOrEmpty(Model.DateInString))
                 {
-                    <span class="co-registered">Registered @Model.DateInString</span>
+                    <span class="co-registered">FMCSA Registration Date @Model.DateInString</span>
                 }
             </div>
         </div>
 
-        <div class="co-header-rating">
-            @if (Model.TotalReviews > 0)
-            {
-                <span class="co-rating-score">@Model.AverageRating</span>
-                <span class="co-rating-stars">
-                    @for (int i = 0; i < hFull; i++) { <i class="fa fa-star"></i> }
-                    @if (hHalf) { <i class="fa fa-star-half-o"></i> }
-                    @for (int i = 0; i < hEmpty; i++) { <i class="fa fa-star-o"></i> }
-                </span>
-                <span class="co-rating-count">@Model.TotalReviews review@(Model.TotalReviews == 1 ? "" : "s")</span>
-                <a href="javascript:void(0);" class="co-rating-link" onclick="reviewVm.openReviewOverlay(@Model.USDOTNumber)">Read reviews</a>
-            }
-            else if (Model.CanWriteReview && Model.Status.ToLower() == "a")
-            {
-                <a href="javascript:void(0);" class="co-first-review" onclick="reviewVm.onAddReviewClick(@Model.USDOTNumber, true)">Be the first to write a review</a>
-            }
-        </div>
     </div>
 
     @* Stats grid *@
@@ -609,9 +626,14 @@
         <div class="section-card-title">Hiring</div>
         <div class="section-grid">
             <div class="section-col">
+                @{
+                    bool hasAnyHiringType = (Model.CompanyTrailerType != null && Model.CompanyTrailerType.Count > 0)
+                                         || (Model.CompanyDriverType != null && Model.CompanyDriverType.Count > 0);
+                    bool isEffectivelyHiring = Model.NowHiring && hasAnyHiringType;
+                }
                 <div class="section-col-label">Truck Driver Jobs</div>
-                <div class="section-col-value">@(Model.NowHiring ? "Now hiring" : "Not currently hiring")</div>
-                @if (Model.NowHiring)
+                <div class="section-col-value">@(isEffectivelyHiring ? "Now hiring" : "Not currently hiring")</div>
+                @if (isEffectivelyHiring)
                 {
                     <div class="hiring-contact">
                         <div class="hiring-contact-label">Contact for driver jobs</div>
@@ -630,7 +652,7 @@
                         @foreach (var trailer in Model.TrailerType)
                         {
                             bool ok = Model.CompanyTrailerType != null && Model.CompanyTrailerType.Contains(trailer);
-                            <li class="@(ok ? "supported" : "")">@trailer@(ok ? " ✓" : "")</li>
+                            <li class="@(ok ? "supported" : "")">@trailer@(ok ? " ✓" : "") @(ok ? null : Html.Raw("<span style=\"color:#9ca3af;font-size:.9em;\">&mdash; N/A</span>"))</li>
                         }
                     </ul>
                 }
@@ -648,7 +670,7 @@
                         @foreach (var driver in Model.DriverType)
                         {
                             bool ok = Model.CompanyDriverType != null && Model.CompanyDriverType.Contains(driver);
-                            <li class="@(ok ? "supported" : "")">@driver@(ok ? " ✓" : "")</li>
+                            <li class="@(ok ? "supported" : "")">@driver@(ok ? " ✓" : "") @(ok ? null : Html.Raw("<span style=\"color:#9ca3af;font-size:.9em;\">&mdash; N/A</span>"))</li>
                         }
                     </ul>
                 }

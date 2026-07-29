@@ -1,0 +1,828 @@
+@model PartnerCarrier.ViewModels.Admin.StatisticsNewRegistrationsVM
+@using System.Globalization
+@{
+    Layout = "~/Themes/Bootstrap/Views/Shared/_Layout.cshtml";
+    string mdash     = System.Char.ConvertFromUtf32(0x2014);
+    var ti           = CultureInfo.CurrentCulture.TextInfo;
+    string nrCanon   = "https://truckcarrierhub.com/statistics/new-registrations";
+    string rangeLabel = Model.Range == "12m" ? "12 months" : Model.Range == "36m" ? "36 months" : Model.Range == "48m" ? "48 months" : "24 months";
+    string nrMetaFull = "U.S. new FMCSA registrations " + mdash + " " + (Model != null ? Model.TotalNewCount.ToString("N0") : "0") + " new companies and freight brokers in the last " + rangeLabel + ". Track registration trends by state, city, and entity type.";
+    string nrMetaDesc = nrMetaFull.Length <= 160 ? nrMetaFull : nrMetaFull.Substring(0, 157) + "...";
+    string nrTitle    = "New FMCSA Registrations " + mdash + " U.S. Trucking & Broker Data | Truck Carrier Hub";
+
+    var nrLd = new Newtonsoft.Json.Linq.JObject {
+        ["@context"]    = "https://schema.org",
+        ["@type"]       = "WebPage",
+        ["name"]        = "New FMCSA Registrations " + mdash + " U.S.",
+        ["description"] = nrMetaDesc,
+        ["url"]         = nrCanon,
+        ["breadcrumb"]  = new Newtonsoft.Json.Linq.JObject {
+            ["@type"] = "BreadcrumbList",
+            ["itemListElement"] = new Newtonsoft.Json.Linq.JArray {
+                new Newtonsoft.Json.Linq.JObject { ["@type"] = "ListItem", ["position"] = 1, ["name"] = "Home",                       ["item"] = "https://truckcarrierhub.com" },
+                new Newtonsoft.Json.Linq.JObject { ["@type"] = "ListItem", ["position"] = 2, ["name"] = "Statistics",                 ["item"] = "https://truckcarrierhub.com/statistics" },
+                new Newtonsoft.Json.Linq.JObject { ["@type"] = "ListItem", ["position"] = 3, ["name"] = "New FMCSA Registrations",    ["item"] = nrCanon }
+            }
+        }
+    };
+}
+@section AdditionalMeta {
+<meta name="description" content="@nrMetaDesc" />
+<link rel="canonical" href="@nrCanon" />
+<script type="application/ld+json">@Html.Raw(nrLd.ToString(Newtonsoft.Json.Formatting.None))</script>
+}
+<link rel="stylesheet" href="@Url.Content("~/Content/statistics-page.css")" />
+<style>
+    /* ── tables ── */
+    .nr-table { width:100%; border-collapse:collapse; font-size:.88em; }
+    .nr-table th { background:#f3f4f6; color:#374151; font-weight:600; padding:9px 12px; text-align:left; border-bottom:2px solid #e5e7eb; white-space:nowrap; }
+    .nr-table td { padding:8px 12px; border-bottom:1px solid #f3f4f6; color:#374151; vertical-align:middle; }
+    .nr-table tr:last-child td { border-bottom:none; }
+    .nr-table tr:hover td { background:#f9fafb; }
+    .nr-rank  { font-weight:700; color:#9ca3af; width:28px; }
+    .nr-count { font-weight:700; color:#111827; white-space:nowrap; }
+    .nr-pct   { color:#6b7280; font-size:.82em; white-space:nowrap; }
+
+    /* ── section cards ── */
+    .nr-card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; box-shadow:0 1px 4px rgba(0,0,0,.06); overflow:hidden; }
+    .nr-card-header { padding:14px 18px 12px; border-bottom:1px solid #e5e7eb; display:-webkit-box; display:-ms-flexbox; display:flex; -webkit-box-align:center; -ms-flex-align:center; align-items:center; -webkit-box-pack:justify; -ms-flex-pack:justify; justify-content:space-between; gap:10px; }
+    .nr-card-title { font-size:1em; font-weight:700; color:#111827; margin:0; display:-webkit-box; display:-ms-flexbox; display:flex; -webkit-box-align:center; -ms-flex-align:center; align-items:center; gap:8px; }
+    .nr-card-title .fa { color:#7c3aed; }
+    .nr-card-body { padding:0; }
+
+    /* ── rows ── */
+    .nr-row { display:-webkit-box; display:-ms-flexbox; display:flex; gap:20px; margin-bottom:24px; -ms-flex-wrap:wrap; flex-wrap:wrap; }
+    .nr-col-55 { -webkit-box-flex:0; -ms-flex:0 0 calc(55% - 10px); flex:0 0 calc(55% - 10px); min-width:0; }
+    .nr-col-45 { -webkit-box-flex:0; -ms-flex:0 0 calc(45% - 10px); flex:0 0 calc(45% - 10px); min-width:0; }
+    .nr-col-60 { -webkit-box-flex:0; -ms-flex:0 0 calc(60% - 10px); flex:0 0 calc(60% - 10px); min-width:0; }
+    .nr-col-40 { -webkit-box-flex:0; -ms-flex:0 0 calc(40% - 10px); flex:0 0 calc(40% - 10px); min-width:0; }
+    .nr-col-50 { -webkit-box-flex:0; -ms-flex:0 0 calc(50% - 10px); flex:0 0 calc(50% - 10px); min-width:0; }
+    .nr-col-33 { -webkit-box-flex:0; -ms-flex:0 0 calc(33.333% - 14px); flex:0 0 calc(33.333% - 14px); min-width:0; }
+    @@media (max-width:860px) {
+        .nr-col-55,.nr-col-45,.nr-col-60,.nr-col-40,.nr-col-50,.nr-col-33 { -webkit-box-flex:0; -ms-flex:0 0 100%; flex:0 0 100%; }
+    }
+
+    /* ── range tabs ── */
+    .nr-range-wrap { display:-webkit-box; display:-ms-flexbox; display:flex; gap:6px; -ms-flex-wrap:wrap; flex-wrap:wrap; margin-bottom:20px; }
+    .nr-range-tab { display:inline-block; padding:5px 14px; border:1px solid #e5e7eb; border-radius:6px; font-size:.83em; color:#374151; text-decoration:none; background:#fff; -webkit-transition:all .15s; transition:all .15s; }
+    .nr-range-tab:hover { border-color:#a5b4fc; background:#f5f3ff; text-decoration:none; color:#5b21b6; }
+    .nr-range-tab.active { background:#7c3aed; color:#fff; border-color:#7c3aed; font-weight:600; }
+
+    /* ── chart ── */
+    .nr-chart-wrap { padding:16px 18px 14px; }
+    .nr-chart-svg  { width:100%; overflow:visible; display:block; }
+    .nr-chart-legend { display:-webkit-box; display:-ms-flexbox; display:flex; gap:18px; margin-top:10px; -ms-flex-wrap:wrap; flex-wrap:wrap; }
+    .nr-legend-dot  { display:inline-block; width:10px; height:10px; border-radius:50%; }
+    .nr-legend-item { display:-webkit-box; display:-ms-flexbox; display:flex; -webkit-box-align:center; -ms-flex-align:center; align-items:center; gap:6px; font-size:.8em; color:#374151; }
+
+    /* ── donut ── */
+    .nr-donut-wrap { padding:18px; }
+    .nr-donut-body { display:-webkit-box; display:-ms-flexbox; display:flex; -webkit-box-align:center; -ms-flex-align:center; align-items:center; gap:20px; -ms-flex-wrap:wrap; flex-wrap:wrap; }
+    .nr-donut-svg-wrap { position:relative; -ms-flex-negative:0; flex-shrink:0; }
+    .nr-donut-center { position:absolute; top:50%; left:50%; -webkit-transform:translate(-50%,-50%); transform:translate(-50%,-50%); text-align:center; pointer-events:none; }
+    .nr-donut-center-num { font-size:1em; font-weight:800; color:#111827; line-height:1.1; }
+    .nr-donut-center-lbl { font-size:.68em; color:#6b7280; line-height:1.3; }
+    .nr-donut-note { font-size:.76em; color:#9ca3af; margin-top:10px; }
+
+    /* ── choropleth ── */
+    .nr-map-wrap  { position:relative; padding:16px 18px 12px; }
+    .nr-map-tip   { position:absolute; background:#1f2937; color:#fff; font-size:.82em; padding:7px 11px; border-radius:6px; pointer-events:none; white-space:nowrap; z-index:10; line-height:1.5; box-shadow:0 2px 8px rgba(0,0,0,.25); display:none; }
+    .nr-map-legend { display:-webkit-box; display:-ms-flexbox; display:flex; -webkit-box-align:center; -ms-flex-align:center; align-items:center; gap:10px; margin-top:8px; font-size:.8em; color:#6b7280; }
+    .nr-legend-grad { height:10px; -webkit-box-flex:0; -ms-flex:0 0 140px; flex:0 0 140px; border-radius:3px; background:linear-gradient(to right,#ede9fe,#5b21b6); border:1px solid #e5e7eb; }
+    .nr-map-hint { font-size:.78em; color:#9ca3af; margin-top:6px; margin-bottom:0; }
+
+    /* ── trend badges ── */
+    .stat-badge-up   { display:inline-block; background:#f0fdf4; color:#16a34a; font-size:.75em; font-weight:600; border-radius:4px; padding:1px 5px; }
+    .stat-badge-down { display:inline-block; background:#fef2f2; color:#dc2626; font-size:.75em; font-weight:600; border-radius:4px; padding:1px 5px; }
+
+    /* ── age card pill ── */
+    .nr-pill-neutral { display:inline-block; background:#f3f4f6; color:#6b7280; font-size:.73em; font-weight:500; border-radius:4px; padding:2px 8px; white-space:nowrap; -ms-flex-negative:0; flex-shrink:0; }
+
+    /* ── calendar heatmap ── */
+    .nr-cal-wrap { padding:16px 18px; overflow-x:auto; }
+    .nr-cal-table { border-collapse:collapse; font-size:.80em; min-width:600px; width:100%; }
+    .nr-cal-table th { background:#f9fafb; color:#6b7280; font-weight:600; padding:5px 4px; text-align:center; font-size:.75em; border-bottom:1px solid #e5e7eb; }
+    .nr-cal-table td { padding:4px; text-align:center; }
+    .nr-cal-cell { border-radius:4px; padding:4px 2px; font-size:.78em; color:#374151; line-height:1.2; min-width:40px; display:block; }
+    .nr-cal-year { font-weight:700; color:#374151; font-size:.85em; padding:4px 6px; text-align:right; white-space:nowrap; }
+
+    /* ── related ── */
+    .nr-related { margin-bottom:28px; }
+    .nr-related-title { font-size:.88em; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:.06em; margin-bottom:14px; display:-webkit-box; display:-ms-flexbox; display:flex; -webkit-box-align:center; -ms-flex-align:center; align-items:center; gap:8px; }
+    .nr-related-grid { display:-webkit-box; display:-ms-flexbox; display:flex; gap:14px; -ms-flex-wrap:wrap; flex-wrap:wrap; }
+    .nr-related-item { -webkit-box-flex:1; -ms-flex:1 1 160px; flex:1 1 160px; background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:14px 16px; text-decoration:none; display:-webkit-box; display:-ms-flexbox; display:flex; -webkit-box-align:center; -ms-flex-align:center; align-items:center; gap:12px; -webkit-transition:border-color .15s; transition:border-color .15s; }
+    .nr-related-item:hover { border-color:#c4b5fd; text-decoration:none; }
+    .nr-related-icon { width:36px; height:36px; border-radius:8px; display:-webkit-box; display:-ms-flexbox; display:flex; -webkit-box-align:center; -ms-flex-align:center; align-items:center; -webkit-box-pack:center; -ms-flex-pack:center; justify-content:center; font-size:.95em; -ms-flex-negative:0; flex-shrink:0; }
+    .nr-related-text strong { display:block; font-size:.82em; color:#111827; font-weight:600; }
+    .nr-related-text span   { display:block; font-size:.75em; color:#6b7280; }
+    .nr-related-arrow { margin-left:auto; color:#9ca3af; font-size:.85em; -ms-flex-negative:0; flex-shrink:0; }
+
+    /* ── footer ── */
+    .nr-footer-bar { display:-webkit-box; display:-ms-flexbox; display:flex; -webkit-box-pack:justify; -ms-flex-pack:justify; justify-content:space-between; -webkit-box-align:center; -ms-flex-align:center; align-items:center; gap:16px; border-top:1px solid #e5e7eb; padding-top:14px; margin-bottom:30px; -ms-flex-wrap:wrap; flex-wrap:wrap; }
+    .nr-footer-bar span { font-size:.8em; color:#9ca3af; }
+</style>
+
+<div class="container stats-page">
+
+    <!-- Breadcrumb -->
+    <div class="stats-breadcrumb">
+        <a href="@Url.Action("Index", "Home")">Home</a>
+        <span class="sep">/</span>
+        <a href="@Url.Action("Statistics", "Home")">Statistics</a>
+        <span class="sep">/</span>
+        New FMCSA Registrations
+    </div>
+
+    <!-- Hero -->
+    <div class="stats-hero">
+        <div class="stats-hero-text">
+            <h1 class="stats-hero-title">New FMCSA Registrations</h1>
+            <p style="font-size:1.05em;font-weight:600;color:#374151;margin:-6px 0 10px;">U.S. Statistics Overview</p>
+            <p class="stats-hero-desc">
+                Track newly registered trucking companies and freight brokers in the United States based on official FMCSA data.
+                Explore registration trends by entity type, state, and city.
+                Data is updated weekly.
+            </p>
+            @if (Model.LastDataUpdate.HasValue)
+            {
+                <div style="margin-top:10px;font-size:.82em;color:#6b7280;display:-webkit-box;display:-ms-flexbox;display:flex;gap:18px;-ms-flex-wrap:wrap;flex-wrap:wrap;">
+                    <span><i class="fa fa-calendar-o" style="margin-right:5px;color:#9ca3af;"></i>Data updated: @Model.LastDataUpdate.Value.ToString("MMMM d, yyyy")</span>
+                    <span><i class="fa fa-database" style="margin-right:5px;color:#9ca3af;"></i>Source: FMCSA registration data</span>
+                </div>
+            }
+        </div>
+        <div class="stats-hero-map">
+            <img src="@Url.Content("~/Content/images/us_states_map_transparent_1200x750.png")" alt="United States map" class="stats-hero-map-img" onerror="this.style.display='none'" />
+        </div>
+    </div>
+
+    <!-- Range selector -->
+    <div class="nr-range-wrap">
+        <a href="?range=12m" class="nr-range-tab @(Model.Range == "12m" ? "active" : "")">Last 12 Months</a>
+        <a href="?range=24m" class="nr-range-tab @(Model.Range == "24m" || string.IsNullOrEmpty(Model.Range) ? "active" : "")">Last 24 Months</a>
+        <a href="?range=36m" class="nr-range-tab @(Model.Range == "36m" ? "active" : "")">Last 36 Months</a>
+        <a href="?range=48m" class="nr-range-tab @(Model.Range == "48m" ? "active" : "")">Last 48 Months</a>
+    </div>
+    <p style="font-size:.8em;color:#9ca3af;margin-top:-12px;margin-bottom:20px;">The selected date range applies to all statistics on this page except Active Companies by Registration Age.</p>
+
+    <!-- 4 Stat Cards -->
+    @{
+        double nrTrendTotal = Model.PrevTotalCount > 0 ? ((double)(Model.TotalNewCount - Model.PrevTotalCount)) / (double)Model.PrevTotalCount * 100.0 : 0;
+        double nrTrendMC    = Model.PrevMotorCarrierCount > 0 ? ((double)(Model.NewMotorCarrierCount - Model.PrevMotorCarrierCount)) / (double)Model.PrevMotorCarrierCount * 100.0 : 0;
+        double nrTrendBk    = Model.PrevBrokerCount > 0 ? ((double)(Model.NewBrokerCount - Model.PrevBrokerCount)) / (double)Model.PrevBrokerCount * 100.0 : 0;
+    }
+    <div class="stat-cards-wrap" style="margin-bottom:28px;">
+
+        <div class="stat-card-col">
+            <div class="stat-card-v2">
+                <div class="stat-icon-circle sic-purple"><i class="fa fa-line-chart"></i></div>
+                <div class="stat-card-num">@Model.TotalNewCount.ToString("N0")</div>
+                <div class="stat-card-label">New FMCSA Registrations</div>
+                <div class="stat-card-desc">
+                    Active U.S. companies registered in the selected period
+                    @if (Model.PrevTotalCount > 0) {
+                        string tc2 = nrTrendTotal >= 0 ? "stat-badge-up" : "stat-badge-down";
+                        string ts  = (nrTrendTotal >= 0 ? "+" : "") + nrTrendTotal.ToString("F0") + "% vs prior period";
+                        @Html.Raw(" <span class=\"" + tc2 + "\">" + ts + "</span>")
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card-col">
+            <div class="stat-card-v2">
+                <div class="stat-icon-circle sic-blue"><i class="fa fa-truck"></i></div>
+                <div class="stat-card-num">@Model.NewMotorCarrierCount.ToString("N0")</div>
+                <div class="stat-card-label">New Motor Carriers</div>
+                <div class="stat-card-desc">
+                    Companies holding active carrier authority
+                    @if (Model.PrevMotorCarrierCount > 0) {
+                        string tc2 = nrTrendMC >= 0 ? "stat-badge-up" : "stat-badge-down";
+                        string ts  = (nrTrendMC >= 0 ? "+" : "") + nrTrendMC.ToString("F0") + "% vs prior period";
+                        @Html.Raw(" <span class=\"" + tc2 + "\">" + ts + "</span>")
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card-col">
+            <div class="stat-card-v2">
+                <div class="stat-icon-circle sic-green"><i class="fa fa-users"></i></div>
+                <div class="stat-card-num">@Model.NewBrokerCount.ToString("N0")</div>
+                <div class="stat-card-label">New Freight Brokers</div>
+                <div class="stat-card-desc">
+                    Companies holding any broker authority
+                    @if (Model.NewBothCount > 0) {
+                        <br /><span style="color:#6b7280;font-size:.92em;">@Model.NewBothCount.ToString("N0") also hold motor carrier authority</span>
+                    }
+                    @if (Model.PrevBrokerCount > 0) {
+                        string tc2 = nrTrendBk >= 0 ? "stat-badge-up" : "stat-badge-down";
+                        string ts  = (nrTrendBk >= 0 ? "+" : "") + nrTrendBk.ToString("F0") + "% vs prior period";
+                        @Html.Raw(" <span class=\"" + tc2 + "\">" + ts + "</span>")
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card-col">
+            <div class="stat-card-v2">
+                <div class="stat-icon-circle sic-orange"><i class="fa fa-calendar-o"></i></div>
+                <div class="stat-card-num">@Model.AvgPerMonth.ToString("N1")</div>
+                <div class="stat-card-label">Avg. New Per Month</div>
+                <div class="stat-card-desc">
+                    @(Model.RangeStart.ToString("MMM yyyy")) &ndash; @(Model.RangeEnd.ToString("MMM yyyy"))
+                    (@Model.RangeMonths month@(Model.RangeMonths == 1 ? "" : "s"))
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Row 2: Line Chart + Entity Type Donut -->
+    @if (Model.MonthlyAll != null && Model.MonthlyAll.Count >= 2)
+    {
+        int nrChartW = 520; int nrChartH = 200;
+        int nrPadL = 44; int nrPadR = 8; int nrPadT = 14; int nrPadB = 32;
+        int nrInW = nrChartW - nrPadL - nrPadR;
+        int nrInH = nrChartH - nrPadT - nrPadB;
+        int nrN = Model.MonthlyAll.Count;
+        int nrMaxAll = Model.MonthlyAll.Max(x => x.Count);
+        int nrMaxMC  = Model.MonthlyMC != null && Model.MonthlyMC.Count > 0 ? Model.MonthlyMC.Max(x => x.Count) : 0;
+        int nrMaxBk  = Model.MonthlyBroker != null && Model.MonthlyBroker.Count > 0 ? Model.MonthlyBroker.Max(x => x.Count) : 0;
+        int nrMaxY   = Math.Max(Math.Max(nrMaxAll, nrMaxMC), nrMaxBk);
+        if (nrMaxY == 0) { nrMaxY = 1; }
+        double nrSX  = nrN > 1 ? (double)nrInW / (nrN - 1) : nrInW;
+
+        var nrPtsAll  = new System.Text.StringBuilder();
+        var nrFillAll = new System.Text.StringBuilder();
+        var nrPtsMC   = new System.Text.StringBuilder();
+        var nrPtsBk   = new System.Text.StringBuilder();
+
+        for (int pi = 0; pi < nrN; pi++)
+        {
+            double px    = nrPadL + pi * nrSX;
+            double pyAll = nrPadT + nrInH - (double)Model.MonthlyAll[pi].Count / nrMaxY * nrInH;
+            double pyMC  = nrPadT + nrInH - (double)(Model.MonthlyMC != null && pi < Model.MonthlyMC.Count ? Model.MonthlyMC[pi].Count : 0) / nrMaxY * nrInH;
+            double pyBk  = nrPadT + nrInH - (double)(Model.MonthlyBroker != null && pi < Model.MonthlyBroker.Count ? Model.MonthlyBroker[pi].Count : 0) / nrMaxY * nrInH;
+            nrPtsAll.AppendFormat(CultureInfo.InvariantCulture, "{0:F1},{1:F1} ", px, pyAll);
+            nrPtsMC.AppendFormat(CultureInfo.InvariantCulture,  "{0:F1},{1:F1} ", px, pyMC);
+            nrPtsBk.AppendFormat(CultureInfo.InvariantCulture,  "{0:F1},{1:F1} ", px, pyBk);
+            if (pi == 0) { nrFillAll.AppendFormat(CultureInfo.InvariantCulture, "M{0:F1},{1:F1} ", px, nrPadT + nrInH); }
+            nrFillAll.AppendFormat(CultureInfo.InvariantCulture, "L{0:F1},{1:F1} ", px, pyAll);
+        }
+        double nrLastX = nrPadL + (nrN - 1) * nrSX;
+        nrFillAll.AppendFormat(CultureInfo.InvariantCulture, "L{0:F1},{1:F1} Z", nrLastX, nrPadT + nrInH);
+
+        var nrXLbls = new System.Text.StringBuilder();
+        int nrLStep = nrN <= 24 ? 4 : nrN <= 36 ? 6 : 12;
+        for (int li = 0; li < nrN; li++)
+        {
+            if (li == 0 || li % nrLStep == 0 || li == nrN - 1)
+            {
+                double lx = nrPadL + li * nrSX;
+                nrXLbls.AppendFormat(CultureInfo.InvariantCulture,
+                    "<text x=\"{0:F1}\" y=\"{1}\" text-anchor=\"middle\" font-size=\"7\" fill=\"#9ca3af\">{2}</text>",
+                    lx, nrChartH - 4, Model.MonthlyAll[li].Label);
+            }
+        }
+        string nrMaxLbl = nrMaxY >= 10000 ? (nrMaxY / 1000.0).ToString("F0") + "k" : nrMaxY.ToString();
+        string nrMidLbl = (nrMaxY / 2) >= 1000 ? ((nrMaxY / 2) / 1000.0).ToString("F0") + "k" : (nrMaxY / 2).ToString();
+
+        <div class="nr-row">
+            <div class="nr-col-60">
+                <div class="nr-card" style="height:100%;">
+                    <div class="nr-card-header">
+                        <div class="nr-card-title"><i class="fa fa-line-chart"></i> Monthly New Registrations <span style="font-weight:400;color:#6b7280;font-size:.88em;">(@rangeLabel)</span></div>
+                    </div>
+                    <div class="nr-chart-wrap">
+                        <svg class="nr-chart-svg" viewBox="0 0 @nrChartW @nrChartH">
+                            <defs>
+                                <linearGradient id="nrGradAll" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.12"/>
+                                    <stop offset="100%" stop-color="#7c3aed" stop-opacity="0"/>
+                                </linearGradient>
+                            </defs>
+                            <line x1="@nrPadL" y1="@nrPadT" x2="@nrPadL" y2="@(nrPadT + nrInH)" stroke="#e5e7eb" stroke-width="1"/>
+                            <line x1="@nrPadL" y1="@(nrPadT + nrInH / 2)" x2="@(nrPadL + nrInW)" y2="@(nrPadT + nrInH / 2)" stroke="#f3f4f6" stroke-width="1" stroke-dasharray="4,3"/>
+                            <line x1="@nrPadL" y1="@(nrPadT + nrInH)" x2="@(nrPadL + nrInW)" y2="@(nrPadT + nrInH)" stroke="#e5e7eb" stroke-width="1"/>
+                            <text x="@(nrPadL - 4)" y="@(nrPadT + 4)" text-anchor="end" font-size="7" fill="#9ca3af">@nrMaxLbl</text>
+                            <text x="@(nrPadL - 4)" y="@(nrPadT + nrInH / 2 + 4)" text-anchor="end" font-size="7" fill="#9ca3af">@nrMidLbl</text>
+                            <text x="@(nrPadL - 4)" y="@(nrPadT + nrInH + 4)" text-anchor="end" font-size="7" fill="#9ca3af">0</text>
+                            <path d="@nrFillAll" fill="url(#nrGradAll)" />
+                            <polyline points="@nrPtsAll" fill="none" stroke="#7c3aed" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+                            <polyline points="@nrPtsMC"  fill="none" stroke="#2563eb" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="0"/>
+                            <polyline points="@nrPtsBk"  fill="none" stroke="#16a34a" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+                            @Html.Raw(nrXLbls.ToString())
+                        </svg>
+                        <div class="nr-chart-legend">
+                            <div class="nr-legend-item"><span class="nr-legend-dot" style="background:#7c3aed;"></span>All New Registrations</div>
+                            <div class="nr-legend-item"><span class="nr-legend-dot" style="background:#2563eb;"></span>Motor Carriers</div>
+                            <div class="nr-legend-item"><span class="nr-legend-dot" style="background:#16a34a;"></span>Freight Brokers</div>
+                        </div>
+                        <div style="display:-webkit-box;display:-ms-flexbox;display:flex;gap:0;border-top:1px solid #f3f4f6;margin-top:12px;">
+                            <div style="-webkit-box-flex:1;-ms-flex:1;flex:1;padding:10px 12px;border-right:1px solid #f3f4f6;">
+                                <div style="font-size:.78em;color:#6b7280;margin-bottom:3px;">Total (@rangeLabel)</div>
+                                <div style="font-size:1.05em;font-weight:700;color:#111827;">@Model.TotalNewCount.ToString("N0")</div>
+                            </div>
+                            <div style="-webkit-box-flex:1;-ms-flex:1;flex:1;padding:10px 12px;border-right:1px solid #f3f4f6;">
+                                <div style="font-size:.78em;color:#6b7280;margin-bottom:3px;">Motor Carriers</div>
+                                <div style="font-size:1.05em;font-weight:700;color:#2563eb;">@Model.NewMotorCarrierCount.ToString("N0")</div>
+                            </div>
+                            <div style="-webkit-box-flex:1;-ms-flex:1;flex:1;padding:10px 12px;">
+                                <div style="font-size:.78em;color:#6b7280;margin-bottom:3px;">Freight Brokers</div>
+                                <div style="font-size:1.05em;font-weight:700;color:#16a34a;">@Model.NewBrokerCount.ToString("N0")</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Entity Type Donut -->
+            <div class="nr-col-40">
+                <div class="nr-card" style="height:100%;">
+                    <div class="nr-card-header">
+                        <div class="nr-card-title"><i class="fa fa-pie-chart"></i> Entity Type Distribution <span style="font-weight:400;color:#6b7280;font-size:.88em;">(@rangeLabel)</span></div>
+                    </div>
+                    <div class="nr-donut-wrap">
+                        @{
+                            var nrDColors = new[] { "#2563eb", "#16a34a", "#8b5cf6", "#f97316" };
+                            var nrDLabels = new[] { "Motor Carrier only", "Broker only", "Both MC+Broker", "Other" };
+                            var nrDVals   = new[] { Model.EntityMCCount, Model.EntityBrokerCount, Model.EntityBothCount, Model.EntityOtherCount };
+                            int nrDS = 130; int nrDCx = nrDS / 2; int nrDCy = nrDS / 2; int nrDR = 52; int nrDInner = 34;
+                            double nrDTotal = nrDVals.Sum(x => (double)x);
+                            if (nrDTotal == 0) { nrDTotal = 1; }
+                            double nrDA = -90.0;
+                            var nrDPaths = new System.Text.StringBuilder();
+                            for (int di = 0; di < nrDVals.Length; di++)
+                            {
+                                if (nrDVals[di] == 0) { continue; }
+                                double sd = nrDVals[di] / nrDTotal * 360.0;
+                                if (sd < 0.1) { continue; }
+                                double sr = nrDA * Math.PI / 180.0;
+                                double er = (nrDA + sd) * Math.PI / 180.0;
+                                double x1 = nrDCx + nrDR * Math.Cos(sr); double y1 = nrDCy + nrDR * Math.Sin(sr);
+                                double x2 = nrDCx + nrDR * Math.Cos(er); double y2 = nrDCy + nrDR * Math.Sin(er);
+                                double ix1 = nrDCx + nrDInner * Math.Cos(sr); double iy1 = nrDCy + nrDInner * Math.Sin(sr);
+                                double ix2 = nrDCx + nrDInner * Math.Cos(er); double iy2 = nrDCy + nrDInner * Math.Sin(er);
+                                int la = sd > 180 ? 1 : 0;
+                                string dp = string.Format(CultureInfo.InvariantCulture,
+                                    "M{0:F1},{1:F1} A{2},{2} 0 {7} 1 {3:F1},{4:F1} L{8:F1},{9:F1} A{10},{10} 0 {7} 0 {5:F1},{6:F1} Z",
+                                    x1, y1, nrDR, x2, y2, ix1, iy1, la, ix2, iy2, nrDInner);
+                                nrDPaths.AppendFormat("<path d=\"{0}\" fill=\"{1}\" />", dp, nrDColors[di]);
+                                nrDA += sd;
+                            }
+                        }
+                        <div class="nr-donut-body">
+                            <div class="nr-donut-svg-wrap">
+                                <svg width="@nrDS" height="@nrDS" viewBox="0 0 @nrDS @nrDS">
+                                    @Html.Raw(nrDPaths.ToString())
+                                    <circle cx="@nrDCx" cy="@nrDCy" r="@nrDInner" fill="#fff" />
+                                </svg>
+                                <div class="nr-donut-center">
+                                    <div class="nr-donut-center-num" style="font-size:.75em;">@Model.TotalNewCount.ToString("N0")</div>
+                                    <div class="nr-donut-center-lbl">New Regs.</div>
+                                </div>
+                            </div>
+                            <div>
+                                <table class="nr-table" style="font-size:.80em;">
+                                    <thead>
+                                        <tr>
+                                            <th colspan="2">Entity Type</th>
+                                            <th>Count</th>
+                                            <th>%</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for (int li = 0; li < nrDVals.Length; li++)
+                                        {
+                                            double pct = nrDVals[li] / nrDTotal * 100.0;
+                                            <tr>
+                                                <td style="width:12px;padding-right:0;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:@nrDColors[li];"></span></td>
+                                                <td>@nrDLabels[li]</td>
+                                                <td class="nr-count">@nrDVals[li].ToString("N0")</td>
+                                                <td class="nr-pct">@pct.ToString("F1")%</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                                <p class="nr-donut-note">Exclusive segments &middot; any MC: @Model.NewMotorCarrierCount.ToString("N0") &middot; any broker: @Model.NewBrokerCount.ToString("N0")</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Row 3: Top States + Top Cities -->
+    <div class="nr-row">
+        <div class="nr-col-50">
+            <div class="nr-card" style="height:100%;">
+                <div class="nr-card-header">
+                    <div class="nr-card-title"><i class="fa fa-bar-chart"></i> Top 10 States by New Registrations <span style="font-weight:400;color:#6b7280;font-size:.88em;">(@rangeLabel)</span></div>
+                </div>
+                <div class="nr-card-body">
+                    @if (Model.TopStates != null && Model.TopStates.Any())
+                    {
+                        int nrTotalS = Model.TotalNewCount > 0 ? Model.TotalNewCount : 1;
+                        double nrMaxPct = Model.TopStates.Max(x => x.PercentOfTotal);
+                        if (nrMaxPct == 0) { nrMaxPct = 1; }
+                        <table class="nr-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:28px">Rank</th>
+                                    <th>State</th>
+                                    <th>New Regs.</th>
+                                    <th>% of Total</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < Model.TopStates.Count; i++)
+                                {
+                                    var row = Model.TopStates[i];
+                                    <tr>
+                                        <td class="nr-rank">@(i + 1)</td>
+                                        <td style="color:#374151;font-weight:500;"><a href="/statistics/state/@row.StateCode" style="color:#374151;text-decoration:none;">@row.StateName</a></td>
+                                        <td class="nr-count"><a href="/@row.StateCode" style="color:#2563eb;text-decoration:none;">@row.Count.ToString("N0")</a></td>
+                                        <td class="nr-pct">@row.PercentOfTotal.ToString("F1")%</td>
+                                        <td style="width:80px;padding-left:4px;">
+                                            <div style="background:#e5e7eb;border-radius:3px;height:5px;">
+                                                <div style="background:#7c3aed;border-radius:3px;height:5px;width:@(Math.Min(100, row.PercentOfTotal / nrMaxPct * 100).ToString("F1", CultureInfo.InvariantCulture))%;"></div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p style="padding:20px;color:#6b7280;font-size:.88em;">No data available.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="nr-col-50">
+            <div class="nr-card" style="height:100%;">
+                <div class="nr-card-header">
+                    <div class="nr-card-title"><i class="fa fa-map-marker"></i> Top 10 Cities by New Registrations <span style="font-weight:400;color:#6b7280;font-size:.88em;">(@rangeLabel)</span></div>
+                </div>
+                <div class="nr-card-body">
+                    @if (Model.TopCities != null && Model.TopCities.Any())
+                    {
+                        <table class="nr-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:24px">#</th>
+                                    <th>City</th>
+                                    <th>State</th>
+                                    <th>New Regs.</th>
+                                    <th>% of Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < Model.TopCities.Count; i++)
+                                {
+                                    var row = Model.TopCities[i];
+                                    <tr>
+                                        <td class="nr-rank">@(i + 1)</td>
+                                        <td>@ti.ToTitleCase((row.CityName ?? "").ToLower())</td>
+                                        <td style="color:#6b7280;">@row.StateCode</td>
+                                        <td class="nr-count"><a href="/@row.StateCode/@row.CityName.Replace(" ", "-")" style="color:#2563eb;text-decoration:none;">@row.Count.ToString("N0")</a></td>
+                                        <td class="nr-pct">@row.PercentOfTotal.ToString("F2")%</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p style="padding:20px;color:#6b7280;font-size:.88em;">No data available.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row 4: Age Distribution + Choropleth -->
+    <div class="nr-row">
+
+        <!-- Age Distribution Donut -->
+        <div class="nr-col-40">
+            <div class="nr-card" style="height:100%;">
+                <div class="nr-card-header">
+                    <div>
+                        <div class="nr-card-title"><i class="fa fa-pie-chart"></i> Active Companies by Registration Age</div>
+                        <div style="font-size:.82em;color:#6b7280;margin-top:3px;">How long ago currently active companies first registered with FMCSA</div>
+                    </div>
+                    <span class="nr-pill-neutral">All active companies</span>
+                </div>
+                <div class="nr-donut-wrap">
+                    @if (Model.AgeDistribution != null && Model.AgeDistribution.Total > 0)
+                    {
+                        var nrAColors = new[] { "#0ea5e9", "#2563eb", "#7c3aed", "#db2777", "#f59e0b" };
+                        var nrALabels = new[] { "0&ndash;6 Months", "6&ndash;12 Months", "1&ndash;2 Years", "2&ndash;5 Years", "5+ Years" };
+                        var nrAVals   = new[] { Model.AgeDistribution.ZeroToSixMonths, Model.AgeDistribution.SixToTwelveMonths, Model.AgeDistribution.OneToTwoYears, Model.AgeDistribution.TwoToFiveYears, Model.AgeDistribution.FivePlusYears };
+                        int nrAS = 130; int nrACx = nrAS / 2; int nrACy = nrAS / 2; int nrAR = 52; int nrAInner = 34;
+                        double nrATotal = nrAVals.Sum(x => (double)x);
+                        if (nrATotal == 0) { nrATotal = 1; }
+                        double nrAAngle = -90.0;
+                        var nrAPaths = new System.Text.StringBuilder();
+                        for (int di = 0; di < nrAVals.Length; di++)
+                        {
+                            if (nrAVals[di] == 0) { continue; }
+                            double sd = nrAVals[di] / nrATotal * 360.0;
+                            if (sd < 0.1) { continue; }
+                            double sr = nrAAngle * Math.PI / 180.0;
+                            double er = (nrAAngle + sd) * Math.PI / 180.0;
+                            double x1 = nrACx + nrAR * Math.Cos(sr); double y1 = nrACy + nrAR * Math.Sin(sr);
+                            double x2 = nrACx + nrAR * Math.Cos(er); double y2 = nrACy + nrAR * Math.Sin(er);
+                            double ix1 = nrACx + nrAInner * Math.Cos(sr); double iy1 = nrACy + nrAInner * Math.Sin(sr);
+                            double ix2 = nrACx + nrAInner * Math.Cos(er); double iy2 = nrACy + nrAInner * Math.Sin(er);
+                            int la = sd > 180 ? 1 : 0;
+                            string ap = string.Format(CultureInfo.InvariantCulture,
+                                "M{0:F1},{1:F1} A{2},{2} 0 {7} 1 {3:F1},{4:F1} L{8:F1},{9:F1} A{10},{10} 0 {7} 0 {5:F1},{6:F1} Z",
+                                x1, y1, nrAR, x2, y2, ix1, iy1, la, ix2, iy2, nrAInner);
+                            nrAPaths.AppendFormat("<path d=\"{0}\" fill=\"{1}\" />", ap, nrAColors[di]);
+                            nrAAngle += sd;
+                        }
+                        <div class="nr-donut-body">
+                            <div class="nr-donut-svg-wrap">
+                                <svg width="@nrAS" height="@nrAS" viewBox="0 0 @nrAS @nrAS">
+                                    @Html.Raw(nrAPaths.ToString())
+                                    <circle cx="@nrACx" cy="@nrACy" r="@nrAInner" fill="#fff" />
+                                </svg>
+                                <div class="nr-donut-center">
+                                    <div class="nr-donut-center-num" style="font-size:.62em;">@Model.AgeDistribution.Total.ToString("N0")</div>
+                                    <div class="nr-donut-center-lbl">Active<br />Companies</div>
+                                </div>
+                            </div>
+                            <div>
+                                <table class="nr-table" style="font-size:.80em;">
+                                    <thead>
+                                        <tr>
+                                            <th colspan="2">Age Range</th>
+                                            <th>Companies</th>
+                                            <th>%</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for (int li = 0; li < nrAVals.Length; li++)
+                                        {
+                                            double pct = nrAVals[li] / nrATotal * 100.0;
+                                            <tr>
+                                                <td style="width:12px;padding-right:0;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:@nrAColors[li];"></span></td>
+                                                <td>@Html.Raw(nrALabels[li])</td>
+                                                @if (nrAVals[li] == 0)
+                                                {
+                                                    <td class="nr-count" style="color:#9ca3af;">@Html.Raw(System.Char.ConvertFromUtf32(0x2014))</td>
+                                                    <td class="nr-pct" style="color:#9ca3af;">@Html.Raw(System.Char.ConvertFromUtf32(0x2014))</td>
+                                                }
+                                                else
+                                                {
+                                                    <td class="nr-count">@nrAVals[li].ToString("N0")</td>
+                                                    <td class="nr-pct">@pct.ToString("F1")%</td>
+                                                }
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                                <p class="nr-donut-note">Includes all active U.S. companies regardless of the date range selected above. Age is measured from the date the company was added to FMCSA records.</p>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <p style="padding:20px;color:#6b7280;font-size:.88em;">No age data available.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Choropleth -->
+        <div class="nr-col-60">
+            <div class="nr-card" style="height:100%;">
+                <div class="nr-card-header">
+                    <div class="nr-card-title"><i class="fa fa-map"></i> New Registrations by State <span style="font-weight:400;color:#6b7280;font-size:.88em;">(@rangeLabel)</span></div>
+                </div>
+                <div class="nr-map-wrap" id="nrMapWrap">
+                    <svg id="nrMapSvg" viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;background:#f8fafc;border-radius:6px;" aria-label="U.S. choropleth map of new FMCSA registrations by state"></svg>
+                    <div id="nrMapTip" class="nr-map-tip"></div>
+                    <div class="nr-map-legend">
+                        <span>Less</span>
+                        <div class="nr-legend-grad"></div>
+                        <span>More</span>
+                    </div>
+                    <p class="nr-map-hint"><i class="fa fa-info-circle"></i> Hover over a state to see new registration count.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Monthly Calendar Heatmap -->
+    @if (Model.MonthlyAll != null && Model.MonthlyAll.Count > 0)
+    {
+        int nrCalMax = Model.MonthlyAll.Max(x => x.Count);
+        if (nrCalMax == 0) { nrCalMax = 1; }
+        var nrByYM   = Model.MonthlyAll.ToDictionary(x => x.YearMonth, x => x.Count);
+        var nrYears  = Model.MonthlyAll.Select(x => x.YearMonth / 100).Distinct().OrderBy(y => y).ToList();
+        string[] nrMNames = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
+        <div class="nr-card" style="margin-bottom:24px;">
+            <div class="nr-card-header">
+                <div class="nr-card-title"><i class="fa fa-calendar"></i> Monthly Registration Calendar <span style="font-weight:400;color:#6b7280;font-size:.88em;">(@rangeLabel)</span></div>
+                <span style="font-size:.78em;color:#6b7280;">Darker = more registrations</span>
+            </div>
+            <div class="nr-cal-wrap">
+                <table class="nr-cal-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align:right;padding-right:8px;">Year</th>
+                            @foreach (var mn in nrMNames) { <th>@mn</th> }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var yr in nrYears)
+                        {
+                            <tr>
+                                <td class="nr-cal-year">@yr</td>
+                                @for (int mo = 1; mo <= 12; mo++)
+                                {
+                                    int ym = yr * 100 + mo;
+                                    if (nrByYM.ContainsKey(ym))
+                                    {
+                                        int cnt = nrByYM[ym];
+                                        double intensity = (double)cnt / nrCalMax;
+                                        int r = (int)(237 + (91  - 237) * intensity);
+                                        int g = (int)(233 + (33  - 233) * intensity);
+                                        int b = (int)(254 + (182 - 254) * intensity);
+                                        string bg = "rgb(" + r + "," + g + "," + b + ")";
+                                        string fg = intensity > 0.55 ? "#fff" : "#374151";
+                                        <td><span class="nr-cal-cell" style="background:@bg;color:@fg;">@cnt.ToString("N0")</span></td>
+                                    }
+                                    else
+                                    {
+                                        <td><span class="nr-cal-cell" style="background:#f9fafb;color:#d1d5db;">—</span></td>
+                                    }
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    <!-- Related Statistics -->
+    <div class="nr-related">
+        <div class="nr-related-title"><i class="fa fa-th-large"></i> Related Statistics</div>
+        <div class="nr-related-grid">
+            <a href="@Url.Action("Statistics", "Home")" class="nr-related-item">
+                <div class="nr-related-icon" style="background:#eff6ff;color:#2563eb;"><i class="fa fa-bar-chart"></i></div>
+                <div class="nr-related-text"><strong>Statistics Overview</strong><span>All trucking industry stats</span></div>
+                <div class="nr-related-arrow"><i class="fa fa-chevron-right"></i></div>
+            </a>
+            <a href="@Url.Action("ActiveCompanies", "Home")" class="nr-related-item">
+                <div class="nr-related-icon" style="background:#fff7ed;color:#ea580c;"><i class="fa fa-truck"></i></div>
+                <div class="nr-related-text"><strong>Active Trucking Companies</strong><span>Carrier statistics &amp; trends</span></div>
+                <div class="nr-related-arrow"><i class="fa fa-chevron-right"></i></div>
+            </a>
+            <a href="/statistics/active-brokers" class="nr-related-item">
+                <div class="nr-related-icon" style="background:#f0fdf4;color:#16a34a;"><i class="fa fa-users"></i></div>
+                <div class="nr-related-text"><strong>Active Freight Brokers</strong><span>Broker statistics &amp; trends</span></div>
+                <div class="nr-related-arrow"><i class="fa fa-chevron-right"></i></div>
+            </a>
+            <a href="/statistics/fleet-operations" class="nr-related-item">
+                <div class="nr-related-icon" style="background:#f0fdfa;color:#0d9488;"><i class="fa fa-truck"></i></div>
+                <div class="nr-related-text"><strong>Fleet &amp; Operations</strong><span>Fleet sizes, power units &amp; more</span></div>
+                <div class="nr-related-arrow"><i class="fa fa-chevron-right"></i></div>
+            </a>
+            <a href="/statistics/cargo" class="nr-related-item">
+                <div class="nr-related-icon" style="background:#fff7ed;color:#ea580c;"><i class="fa fa-cubes"></i></div>
+                <div class="nr-related-text"><strong>Cargo Statistics</strong><span>Cargo types &amp; specialization</span></div>
+                <div class="nr-related-arrow"><i class="fa fa-chevron-right"></i></div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Footer note -->
+    <div class="nr-footer-bar">
+        <span><i class="fa fa-info-circle" style="margin-right:5px;"></i>All data is based on active FMCSA (USDOT) records using the FMCSA registration date@if (Model.LastDataUpdate.HasValue) { <text> as of @Model.LastDataUpdate.Value.ToString("MMMM d, yyyy")</text> } and is updated weekly.</span>
+        <span>Source: FMCSA &nbsp;<i class="fa fa-external-link" style="font-size:.85em;"></i></span>
+    </div>
+
+</div>
+
+<script src="@Url.Content("~/Scripts/topojson-client.min.js")"></script>
+<script>
+(function () {
+    var stateData  = {};
+    var stateNames = {};
+@foreach (var row in Model.AllStatesForMap) {
+    @:    stateData["@row.StateCode"] = @row.CompanyCount;
+    @:    stateNames["@row.StateCode"] = "@Html.Raw((row.StateName ?? "").Replace("\"", "\\\""))";
+}
+
+    var fipsToCode = {
+        "01":"AL","02":"AK","04":"AZ","05":"AR","06":"CA",
+        "08":"CO","09":"CT","10":"DE","11":"DC","12":"FL",
+        "13":"GA","15":"HI","16":"ID","17":"IL","18":"IN",
+        "19":"IA","20":"KS","21":"KY","22":"LA","23":"ME",
+        "24":"MD","25":"MA","26":"MI","27":"MN","28":"MS",
+        "29":"MO","30":"MT","31":"NE","32":"NV","33":"NH",
+        "34":"NJ","35":"NM","36":"NY","37":"NC","38":"ND",
+        "39":"OH","40":"OK","41":"OR","42":"PA","44":"RI",
+        "45":"SC","46":"SD","47":"TN","48":"TX","49":"UT",
+        "50":"VT","51":"VA","53":"WA","54":"WV","55":"WI",
+        "56":"WY"
+    };
+
+    var max = 0;
+    for (var k in stateData) { if (stateData[k] > max) max = stateData[k]; }
+
+    function stateColor(count) {
+        if (!count || max === 0) return '#ede9fe';
+        var t = Math.pow(count / max, 0.45);
+        var r = Math.round(237 + (91  - 237) * t);
+        var g = Math.round(233 + (33  - 233) * t);
+        var b = Math.round(254 + (182 - 254) * t);
+        return 'rgb(' + r + ',' + g + ',' + b + ')';
+    }
+
+    function geomToPath(geom) {
+        var parts = [];
+        function ring(coords) {
+            return coords.map(function (p, i) {
+                return (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1);
+            }).join('') + 'Z';
+        }
+        if (geom.type === 'Polygon') {
+            geom.coordinates.forEach(function (r) { parts.push(ring(r)); });
+        } else if (geom.type === 'MultiPolygon') {
+            geom.coordinates.forEach(function (poly) {
+                poly.forEach(function (r) { parts.push(ring(r)); });
+            });
+        }
+        return parts.join(' ');
+    }
+
+    var NS   = 'http://www.w3.org/2000/svg';
+    var svg  = document.getElementById('nrMapSvg');
+    var tip  = document.getElementById('nrMapTip');
+    var wrap = document.getElementById('nrMapWrap');
+
+    function showTip(e, code) {
+        var name  = stateNames[code] || code || '';
+        var count = stateData[code]  || 0;
+        tip.innerHTML = '<strong>' + name + '</strong><br>' + count.toLocaleString() + ' new registrations';
+        tip.style.display = 'block';
+        moveTip(e);
+    }
+    function moveTip(e) {
+        var rect = wrap.getBoundingClientRect();
+        var x = e.clientX - rect.left + 14;
+        var y = e.clientY - rect.top  - 12;
+        if (x + 210 > wrap.offsetWidth) x = e.clientX - rect.left - 214;
+        tip.style.left = x + 'px';
+        tip.style.top  = y + 'px';
+    }
+    function hideTip(el) {
+        tip.style.display = 'none';
+        el.setAttribute('stroke', '#fff');
+        el.setAttribute('stroke-width', '0.5');
+    }
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '@Url.Content("~/Content/us-states-110m.json")', true);
+    xhr.onload = function () {
+        if (xhr.status !== 200) return;
+        var us = JSON.parse(xhr.responseText);
+        var features = topojson.feature(us, us.objects.states).features;
+        features.forEach(function (feat) {
+            var fips = String(feat.id);
+            if (fips.length === 1) fips = '0' + fips;
+            var code = fipsToCode[fips];
+            if (!code || !feat.geometry) return;
+            var el = document.createElementNS(NS, 'path');
+            el.setAttribute('d', geomToPath(feat.geometry));
+            el.setAttribute('fill', stateColor(stateData[code]));
+            el.setAttribute('stroke', '#fff');
+            el.setAttribute('stroke-width', '0.5');
+            el.setAttribute('stroke-linejoin', 'round');
+            el.style.cursor = 'pointer';
+            el.addEventListener('mouseenter', function (e) {
+                showTip(e, code);
+                el.setAttribute('stroke', '#5b21b6');
+                el.setAttribute('stroke-width', '1.5');
+            });
+            el.addEventListener('mousemove', moveTip);
+            el.addEventListener('mouseleave', function () { hideTip(el); });
+            svg.appendChild(el);
+        });
+    };
+    xhr.send();
+}());
+</script>

@@ -1,0 +1,688 @@
+@model PartnerCarrier.ViewModels.Admin.StatisticsStateCompaniesVM
+@using System.Globalization
+@{
+    Layout = "~/Themes/Bootstrap/Views/Shared/_Layout.cshtml";
+    var pageTitle = ViewBag.Title ?? "Active Trucking Companies | Truck Carrier Hub";
+    var ti = CultureInfo.CurrentCulture.TextInfo;
+    var sd = Model.SizeDistribution ?? new PartnerCarrier.ViewModels.Admin.CompanySizeDistribution();
+    var sdTotal = sd.TotalReporting > 0 ? sd.TotalReporting : 1;
+    string scTotal      = Model.TotalActiveCompanies.ToString("N0");
+    string scCanonical  = "https://truckcarrierhub.com/statistics/state/" + Model.StateCode;
+    string mdash        = System.Char.ConvertFromUtf32(0x2014);
+    string scMetaFull   = Model.StateName + " trucking industry statistics " + mdash + " " + scTotal + " active companies, fleet size analytics, cargo type data, and FMCSA registration trends by county and city.";
+    string scMetaShort  = Model.StateName + " trucking statistics " + mdash + " " + scTotal + " active companies, fleet analytics, cargo data, and FMCSA registration trends.";
+    string scMetaDesc   = scMetaFull.Length <= 160 ? scMetaFull : (scMetaShort.Length <= 160 ? scMetaShort : scMetaShort.Substring(0, 157) + "...");
+    var scLd = new Newtonsoft.Json.Linq.JObject {
+        ["@context"]    = "https://schema.org",
+        ["@type"]       = "WebPage",
+        ["name"]        = Model.StateName + " Trucking Statistics & Analytics",
+        ["description"] = scMetaDesc,
+        ["url"]         = scCanonical,
+        ["breadcrumb"]  = new Newtonsoft.Json.Linq.JObject {
+            ["@type"] = "BreadcrumbList",
+            ["itemListElement"] = new Newtonsoft.Json.Linq.JArray {
+                new Newtonsoft.Json.Linq.JObject { ["@type"] = "ListItem", ["position"] = 1, ["name"] = "Home",                      ["item"] = "https://truckcarrierhub.com" },
+                new Newtonsoft.Json.Linq.JObject { ["@type"] = "ListItem", ["position"] = 2, ["name"] = "Statistics",                ["item"] = "https://truckcarrierhub.com/statistics" },
+                new Newtonsoft.Json.Linq.JObject { ["@type"] = "ListItem", ["position"] = 3, ["name"] = "Active Trucking Companies", ["item"] = "https://truckcarrierhub.com/statistics/active-companies" },
+                new Newtonsoft.Json.Linq.JObject { ["@type"] = "ListItem", ["position"] = 4, ["name"] = Model.StateName,             ["item"] = scCanonical }
+            }
+        }
+    };
+}
+@section AdditionalMeta {
+<meta name="description" content="@scMetaDesc" />
+<link rel="canonical" href="@scCanonical" />
+<script type="application/ld+json">@Html.Raw(scLd.ToString(Newtonsoft.Json.Formatting.None))</script>
+}
+<link rel="stylesheet" href="@Url.Content("~/Content/statistics-page.css")" />
+<style>
+    /* ── ranked tables ── */
+    .sc-ranked-table { width: 100%; border-collapse: collapse; font-size: .88em; }
+    .sc-ranked-table th { background: #f3f4f6; color: #374151; font-weight: 600; padding: 9px 12px; text-align: left; border-bottom: 2px solid #e5e7eb; white-space: nowrap; }
+    .sc-ranked-table td { padding: 9px 12px; border-bottom: 1px solid #f3f4f6; color: #374151; vertical-align: middle; }
+    .sc-ranked-table tr:last-child td { border-bottom: none; }
+    .sc-ranked-table tr:hover td { background: #f9fafb; }
+    .sc-rank-num { font-weight: 700; color: #9ca3af; width: 32px; }
+    .sc-rank-count { font-weight: 700; color: #111827; white-space: nowrap; }
+    .sc-rank-pct { color: #6b7280; font-size: .82em; white-space: nowrap; }
+    .sc-rank-bar-wrap { width: 80px; display: inline-block; vertical-align: middle; }
+    .sc-rank-bar-bg { background: #e5e7eb; border-radius: 3px; height: 6px; }
+    .sc-rank-bar-fill { background: #3b82f6; border-radius: 3px; height: 6px; }
+
+    /* ── layout ── */
+    .sc-row {
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        gap: 24px;
+        -ms-flex-wrap: wrap;
+        flex-wrap: wrap;
+        margin-bottom: 32px;
+    }
+    /* map section: 60/40 split */
+    .sc-col-map {
+        -webkit-box-flex: 3;
+        -ms-flex: 3 1 360px;
+        flex: 3 1 360px;
+        min-width: 0;
+    }
+    .sc-col-counties {
+        -webkit-box-flex: 2;
+        -ms-flex: 2 1 280px;
+        flex: 2 1 280px;
+        min-width: 0;
+    }
+    /* cities/donut: equal halves */
+    .sc-col-half {
+        -webkit-box-flex: 1;
+        -ms-flex: 1 1 320px;
+        flex: 1 1 320px;
+        min-width: 0;
+    }
+
+    /* ── table card ── */
+    .sc-table-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        box-shadow: 0 1px 4px rgba(0,0,0,.06);
+        overflow: hidden;
+        height: 100%;
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -webkit-box-orient: vertical;
+        -webkit-box-direction: normal;
+        -ms-flex-direction: column;
+        flex-direction: column;
+    }
+    .sc-table-header {
+        padding: 16px 18px 14px;
+        border-bottom: 1px solid #e5e7eb;
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -webkit-box-align: center;
+        -ms-flex-align: center;
+        align-items: center;
+        gap: 10px;
+    }
+    .sc-table-header .fa { font-size: 1.1em; color: #3b82f6; }
+    .sc-table-title { font-size: 1em; font-weight: 700; color: #111827; margin: 0; }
+    .sc-table-body { padding: 0; -webkit-box-flex: 1; -ms-flex: 1; flex: 1; }
+    .sc-table-footer { padding: 10px 18px; border-top: 1px solid #f3f4f6; }
+    .sc-view-all { font-size: .83em; color: #2563eb; text-decoration: none; }
+    .sc-view-all:hover { text-decoration: underline; }
+
+    /* ── donut chart ── */
+    .sc-donut-wrap {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        box-shadow: 0 1px 4px rgba(0,0,0,.06);
+        padding: 18px 20px 14px;
+        height: 100%;
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -webkit-box-orient: vertical;
+        -webkit-box-direction: normal;
+        -ms-flex-direction: column;
+        flex-direction: column;
+    }
+    .sc-donut-title { font-size: 1em; font-weight: 700; color: #111827; margin-bottom: 14px; }
+    .sc-donut-body {
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -webkit-box-align: center;
+        -ms-flex-align: center;
+        align-items: center;
+        gap: 22px;
+        -webkit-box-flex: 1;
+        -ms-flex: 1;
+        flex: 1;
+        -ms-flex-wrap: wrap;
+        flex-wrap: wrap;
+    }
+    .sc-donut-svg-wrap { position: relative; -ms-flex-negative: 0; flex-shrink: 0; }
+    .sc-donut-center {
+        position: absolute;
+        top: 50%; left: 50%;
+        -webkit-transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%);
+        text-align: center;
+        pointer-events: none;
+    }
+    .sc-donut-center-num { font-size: 1.35em; font-weight: 800; color: #111827; line-height: 1.1; }
+    .sc-donut-center-lbl { font-size: .72em; color: #6b7280; line-height: 1.3; }
+    .sc-donut-legend { -webkit-box-flex: 1; -ms-flex: 1 1 160px; flex: 1 1 160px; min-width: 0; }
+    .sc-legend-row { display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-align: center; -ms-flex-align: center; align-items: center; gap: 8px; margin-bottom: 7px; font-size: .83em; }
+    .sc-legend-dot { width: 10px; height: 10px; border-radius: 50%; -ms-flex-negative: 0; flex-shrink: 0; }
+    .sc-legend-label { color: #374151; -webkit-box-flex: 1; -ms-flex: 1; flex: 1; }
+    .sc-legend-count { color: #111827; font-weight: 600; white-space: nowrap; }
+    .sc-legend-pct { color: #9ca3af; white-space: nowrap; margin-left: 4px; }
+    .sc-donut-note { font-size: .78em; color: #9ca3af; margin-top: 10px; }
+
+    /* ── county map ── */
+    .sc-map-tip { position: absolute; background: #1f2937; color: #fff; font-size: .82em; padding: 7px 11px; border-radius: 6px; pointer-events: none; white-space: nowrap; z-index: 10; line-height: 1.5; box-shadow: 0 2px 8px rgba(0,0,0,.25); display: none; }
+    .sc-map-legend { display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-align: center; -ms-flex-align: center; align-items: center; gap: 10px; margin-top: 10px; font-size: .8em; color: #6b7280; }
+    .sc-legend-bar { height: 10px; -webkit-box-flex: 0; -ms-flex: 0 0 160px; flex: 0 0 160px; border-radius: 3px; background: -webkit-gradient(linear,left top,right top,from(#dbeafe),to(#1d4ed8)); background: linear-gradient(to right,#dbeafe,#1d4ed8); border: 1px solid #e5e7eb; }
+    .sc-map-hint { font-size: .8em; color: #9ca3af; margin-top: 8px; margin-bottom: 0; }
+
+    /* ── source bar ── */
+    .sc-source-bar {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 16px 22px;
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -webkit-box-align: center;
+        -ms-flex-align: center;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 30px;
+        font-size: .83em;
+        color: #6b7280;
+    }
+    .sc-source-bar .fa { color: #3b82f6; font-size: 1.1em; -ms-flex-negative: 0; flex-shrink: 0; }
+    .sc-source-bar strong { color: #374151; }
+
+    /* ── CTA banner ── */
+    .sc-cta-banner {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 10px;
+        padding: 22px 28px;
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -webkit-box-align: center;
+        -ms-flex-align: center;
+        align-items: center;
+        gap: 24px;
+        margin-bottom: 32px;
+        -ms-flex-wrap: wrap;
+        flex-wrap: wrap;
+    }
+    .sc-cta-icon { color: #2563eb; font-size: 2em; -ms-flex-negative: 0; flex-shrink: 0; }
+    .sc-cta-text { -webkit-box-flex: 1; -ms-flex: 1; flex: 1; min-width: 180px; }
+    .sc-cta-text h3 { font-size: 1.05em; font-weight: 700; color: #1e3a5f; margin: 0 0 4px; }
+    .sc-cta-text p { font-size: .88em; color: #374151; margin: 0; }
+    .sc-cta-btn {
+        display: inline-block;
+        background: #2563eb;
+        color: #fff;
+        font-weight: 600;
+        font-size: .9em;
+        padding: 10px 20px;
+        border-radius: 6px;
+        text-decoration: none;
+        white-space: nowrap;
+        -ms-flex-negative: 0;
+        flex-shrink: 0;
+    }
+    .sc-cta-btn:hover { background: #1d4ed8; color: #fff; text-decoration: none; }
+</style>
+
+<div class="container stats-page">
+
+    <!-- breadcrumb -->
+    <div class="stats-breadcrumb">
+        <a href="@Url.Action("Index", "Home")">Home</a>
+        <span class="sep">/</span>
+        <a href="@Url.Action("Statistics", "Home")">Statistics</a>
+        <span class="sep">/</span>
+        <a href="@Url.Action("ActiveCompanies", "Home")">Active Trucking Companies</a>
+        <span class="sep">/</span>
+        @Model.StateName
+    </div>
+
+    <!-- hero -->
+    <div class="stats-hero">
+        <div class="stats-hero-text">
+            <h1 class="stats-hero-title">Active Trucking<br />Companies in @Model.StateName</h1>
+            <p class="stats-hero-desc">
+                Comprehensive statistics on active trucking companies based in @Model.StateName.
+                Data is sourced from the FMCSA and updated weekly.
+            </p>
+            <div style="margin-top:14px;display:inline-flex;align-items:flex-start;gap:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;">
+                <i class="fa fa-check-circle" style="color:#16a34a;margin-top:1px;"></i>
+                <div style="font-weight:600;font-size:.88em;color:#15803d;">Data updated weekly from FMCSA</div>
+            </div>
+        </div>
+        <div class="stats-hero-map">
+            <img src="@Url.Content("~/Content/images/truck.png")" alt="Trucking" class="stats-hero-map-img" />
+        </div>
+    </div>
+
+    <!-- stat cards -->
+    <div class="stat-cards-wrap">
+
+        <div class="stat-card-col">
+            <div class="stat-card-v2">
+                <div class="stat-icon-circle sic-blue"><i class="fa fa-building"></i></div>
+                <div class="stat-card-num">@Model.TotalActiveCompanies.ToString("N0")</div>
+                <div class="stat-card-label">Active Companies</div>
+                <div class="stat-card-desc">@Model.PercentOfUSTotal.ToString("F2")% of U.S. Total</div>
+            </div>
+        </div>
+
+        <div class="stat-card-col">
+            <div class="stat-card-v2">
+                <div class="stat-icon-circle sic-green"><i class="fa fa-id-card"></i></div>
+                <div class="stat-card-num">@Model.ActiveMCNumbers.ToString("N0")</div>
+                <div class="stat-card-label">Active MC Numbers</div>
+                <div class="stat-card-desc">Companies with active MC docket numbers</div>
+            </div>
+        </div>
+
+        <div class="stat-card-col">
+            <div class="stat-card-v2">
+                <div class="stat-icon-circle sic-purple"><i class="fa fa-truck"></i></div>
+                <div class="stat-card-num">@Model.TotalPowerUnits.ToString("N0")</div>
+                <div class="stat-card-label">Active Power Units</div>
+                <div class="stat-card-desc">Total reported power units in @Model.StateCode</div>
+            </div>
+        </div>
+
+        <div class="stat-card-col">
+            <div class="stat-card-v2">
+                <div class="stat-icon-circle sic-orange"><i class="fa fa-users"></i></div>
+                <div class="stat-card-num">@Model.TotalDrivers.ToString("N0")</div>
+                <div class="stat-card-label">Active Drivers</div>
+                <div class="stat-card-desc">Total reported drivers in @Model.StateCode</div>
+            </div>
+        </div>
+
+        <div class="stat-card-col">
+            <div class="stat-card-v2">
+                <div class="stat-icon-circle sic-teal"><i class="fa fa-calendar-check-o"></i></div>
+                <div class="stat-card-num-sm" style="color:#16a34a;">Weekly</div>
+                <div class="stat-card-label">Data Updated</div>
+                <div class="stat-card-desc">
+                    @if (Model.LastDataUpdate.HasValue)
+                    {
+                        @:Most recent: @Model.LastDataUpdate.Value.ToString("MMMM d, yyyy")
+                    }
+                    else
+                    {
+                        @:Updated every Monday
+                    }
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- section 3: map placeholder (left 60%) + counties (right 40%) -->
+    <div class="sc-row">
+
+        <!-- county choropleth map -->
+        <div class="sc-col-map" id="scMapCol">
+            <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:20px 24px 16px;height:100%;display:-webkit-box;display:-ms-flexbox;display:flex;-webkit-box-orient:vertical;-webkit-box-direction:normal;-ms-flex-direction:column;flex-direction:column;">
+                <div style="margin-bottom:12px;">
+                    <span style="font-size:1.05em;font-weight:700;color:#111827;">Active Trucking Companies by County</span>
+                </div>
+                <div id="scMapWrap" style="position:relative;-webkit-box-flex:1;-ms-flex:1;flex:1;min-height:300px;">
+                    <svg id="scMapSvg" viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg"
+                         style="width:100%;height:auto;display:block;background:#f8fafc;border-radius:6px;"
+                         aria-label="County choropleth map of active trucking companies">
+                    </svg>
+                    <div id="scMapTip" class="sc-map-tip"></div>
+                </div>
+                <div class="sc-map-legend">
+                    <span>Fewer</span>
+                    <div class="sc-legend-bar"></div>
+                    <span id="scLegendMax">More</span>
+                </div>
+                <p class="sc-map-hint"><i class="fa fa-info-circle"></i> Hover over a county to see the number of active companies.</p>
+            </div>
+        </div>
+
+        <!-- top 10 counties -->
+        <div class="sc-col-counties">
+            <div class="sc-table-card">
+                <div class="sc-table-header">
+                    <i class="fa fa-bar-chart"></i>
+                    <span class="sc-table-title">Top 10 Counties</span>
+                </div>
+                <div class="sc-table-body">
+                    @if (Model.TopCounties != null && Model.TopCounties.Any())
+                    {
+                        var maxCounty = Model.TopCounties[0].CompanyCount;
+                        <table class="sc-ranked-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:28px">#</th>
+                                    <th>County</th>
+                                    <th>Active Companies</th>
+                                    <th>% of State</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < Model.TopCounties.Count; i++)
+                                {
+                                    var row = Model.TopCounties[i];
+                                    <tr>
+                                        <td class="sc-rank-num">@(i + 1)</td>
+                                        <td>@(System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase((row.CountyName ?? "").ToLower()))</td>
+                                        <td class="sc-rank-count">@row.CompanyCount.ToString("N0")</td>
+                                        <td class="sc-rank-pct">@row.PercentOfState.ToString("F2")%</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p style="padding:20px;color:#6b7280;font-size:.88em;">No county data available.</p>
+                    }
+                </div>
+                <div class="sc-table-footer">
+                    <a href="#" class="sc-view-all">View all counties &rarr;</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- section 4: cities (left) + size distribution (right) -->
+    <div class="sc-row">
+
+        <!-- top 10 cities -->
+        <div class="sc-col-half">
+            <div class="sc-table-card">
+                <div class="sc-table-header">
+                    <i class="fa fa-map-marker"></i>
+                    <span class="sc-table-title">Top 10 Cities by Active Companies</span>
+                </div>
+                <div class="sc-table-body">
+                    @if (Model.TopCities != null && Model.TopCities.Any())
+                    {
+                        var maxCity = Model.TopCities[0].CompanyCount;
+                        <table class="sc-ranked-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:28px">#</th>
+                                    <th>City</th>
+                                    <th>Active Companies</th>
+                                    <th>% of State</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < Model.TopCities.Count; i++)
+                                {
+                                    var row = Model.TopCities[i];
+                                    <tr>
+                                        <td class="sc-rank-num">@(i + 1)</td>
+                                        <td>
+                                            <a href="@Url.Action("CityCompanies", "Home", new { stateCode = Model.StateCode, cityName = row.CityName.Replace(" ", "-") })" style="color:#2563eb;text-decoration:none;">@ti.ToTitleCase(row.CityName.ToLower())</a>
+                                        </td>
+                                        <td class="sc-rank-count"><a href="/@Model.StateCode/@row.CityName.Replace(" ", "-")" style="color:#2563eb;text-decoration:none;">@row.CompanyCount.ToString("N0")</a></td>
+                                        <td class="sc-rank-pct">@row.PercentOfState.ToString("F2")%</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p style="padding:20px;color:#6b7280;font-size:.88em;">No city data available.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+    <!-- company size distribution donut -->
+        <div class="sc-col-half">
+            <div class="sc-donut-wrap">
+                <div class="sc-donut-title">Company Size Distribution</div>
+                <div class="sc-donut-body">
+                    <div class="sc-donut-svg-wrap">
+                        @{
+                            var donutColors = new[] { "#2563eb", "#22c55e", "#f59e0b", "#a855f7", "#f97316" };
+                            var donutLabels = new[] { "1 Power Unit", "2&ndash;5 Power Units", "6&ndash;20 Power Units", "21&ndash;100 Power Units", "101+ Power Units" };
+                            var donutValues = new[] { sd.OneUnit, sd.TwoToFive, sd.SixToTwenty, sd.TwentyOneToHundred, sd.OverHundred };
+                            int donutSize = 180;
+                            int donutCx = donutSize / 2;
+                            int donutCy = donutSize / 2;
+                            int donutR = 72;
+                            int donutInner = 46;
+                            double donutTotal = donutValues.Sum(x => (double)x);
+                            if (donutTotal == 0) { donutTotal = 1; }
+
+                            double startAngle = -90.0;
+                            var donutPaths = new System.Text.StringBuilder();
+                            for (int di = 0; di < donutValues.Length; di++)
+                            {
+                                double sliceDeg = donutValues[di] / donutTotal * 360.0;
+                                if (sliceDeg == 0) { continue; }
+                                double endAngle = startAngle + sliceDeg;
+                                double startRad = startAngle * Math.PI / 180.0;
+                                double endRad = endAngle * Math.PI / 180.0;
+                                double x1 = donutCx + donutR * Math.Cos(startRad);
+                                double y1 = donutCy + donutR * Math.Sin(startRad);
+                                double x2 = donutCx + donutR * Math.Cos(endRad);
+                                double y2 = donutCy + donutR * Math.Sin(endRad);
+                                double ix1 = donutCx + donutInner * Math.Cos(startRad);
+                                double iy1 = donutCy + donutInner * Math.Sin(startRad);
+                                double ix2 = donutCx + donutInner * Math.Cos(endRad);
+                                double iy2 = donutCy + donutInner * Math.Sin(endRad);
+                                int largeArc = sliceDeg > 180 ? 1 : 0;
+                                string path = string.Format(
+                                    System.Globalization.CultureInfo.InvariantCulture,
+                                    "M {0:F1} {1:F1} A {2} {2} 0 {7} 1 {3:F1} {4:F1} L {8:F1} {9:F1} A {10} {10} 0 {7} 0 {5:F1} {6:F1} Z",
+                                    x1, y1, donutR, x2, y2, ix1, iy1, largeArc, ix2, iy2, donutInner);
+                                donutPaths.AppendFormat(
+                                    "<path d=\"{0}\" fill=\"{1}\" />",
+                                    path, donutColors[di]);
+                                startAngle = endAngle;
+                            }
+                        }
+                        <svg width="@donutSize" height="@donutSize" viewBox="0 0 @donutSize @donutSize">
+                            @Html.Raw(donutPaths.ToString())
+                            <circle cx="@donutCx" cy="@donutCy" r="@donutInner" fill="#fff" />
+                        </svg>
+                        <div class="sc-donut-center">
+                            <div class="sc-donut-center-num">@Model.TotalActiveCompanies.ToString("N0")</div>
+                            <div class="sc-donut-center-lbl">Total<br />Companies</div>
+                        </div>
+                    </div>
+                    <div class="sc-donut-legend">
+                        @for (int li = 0; li < donutValues.Length; li++)
+                        {
+                            double pct = donutValues[li] / donutTotal * 100.0;
+                            <div class="sc-legend-row">
+                                <div class="sc-legend-dot" style="background:@donutColors[li]"></div>
+                                <span class="sc-legend-label">@Html.Raw(donutLabels[li])</span>
+                                <span class="sc-legend-count">@donutValues[li].ToString("N0")</span>
+                                <span class="sc-legend-pct">@pct.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)%</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <p class="sc-donut-note"><i class="fa fa-info-circle"></i> Company size is based on total number of power units.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- CTA banner -->
+    <div class="sc-cta-banner">
+        <div class="sc-cta-icon"><i class="fa fa-bar-chart"></i></div>
+        <div class="sc-cta-text">
+            <h3>Looking for specific companies in @Model.StateName?</h3>
+            <p>Browse @Model.TotalActiveCompanies.ToString("N0") active trucking companies by city, then search and filter within each city.</p>
+        </div>
+        <a href="@Url.Action("State", "Home", new { stateCode = Model.StateCode.ToUpper() })" class="sc-cta-btn">
+            Browse @Model.StateName Trucking Companies
+        </a>
+    </div>
+
+    <!-- source footer -->
+    <div class="sc-source-bar">
+        <i class="fa fa-shield"></i>
+        <div>
+            <strong>Data source:</strong> U.S. Federal Motor Carrier Safety Administration (FMCSA) &mdash; active carrier registrations.
+            @if (Model.LastDataUpdate.HasValue)
+            {
+                <span>Last updated: @Model.LastDataUpdate.Value.ToString("MMMM d, yyyy").</span>
+            }
+            Active status reflects carriers with FMCSA status code "A" at the time of data collection.
+        </div>
+    </div>
+
+</div>
+
+<script src="@Url.Content("~/Scripts/topojson-client.min.js")"></script>
+<script>
+(function () {
+    /* county data from server: CountyCode (3-digit) → count / name */
+    var countyData  = {};
+    var countyNames = {};
+@foreach (var row in Model.AllCountiesForMap) {
+    @:    countyData[@row.CountyCode]  = @row.CompanyCount;
+    @:    countyNames[@row.CountyCode] = "@Html.Raw(System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase((row.CountyName ?? "").ToLower()).Replace("\"","\\\""))";
+}
+
+    /* state code → state FIPS (needed to filter county features) */
+    var stateFipsMap = {
+        "AL":1,"AK":2,"AZ":4,"AR":5,"CA":6,
+        "CO":8,"CT":9,"DE":10,"DC":11,"FL":12,
+        "GA":13,"HI":15,"ID":16,"IL":17,"IN":18,
+        "IA":19,"KS":20,"KY":21,"LA":22,"ME":23,
+        "MD":24,"MA":25,"MI":26,"MN":27,"MS":28,
+        "MO":29,"MT":30,"NE":31,"NV":32,"NH":33,
+        "NJ":34,"NM":35,"NY":36,"NC":37,"ND":38,
+        "OH":39,"OK":40,"OR":41,"PA":42,"RI":44,
+        "SC":45,"SD":46,"TN":47,"TX":48,"UT":49,
+        "VT":50,"VA":51,"WA":53,"WV":54,"WI":55,
+        "WY":56
+    };
+
+    var stateFips = stateFipsMap["@Model.StateCode"];
+    if (!stateFips) { return; }
+
+    var max = 0;
+    for (var k in countyData) { if (countyData[k] > max) { max = countyData[k]; } }
+
+    var legendMax = document.getElementById('scLegendMax');
+    if (legendMax && max > 0) { legendMax.textContent = max.toLocaleString() + '+'; }
+
+    function countyColor(count) {
+        if (!count || max === 0) { return '#dbeafe'; }
+        var t = Math.pow(count / max, 0.45);
+        var r = Math.round(219 + (29  - 219) * t);
+        var g = Math.round(190 + (78  - 190) * t);
+        var b = Math.round(254 + (216 - 254) * t);
+        return 'rgb(' + r + ',' + g + ',' + b + ')';
+    }
+
+    function geomToPath(geom) {
+        var parts = [];
+        function ring(coords) {
+            return coords.map(function (p, i) {
+                return (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1);
+            }).join('') + 'Z';
+        }
+        if (geom.type === 'Polygon') {
+            geom.coordinates.forEach(function (r) { parts.push(ring(r)); });
+        } else if (geom.type === 'MultiPolygon') {
+            geom.coordinates.forEach(function (poly) {
+                poly.forEach(function (r) { parts.push(ring(r)); });
+            });
+        }
+        return parts.join(' ');
+    }
+
+    var NS   = 'http://www.w3.org/2000/svg';
+    var svg  = document.getElementById('scMapSvg');
+    var tip  = document.getElementById('scMapTip');
+    var wrap = document.getElementById('scMapWrap');
+
+    function showTip(e, name, count) {
+        tip.innerHTML = '<strong>' + name + '</strong><br>' + count.toLocaleString() + ' active carriers';
+        tip.style.display = 'block';
+        moveTip(e);
+    }
+    function moveTip(e) {
+        var rect = wrap.getBoundingClientRect();
+        var x = e.clientX - rect.left + 14;
+        var y = e.clientY - rect.top  - 12;
+        if (x + 220 > wrap.offsetWidth) { x = e.clientX - rect.left - 224; }
+        tip.style.left = x + 'px';
+        tip.style.top  = y + 'px';
+    }
+    function hideTip(el) {
+        tip.style.display = 'none';
+        el.setAttribute('stroke', '#fff');
+        el.setAttribute('stroke-width', '0.5');
+    }
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '@Url.Content("~/Content/us-states-110m.json")', true);
+    xhr.onload = function () {
+        if (xhr.status !== 200) { return; }
+        var us = JSON.parse(xhr.responseText);
+        var features = topojson.feature(us, us.objects.counties).features;
+
+        /* keep only counties belonging to this state */
+        var stateFeatures = features.filter(function (f) {
+            return Math.floor(f.id / 1000) === stateFips;
+        });
+        if (stateFeatures.length === 0) { return; }
+
+        /* compute bounding box to zoom viewBox to just this state */
+        var allX = [], allY = [];
+        stateFeatures.forEach(function (feat) {
+            if (!feat.geometry) { return; }
+            function collect(rings) {
+                rings.forEach(function (ring) {
+                    ring.forEach(function (p) { allX.push(p[0]); allY.push(p[1]); });
+                });
+            }
+            if (feat.geometry.type === 'Polygon') {
+                collect(feat.geometry.coordinates);
+            } else if (feat.geometry.type === 'MultiPolygon') {
+                feat.geometry.coordinates.forEach(function (poly) { collect(poly); });
+            }
+        });
+        var pad  = 12;
+        var minX = Math.min.apply(null, allX) - pad;
+        var minY = Math.min.apply(null, allY) - pad;
+        var vbW  = Math.max.apply(null, allX) - minX + pad + pad;
+        var vbH  = Math.max.apply(null, allY) - minY + pad + pad;
+        svg.setAttribute('viewBox', minX + ' ' + minY + ' ' + vbW + ' ' + vbH);
+
+        /* draw county paths */
+        stateFeatures.forEach(function (feat) {
+            if (!feat.geometry) { return; }
+            var code  = feat.id % 1000;
+            var count = countyData[code]  || 0;
+            var name  = countyNames[code] || 'County ' + code;
+
+            var el = document.createElementNS(NS, 'path');
+            el.setAttribute('d', geomToPath(feat.geometry));
+            el.setAttribute('fill', countyColor(count));
+            el.setAttribute('stroke', '#fff');
+            el.setAttribute('stroke-width', '0.5');
+            el.setAttribute('stroke-linejoin', 'round');
+            el.style.cursor = 'pointer';
+
+            el.addEventListener('mouseenter', function (e) {
+                showTip(e, name, count);
+                el.setAttribute('stroke', '#1e40af');
+                el.setAttribute('stroke-width', '1.5');
+            });
+            el.addEventListener('mousemove', moveTip);
+            el.addEventListener('mouseleave', function () { hideTip(el); });
+
+            svg.appendChild(el);
+        });
+    };
+    xhr.send();
+})();
+</script>

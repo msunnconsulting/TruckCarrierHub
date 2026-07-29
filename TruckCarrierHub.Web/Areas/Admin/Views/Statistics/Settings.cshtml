@@ -1,0 +1,47 @@
+@using PartnerCarrier.ViewModels.Admin;
+@model ShowStatisticsNavVM
+@{
+    ViewBag.Title = "Statistics Settings";
+}
+
+<h2>Statistics Settings</h2>
+
+<div class="row" id="dvNotification"></div>
+
+@using (Ajax.BeginForm("save-statistics-settings", "business", null, new AjaxOptions
+{
+    HttpMethod = "POST",
+    OnSuccess = "vm.onSuccess",
+    OnFailure = "vm.onFailure"
+}, new { id = "SaveStatisticsSettingsForm" }))
+{
+    @Html.AntiForgeryToken()
+
+    <div class="row margin-top-10">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-sm-4 col-md-4">
+                    <label>Show Statistics in public navigation:</label>
+                </div>
+                <div class="col-md-2">
+                    @Html.CheckBoxFor(x => x.ShowStatisticsNav)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <hr />
+    <div class="row form-group">
+        <div class="col-sm-6 col-md-8">
+            <div class="form-group">
+                <div class="col-md-6">
+                    <button type="submit" class="btn btn-primary" value="Save" title="Save"><i class="fa fa-save"></i> Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="~/Areas/Admin/Content/PageScript/AdminUsers/statistics-settings.js"></script>
+}

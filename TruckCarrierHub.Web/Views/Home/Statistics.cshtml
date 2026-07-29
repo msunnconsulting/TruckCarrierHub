@@ -1,0 +1,298 @@
+@using PartnerCarrier.ViewModels.Admin
+@using PartnerCarrier.Infrastructure.Contracts.Admin.AdminManagement;
+@using PartnerCarrier.Web.App_Start;
+@model StatisticsIndexVM
+@{
+    ViewBag.Title = "Trucking Industry Statistics & Analytics | Truck Carrier Hub";
+    string mdash    = System.Char.ConvertFromUtf32(0x2014);
+    string metaDesc = "Explore U.S. trucking industry statistics and analytics based on official FMCSA data " + mdash + " active carriers, freight brokers, fleet sizes, cargo types, new registrations, and market trends.";
+
+    var statsLd = new Newtonsoft.Json.Linq.JObject {
+        ["@context"]    = "https://schema.org",
+        ["@type"]       = "WebPage",
+        ["name"]        = "Trucking Industry Statistics & Analytics",
+        ["url"]         = "https://truckcarrierhub.com/statistics",
+        ["description"] = metaDesc,
+        ["breadcrumb"]  = new Newtonsoft.Json.Linq.JObject {
+            ["@type"] = "BreadcrumbList",
+            ["itemListElement"] = new Newtonsoft.Json.Linq.JArray {
+                new Newtonsoft.Json.Linq.JObject { ["@type"] = "ListItem", ["position"] = 1, ["name"] = "Home",       ["item"] = "https://truckcarrierhub.com" },
+                new Newtonsoft.Json.Linq.JObject { ["@type"] = "ListItem", ["position"] = 2, ["name"] = "Statistics", ["item"] = "https://truckcarrierhub.com/statistics" }
+            }
+        }
+    };
+
+}
+@section AdditionalMeta {
+<meta name="description" content="@metaDesc" />
+<link rel="canonical" href="https://truckcarrierhub.com/statistics" />
+<script type="application/ld+json">@Html.Raw(statsLd.ToString(Newtonsoft.Json.Formatting.None))</script>
+}
+
+<style>
+/* --- page --- */
+.stats-page { padding-top: 16px; padding-bottom: 48px; }
+
+/* --- hero --- */
+.stats-hero { display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-align: center; -ms-flex-align: center; align-items: center; gap: 32px; margin-bottom: 36px; }
+.stats-hero-text { -webkit-box-flex: 1; -ms-flex: 1 1 0%; flex: 1 1 0%; min-width: 0; }
+.stats-hero-map { -webkit-box-flex: 0; -ms-flex: 0 0 50%; flex: 0 0 50%; max-width: 50%; min-width: 0; overflow: hidden; }
+.stats-hero-map-img { width: 100%; height: auto; display: block; border: none; box-shadow: none; }
+@@media (max-width: 900px) { .stats-hero { -webkit-box-orient: vertical; -webkit-box-direction: normal; -ms-flex-direction: column; flex-direction: column; } .stats-hero-map { width: 100%; } }
+.stats-hero-title { font-size: 2.5em; font-weight: 700; color: #111827; line-height: 1.2; margin-top: 0; margin-bottom: 18px; }
+.stats-hero-desc  { font-size: .97em; color: #4b5563; line-height: 1.75; margin-bottom: 0; }
+
+/* --- stat cards --- */
+.stat-cards-wrap { display: -webkit-box; display: -ms-flexbox; display: flex; -ms-flex-wrap: wrap; flex-wrap: wrap; gap: 12px; margin-bottom: 32px; }
+.stat-card-col { -webkit-box-flex: 1; -ms-flex: 1 1 200px; flex: 1 1 200px; min-width: 0; }
+.stat-card-v2 { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 24px 22px 18px; box-shadow: 0 1px 4px rgba(0,0,0,.06); display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-orient: vertical; -webkit-box-direction: normal; -ms-flex-direction: column; flex-direction: column; height: 100%; }
+.stat-icon-circle { width: 52px; height: 52px; border-radius: 50%; display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-align: center; -ms-flex-align: center; align-items: center; -webkit-box-pack: center; -ms-flex-pack: center; justify-content: center; font-size: 1.35em; color: #fff; margin-bottom: 14px; -ms-flex-negative: 0; flex-shrink: 0; }
+.sic-blue   { background: #3b82f6; }
+.sic-green  { background: #10b981; }
+.sic-purple { background: #8b5cf6; }
+.sic-orange { background: #f97316; }
+.sic-teal   { background: #14b8a6; }
+.sic-gold   { background: #f59e0b; }
+.stat-card-num    { font-size: 2.3em; font-weight: 700; color: #111827; line-height: 1.1; margin-bottom: 6px; }
+.stat-card-num-sm { font-size: 1.5em; font-weight: 700; color: #111827; line-height: 1.25; margin-bottom: 6px; }
+.stat-card-label  { font-size: 1.25em; font-weight: 600; color: #111827; line-height: 1.3; margin-bottom: 8px; }
+.stat-card-desc   { font-size: 1.15em; color: #6b7280; line-height: 1.5; -webkit-box-flex: 1; -ms-flex: 1; flex: 1; }
+.stat-card-arrow  { margin-top: 12px; font-size: .95em; color: #374151; display: block; text-decoration: none; }
+.stat-card-arrow:hover { text-decoration: none; opacity: .75; }
+
+/* --- topic cards (level 2) --- */
+.topic-cards-wrap { display: -webkit-box; display: -ms-flexbox; display: flex; -ms-flex-wrap: wrap; flex-wrap: wrap; gap: 12px; margin-bottom: 32px; }
+.topic-card-col { -webkit-box-flex: 1; -ms-flex: 1 1 200px; flex: 1 1 200px; min-width: 0; display: -webkit-box; display: -ms-flexbox; display: flex; }
+.topic-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.06); overflow: hidden; display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-orient: vertical; -webkit-box-direction: normal; -ms-flex-direction: column; flex-direction: column; width: 100%; }
+.topic-card-hdr { padding: 18px 18px 16px; display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-orient: vertical; -webkit-box-direction: normal; -ms-flex-direction: column; flex-direction: column; -webkit-box-flex: 1; -ms-flex: 1; flex: 1; }
+.topic-card-hdr-link { padding: 18px 18px 16px; display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-orient: vertical; -webkit-box-direction: normal; -ms-flex-direction: column; flex-direction: column; -webkit-box-flex: 1; -ms-flex: 1; flex: 1; text-decoration: none; color: inherit; -webkit-transition: background .15s; transition: background .15s; }
+.topic-card-hdr-link:hover { background: #f9fafb; text-decoration: none; color: inherit; }
+.tc-icon { width: 52px; height: 52px; border-radius: 10px; display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-align: center; -ms-flex-align: center; align-items: center; -webkit-box-pack: center; -ms-flex-pack: center; justify-content: center; font-size: 1.35em; margin-bottom: 14px; -ms-flex-negative: 0; flex-shrink: 0; }
+.tc-icon .fa { font-size: 24px; line-height: 1; }
+.stat-icon-circle .fa { font-size: 24px; line-height: 1; }
+.tc-purple { background: #f5f3ff; color: #7c3aed; }
+.tc-teal   { background: #f0fdfa; color: #0d9488; }
+.tc-orange { background: #fff7ed; color: #ea580c; }
+.tc-num    { font-size: 2.3em; font-weight: 700; color: #111827; line-height: 1.1; margin-bottom: 6px; }
+.tc-label  { font-size: 1.25em; font-weight: 700; color: #111827; margin-bottom: 8px; }
+.tc-desc   { font-size: 1.15em; color: #6b7280; line-height: 1.55; }
+.tc-desc-list { list-style: none; padding: 0; margin: 4px 0 0; }
+.tc-desc-list li { padding: 4px 0 4px 22px; position: relative; }
+.tc-desc-list li:before { content: "\f105"; font-family: FontAwesome; position: absolute; left: 4px; color: #9ca3af; }
+.tc-chevron { margin-top: auto; padding-top: 12px; font-size: .95em; color: #374151; }
+.tc-sublinks { list-style: none; padding: 0; margin: 0; border-top: 1px solid #f3f4f6; }
+.tc-sublinks li { border-bottom: 1px solid #f3f4f6; }
+.tc-sublinks li:last-child { border-bottom: none; }
+.tc-sublinks li a { display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-align: center; -ms-flex-align: center; align-items: center; gap: 10px; padding: 12px 18px; font-size: .92em; color: #374151; text-decoration: none; }
+.tc-sublinks li a:hover { color: #2563eb; background: #f9fafb; text-decoration: none; }
+.tc-sl-icon  { width: 18px; -ms-flex-negative: 0; flex-shrink: 0; text-align: center; color: #6b7280; }
+.tc-sl-arrow { margin-left: auto; color: #9ca3af; font-size: .75em; }
+
+/* --- states --- */
+.state-section-wrap { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 22px 24px; margin-bottom: 24px; }
+.state-section-top { display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-pack: justify; -ms-flex-pack: justify; justify-content: space-between; -webkit-box-align: start; -ms-flex-align: start; align-items: flex-start; -ms-flex-wrap: wrap; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+.state-section-title-row { display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-align: center; -ms-flex-align: center; align-items: center; gap: 10px; }
+.state-section-title-row .fa-map { color: #2563eb; font-size: 1.35em; }
+.state-section-title { font-size: 1.07em; font-weight: 700; color: #111827; }
+.state-section-desc  { font-size: .82em; color: #6b7280; line-height: 1.5; margin-top: 6px; margin-bottom: 14px; max-width: 640px; }
+.state-view-all { font-size: .84em; color: #2563eb; white-space: nowrap; text-decoration: none; }
+.state-view-all:hover { text-decoration: underline; }
+.states-grid { -webkit-column-count: 6; -moz-column-count: 6; column-count: 6; -webkit-column-gap: 0; -moz-column-gap: 0; column-gap: 0; }
+@@media (max-width: 992px) { .states-grid { -webkit-column-count: 4; -moz-column-count: 4; column-count: 4; } }
+@@media (max-width: 768px) { .states-grid { -webkit-column-count: 3; -moz-column-count: 3; column-count: 3; } }
+@@media (max-width: 480px) { .states-grid { -webkit-column-count: 2; -moz-column-count: 2; column-count: 2; } }
+.state-link-item { display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-pack: justify; -ms-flex-pack: justify; justify-content: space-between; -webkit-box-align: center; -ms-flex-align: center; align-items: center; padding: 5px 6px; color: #2563eb; font-size: .84em; text-decoration: none; border-bottom: 1px solid #f3f4f6; -webkit-column-break-inside: avoid; page-break-inside: avoid; break-inside: avoid; }
+.state-link-item:hover { background: #eff6ff; text-decoration: none; }
+.state-link-item .fa { font-size: .72em; color: #d1d5db; }
+.see-all-states-link { display: inline-block; margin-top: 14px; color: #2563eb; font-size: .88em; text-decoration: none; }
+.see-all-states-link:hover { text-decoration: underline; }
+
+/* --- FMCSA bar --- */
+.stats-fmcsa-bar { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 18px 24px; display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-pack: justify; -ms-flex-pack: justify; justify-content: space-between; -webkit-box-align: center; -ms-flex-align: center; align-items: center; -ms-flex-wrap: wrap; flex-wrap: wrap; gap: 16px; margin-bottom: 30px; }
+.fmcsa-bar-left { display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-align: center; -ms-flex-align: center; align-items: center; gap: 16px; }
+.fmcsa-bar-shield { width: 48px; height: 48px; background: #eff6ff; border-radius: 50%; display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-align: center; -ms-flex-align: center; align-items: center; -webkit-box-pack: center; -ms-flex-pack: center; justify-content: center; color: #3b82f6; font-size: 1.2em; -ms-flex-negative: 0; flex-shrink: 0; }
+.fmcsa-bar-text strong { font-size: .93em; color: #2563eb; display: block; }
+.fmcsa-bar-text span   { font-size: .80em; color: #6b7280; }
+.fmcsa-bar-right a { color: #2563eb; font-size: .85em; text-decoration: none; }
+.fmcsa-bar-right a:hover { text-decoration: underline; }
+</style>
+
+<div class="container stats-page">
+
+    <ul class="breadcrumb">
+        <li><a href="@Url.Action("Index", "home")">Home</a></li>
+        <li class="active">Statistics</li>
+    </ul>
+
+    <!-- Hero -->
+    <div class="stats-hero">
+        <div class="stats-hero-text">
+            <h1 class="stats-hero-title">Trucking Industry<br />Statistics</h1>
+            <p class="stats-hero-desc">
+                Explore U.S. trucking industry statistics based on FMCSA registration data.
+                TruckCarrierHub tracks active trucking companies, freight brokers, fleet sizes,
+                cargo types, city and state markets, and FMCSA registration dates across
+                the United States.
+            </p>
+        </div>
+        <div class="stats-hero-map">
+            <img src="@Url.Content("~/Content/images/usa_map_3.png")" alt="United States map with state boundaries" class="stats-hero-map-img" />
+        </div>
+    </div>
+
+    <!-- 4 stat cards -->
+    <div class="stat-cards-wrap">
+
+        <a href="@Url.Action("ActiveCompanies", "Home")" class="stat-card-col" style="text-decoration:none;color:inherit;display:-webkit-box;display:-ms-flexbox;display:flex;">
+            <div class="stat-card-v2" style="width:100%;">
+                <div class="stat-icon-circle sic-blue"><i class="fa fa-truck"></i></div>
+                <div class="stat-card-num">@Model.TotalCompanies.ToString("N0")</div>
+                <div class="stat-card-label">Active Trucking<br />Companies</div>
+                <div class="stat-card-desc">Active trucking companies, excluding broker-only authorities</div>
+                <span class="stat-card-arrow" style="margin-top:auto;"><i class="fa fa-chevron-right"></i></span>
+            </div>
+        </a>
+
+        <a href="/statistics/active-brokers" class="stat-card-col" style="text-decoration:none;color:inherit;display:-webkit-box;display:-ms-flexbox;display:flex;">
+            <div class="stat-card-v2" style="width:100%;">
+                <div class="stat-icon-circle sic-green"><i class="fa fa-users"></i></div>
+                <div class="stat-card-num">@Model.ActiveBrokers.ToString("N0")</div>
+                <div class="stat-card-label">Active Freight<br />Brokers</div>
+                <div class="stat-card-desc">Active freight broker authorities</div>
+                <span class="stat-card-arrow" style="margin-top:auto;"><i class="fa fa-chevron-right"></i></span>
+            </div>
+        </a>
+
+        <div class="stat-card-col">
+            <div class="stat-card-v2">
+                <div class="stat-icon-circle sic-gold"><i class="fa fa-calendar"></i></div>
+                @if (!string.IsNullOrEmpty(Model.LastDataUpdate))
+                {
+                    <div class="stat-card-num-sm">@Model.LastDataUpdate</div>
+                }
+                else
+                {
+                    <div class="stat-card-num-sm">N/A</div>
+                }
+                <div class="stat-card-label">FMCSA<br />Data Updates</div>
+                <div class="stat-card-desc">Data is updated weekly to ensure accuracy.</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Level 2 — Topic Navigation Cards -->
+    @{
+        var lm       = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1).AddMonths(-1);
+        string lmNm  = lm.ToString("MMMM yyyy");
+        string lmPth = "/statistics/new-registrations/" + lm.Year.ToString() + "/" + lm.Month.ToString("D2");
+    }
+    <div class="topic-cards-wrap">
+
+        <!-- Card 1: New FMCSA Registrations (clickable header + separate sub-links) -->
+        <div class="topic-card-col">
+            <div class="topic-card">
+                <a href="/statistics/new-registrations?range=12m" class="topic-card-hdr-link">
+                    <div class="stat-icon-circle sic-purple"><i class="fa fa-line-chart"></i></div>
+                    <div class="tc-num">@Model.NewRegistrations12MonthsCount.ToString("N0")</div>
+                    <div class="tc-label">New FMCSA Registrations</div>
+                    <div class="tc-desc">Track newly registered trucking companies and freight brokers.</div>
+                    <div class="tc-chevron"><i class="fa fa-chevron-right"></i></div>
+                </a>
+                <ul class="tc-sublinks">
+                    <li>
+                        <a href="@lmPth/carriers">
+                            <span class="tc-sl-icon"><i class="fa fa-truck"></i></span>
+                            New Trucking Companies &mdash; @lmNm
+                            <i class="fa fa-chevron-right tc-sl-arrow"></i>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="@lmPth/brokers">
+                            <span class="tc-sl-icon"><i class="fa fa-users"></i></span>
+                            New Freight Brokers &mdash; @lmNm
+                            <i class="fa fa-chevron-right tc-sl-arrow"></i>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Card 2: Fleet and Operations -->
+        <div class="topic-card-col">
+            <div class="topic-card">
+                <a href="/statistics/fleet-operations" class="topic-card-hdr-link">
+                    <div class="stat-icon-circle sic-teal"><i class="fa fa-truck"></i></div>
+                    <div class="tc-label">Fleet &amp; Operations</div>
+                    <ul class="tc-desc tc-desc-list">
+                        <li>Fleet Size Distribution</li>
+                        <li>Owner-Operators</li>
+                        <li>Operational Scope</li>
+                        <li>Hazmat Carriers</li>
+                    </ul>
+                    <div class="tc-chevron"><i class="fa fa-chevron-right"></i></div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Card 3: Cargo Statistics -->
+        <div class="topic-card-col">
+            <div class="topic-card">
+                <a href="/statistics/cargo" class="topic-card-hdr-link">
+                    <div class="stat-icon-circle sic-orange"><i class="fa fa-cubes"></i></div>
+                    <div class="tc-label">Cargo Statistics</div>
+                    <ul class="tc-desc tc-desc-list">
+                        <li>Cargo types</li>
+                        <li>Specialization</li>
+                        <li>Fleet size by cargo</li>
+                        <li>General Freight</li>
+                    </ul>
+                    <div class="tc-chevron"><i class="fa fa-chevron-right"></i></div>
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- State Trucking Statistics -->
+    @if (Model.AllUsStates != null && Model.AllUsStates.Count > 0)
+    {
+        <div class="state-section-wrap">
+            <div class="state-section-top">
+                <div>
+                    <div class="state-section-title-row">
+                        <i class="fa fa-map"></i>
+                        <span class="state-section-title">State Trucking Statistics</span>
+                    </div>
+                    <p class="state-section-desc">
+                        Browse trucking statistics by state, including active companies, largest cities, fleet size distribution,
+                        cargo types, and new registrations.
+                    </p>
+                </div>
+            </div>
+            <div class="states-grid">
+                @foreach (var st in Model.AllUsStates)
+                {
+                    <a href="/statistics/state/@st.StateCode" class="state-link-item">
+                        @st.StateName <i class="fa fa-chevron-right"></i>
+                    </a>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- FMCSA Footer Bar -->
+    <div class="stats-fmcsa-bar">
+        <div class="fmcsa-bar-left">
+            <div class="fmcsa-bar-shield"><i class="fa fa-shield"></i></div>
+            <div class="fmcsa-bar-text">
+                <strong>All statistics are based on official FMCSA data</strong>
+                <span>Data is updated weekly to ensure accuracy and reliability.</span>
+            </div>
+        </div>
+        <div class="fmcsa-bar-right">
+            <span style="font-size:.85em;color:#6b7280;">Updated weekly from official FMCSA records.</span>
+        </div>
+    </div>
+
+</div>

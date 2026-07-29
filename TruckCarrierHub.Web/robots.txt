@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Disallow: /Admin/
+Disallow: /admin/
+Disallow: /create-account/
+Disallow: /change-password/
+Disallow: /business/
+Disallow: /verify/
+Disallow: /email/unsubscribe/
+Disallow: /error
+Disallow: /searchautocomplete
+Disallow: /searchautocompletecity
+
+Sitemap: https://truckcarrierhub.com/sitemap.xml

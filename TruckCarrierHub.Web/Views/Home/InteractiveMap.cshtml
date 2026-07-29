@@ -1,0 +1,143 @@
+@{
+    ViewBag.Title = "Interactive Map " + System.Char.ConvertFromUtf32(0x2014) + " Search Trucking Companies by City | Truck Carrier Hub";
+    string metaDesc = "Search trucking companies and freight brokers by city on our interactive map, then zoom in or out to browse carriers near you.";
+
+    var mapLd = new Newtonsoft.Json.Linq.JObject {
+        ["@context"]    = "https://schema.org",
+        ["@type"]       = "WebPage",
+        ["name"]        = "Interactive Map - Search Trucking Companies by City",
+        ["url"]         = "https://truckcarrierhub.com/interactive-map",
+        ["description"] = metaDesc,
+        ["breadcrumb"]  = new Newtonsoft.Json.Linq.JObject {
+            ["@type"] = "BreadcrumbList",
+            ["itemListElement"] = new Newtonsoft.Json.Linq.JArray {
+                new Newtonsoft.Json.Linq.JObject { ["@type"] = "ListItem", ["position"] = 1, ["name"] = "Home",           ["item"] = "https://truckcarrierhub.com" },
+                new Newtonsoft.Json.Linq.JObject { ["@type"] = "ListItem", ["position"] = 2, ["name"] = "Interactive Map", ["item"] = "https://truckcarrierhub.com/interactive-map" }
+            }
+        }
+    };
+}
+@section AdditionalMeta {
+<meta name="description" content="@metaDesc" />
+<link rel="canonical" href="https://truckcarrierhub.com/interactive-map" />
+<script type="application/ld+json">@Html.Raw(mapLd.ToString(Newtonsoft.Json.Formatting.None))</script>
+}
+
+<style>
+.imap-page { padding-top: 16px; padding-bottom: 48px; }
+.imap-hero { max-width: 720px; margin: 0 auto 28px; text-align: center; }
+.imap-hero h1 { font-size: 2.1em; font-weight: 700; color: #111827; margin-bottom: 14px; }
+.imap-hero p { font-size: 1.05em; color: #4b5563; line-height: 1.6; }
+.imap-search-card { max-width: 560px; margin: 0 auto 36px; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.06); padding: 28px 30px; }
+.imap-search-card label { font-weight: 600; color: #111827; margin-bottom: 8px; display: block; }
+.imap-note { max-width: 560px; margin: 0 auto 40px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px 20px; font-size: .92em; color: #4b5563; text-align: center; }
+.imap-note .fa { color: #2563eb; margin-right: 6px; }
+.imap-crosslinks { max-width: 720px; margin: 0 auto; text-align: center; }
+.imap-crosslinks p { font-size: .95em; color: #6b7280; }
+.imap-crosslinks a { color: #2563eb; }
+</style>
+
+<div class="container imap-page">
+
+    <ul class="breadcrumb">
+        <li><a href="@Url.Action("Index", "home")">Home</a></li>
+        <li class="active">Interactive Map</li>
+    </ul>
+
+    <div class="imap-hero">
+        <h1>Search Trucking Companies on the Interactive Map</h1>
+        <p>
+            Browse over 1.3 million U.S. and Canadian trucking companies and freight brokers
+            on a map, city by city. Pick a city below to get started.
+        </p>
+    </div>
+
+    <div class="imap-search-card">
+        <label for="mapSearchText">Search by City</label>
+        <div class="input-group" style="width:100%;">
+            <input type="search" class="form-control" id="mapSearchText" placeholder="e.g. Cheyenne Wells, CO" autocomplete="off" />
+            <span class="input-group-btn">
+                <button type="button" id="mapSearchButton" class="btn btn-primary"><span class="glyphicon glyphicon-search"></span> Search</button>
+            </span>
+        </div>
+    </div>
+
+    <div class="imap-note">
+        <i class="fa fa-info-circle"></i>
+        Please select a city first &mdash; once you do, the map opens centered on that city, and
+        you can zoom in and out to browse the trucking companies and freight brokers located there.
+    </div>
+
+    <div class="imap-crosslinks">
+        <p>
+            Prefer to browse without the map? See the full
+            <a href="@Url.Action("Index", "home")">state and city directory</a> on the homepage,
+            or check <a href="/statistics">Trucking Industry Statistics</a> for
+            company counts, fleet sizes, and cargo types by state and city.
+        </p>
+    </div>
+
+</div>
+
+@section scripts {
+<script>
+    $(function () {
+        function goToMap(cityText) {
+            if (!cityText) {
+                ShowDialogBox('Info', 'Please select a city first', 'Ok', '', '', null);
+                return;
+            }
+            $.ajax({
+                url: '/search',
+                type: 'POST',
+                data: { searchText: cityText, selectedValue: 'City' },
+                success: function (response) {
+                    if (!response) {
+                        ShowDialogBox('Info', 'No city found', 'Ok', '', '', null);
+                        return;
+                    }
+                    var sep = response.indexOf('?') >= 0 ? '&' : '?';
+                    window.location.href = response + sep + 'view=map';
+                },
+                error: function (xhr) {
+                    ShowDialogBox('Info', 'No city found', 'Ok', '', '', null);
+                }
+            });
+        }
+
+        $('#mapSearchText').autocomplete({
+            delay: 100,
+            minLength: 3,
+            source: function (request, response) {
+                $.ajax({
+                    url: '/searchautocomplete',
+                    data: JSON.stringify({ SelctedSearchPrefix: request.term, SelectedValue: 'City' }),
+                    dataType: 'json',
+                    type: 'POST',
+                    contentType: 'application/json; charset=utf-8',
+                    success: function (data) {
+                        response($.map(data || [], function (item) {
+                            return { label: item.Value, value: item.Value };
+                        }));
+                    }
+                });
+            },
+            select: function (event, ui) {
+                $('#mapSearchText').val(ui.item.value);
+                goToMap(ui.item.value);
+            }
+        });
+
+        $('#mapSearchButton').on('click', function () {
+            goToMap($('#mapSearchText').val());
+        });
+
+        $('#mapSearchText').on('keypress', function (e) {
+            if (e.which === 13) {
+                goToMap($(this).val());
+                return false;
+            }
+        });
+    });
+</script>
+}

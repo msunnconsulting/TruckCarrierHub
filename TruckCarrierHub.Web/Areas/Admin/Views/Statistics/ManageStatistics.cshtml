@@ -1,0 +1,182 @@
+@{
+    ViewBag.Title = "Manage Statistics";
+}
+
+<h2>Manage Statistics</h2>
+
+<div style="max-width:600px;margin-top:24px;">
+
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:24px 28px;">
+        <h4 style="margin-top:0;margin-bottom:6px;font-size:1.05em;color:#111827;">Refresh Statistics Cache</h4>
+        <p style="font-size:.88em;color:#6b7280;margin-bottom:18px;line-height:1.6;">
+            Invalidates all cached Statistics ViewModels (landing page, Active Trucking Companies, Active Freight Brokers, New FMCSA Registrations, Fleet &amp; Operations, Cargo Statistics, and any cached
+            state or city pages), then immediately pre-warms the six highest-traffic pages.
+            Run this after every FMCSA data sync.
+        </p>
+
+        <button id="btnRefreshCache" onclick="refreshStatsCache()"
+                style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:10px 22px;font-size:.93em;font-weight:600;cursor:pointer;">
+            <i class="fa fa-refresh"></i>&nbsp; Refresh Statistics Cache
+        </button>
+
+        <div id="refreshProgress" style="display:none;margin-top:16px;padding:12px 16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;font-size:.88em;color:#1e40af;">
+            <i class="fa fa-spinner fa-spin"></i>&nbsp; Refreshing cache&hellip; This may take 20&ndash;40 seconds. Please wait.
+        </div>
+
+        <div id="refreshSuccess" style="display:none;margin-top:16px;padding:12px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:.88em;color:#15803d;">
+            <i class="fa fa-check-circle"></i>&nbsp; <span id="refreshSuccessMsg"></span>
+        </div>
+
+        <div id="refreshError" style="display:none;margin-top:16px;padding:12px 16px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:.88em;color:#dc2626;">
+            <i class="fa fa-exclamation-circle"></i>&nbsp; <span id="refreshErrorMsg"></span>
+        </div>
+    </div>
+
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:24px 28px;margin-top:20px;">
+        <h4 style="margin-top:0;margin-bottom:6px;font-size:1.05em;color:#111827;">Generate Sitemaps</h4>
+        <p style="font-size:.88em;color:#6b7280;margin-bottom:18px;line-height:1.6;">
+            Writes <code>sitemap_registrations.xml</code> (one entry per completed month since earliest data)
+            and updates <code>sitemap.xml</code> (the sitemapindex). Run after adding new monthly archive pages or after a data update.
+        </p>
+
+        <button id="btnGenerateSitemaps" onclick="generateSitemaps()"
+                style="background:#059669;color:#fff;border:none;border-radius:6px;padding:10px 22px;font-size:.93em;font-weight:600;cursor:pointer;">
+            <i class="fa fa-sitemap"></i>&nbsp; Generate Sitemaps
+        </button>
+
+        <div id="sitemapProgress" style="display:none;margin-top:16px;padding:12px 16px;background:#ecfdf5;border:1px solid #6ee7b7;border-radius:8px;font-size:.88em;color:#065f46;">
+            <i class="fa fa-spinner fa-spin"></i>&nbsp; Generating sitemaps&hellip; Please wait.
+        </div>
+        <div id="sitemapSuccess" style="display:none;margin-top:16px;padding:12px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:.88em;color:#15803d;">
+            <i class="fa fa-check-circle"></i>&nbsp; <span id="sitemapSuccessMsg"></span>
+        </div>
+        <div id="sitemapError" style="display:none;margin-top:16px;padding:12px 16px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:.88em;color:#dc2626;">
+            <i class="fa fa-exclamation-circle"></i>&nbsp; <span id="sitemapErrorMsg"></span>
+        </div>
+    </div>
+
+</div>
+
+<script>
+function generateSitemaps() {
+    var btn  = document.getElementById('btnGenerateSitemaps');
+    var prog = document.getElementById('sitemapProgress');
+    var succ = document.getElementById('sitemapSuccess');
+    var err  = document.getElementById('sitemapError');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>&nbsp; Generating&hellip;';
+    prog.style.display = 'block';
+    succ.style.display = 'none';
+    err.style.display  = 'none';
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '@Url.Action("GenerateSitemaps", "Business")', true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    xhr.timeout = 120000;
+    xhr.onload = function () {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa fa-sitemap"></i>&nbsp; Generate Sitemaps';
+        prog.style.display = 'none';
+        if (xhr.status === 200) {
+            try {
+                var result = JSON.parse(xhr.responseText);
+                if (result.success) {
+                    document.getElementById('sitemapSuccessMsg').textContent =
+                        'Sitemaps generated at ' + result.timestamp + '. ' + result.count + ' monthly URLs written to sitemap_registrations.xml.';
+                    succ.style.display = 'block';
+                } else {
+                    document.getElementById('sitemapErrorMsg').textContent = 'Error: ' + (result.error || 'Unknown error.');
+                    err.style.display = 'block';
+                }
+            } catch (e) {
+                document.getElementById('sitemapErrorMsg').textContent = 'Unexpected response from server.';
+                err.style.display = 'block';
+            }
+        } else {
+            document.getElementById('sitemapErrorMsg').textContent = 'Server returned status ' + xhr.status;
+            err.style.display = 'block';
+        }
+    };
+    xhr.ontimeout = function () {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa fa-sitemap"></i>&nbsp; Generate Sitemaps';
+        prog.style.display = 'none';
+        document.getElementById('sitemapErrorMsg').textContent = 'Request timed out.';
+        err.style.display = 'block';
+    };
+    xhr.onerror = function () {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa fa-sitemap"></i>&nbsp; Generate Sitemaps';
+        prog.style.display = 'none';
+        document.getElementById('sitemapErrorMsg').textContent = 'Network error.';
+        err.style.display = 'block';
+    };
+    xhr.send('');
+}
+
+function refreshStatsCache() {
+    var btn  = document.getElementById('btnRefreshCache');
+    var prog = document.getElementById('refreshProgress');
+    var succ = document.getElementById('refreshSuccess');
+    var err  = document.getElementById('refreshError');
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>&nbsp; Refreshing&hellip;';
+    prog.style.display = 'block';
+    succ.style.display = 'none';
+    err.style.display  = 'none';
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '@Url.Action("RefreshStatisticsCache", "Business")', true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    xhr.timeout = 180000; // 3-minute client timeout
+
+    xhr.onload = function () {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa fa-refresh"></i>&nbsp; Refresh Statistics Cache';
+        prog.style.display = 'none';
+
+        if (xhr.status === 200) {
+            try {
+                var result = JSON.parse(xhr.responseText);
+                if (result.success) {
+                    document.getElementById('refreshSuccessMsg').textContent =
+                        'Statistics cache refreshed successfully at ' + result.timestamp +
+                        '. Landing page, Active Trucking Companies, Active Freight Brokers, and New FMCSA Registrations pages are pre-warmed.';
+                    succ.style.display = 'block';
+                } else {
+                    document.getElementById('refreshErrorMsg').textContent =
+                        'Error: ' + (result.error || 'Unknown error occurred.');
+                    err.style.display = 'block';
+                }
+            } catch (e) {
+                document.getElementById('refreshErrorMsg').textContent = 'Unexpected response from server.';
+                err.style.display = 'block';
+            }
+        } else {
+            document.getElementById('refreshErrorMsg').textContent =
+                'Server returned status ' + xhr.status + '. Please try again.';
+            err.style.display = 'block';
+        }
+    };
+
+    xhr.ontimeout = function () {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa fa-refresh"></i>&nbsp; Refresh Statistics Cache';
+        prog.style.display = 'none';
+        document.getElementById('refreshErrorMsg').textContent = 'Request timed out. The server may still be processing — check back in a minute.';
+        err.style.display = 'block';
+    };
+
+    xhr.onerror = function () {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa fa-refresh"></i>&nbsp; Refresh Statistics Cache';
+        prog.style.display = 'none';
+        document.getElementById('refreshErrorMsg').textContent = 'Network error. Please try again.';
+        err.style.display = 'block';
+    };
+
+    xhr.send('');
+}
+</script>

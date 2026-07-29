@@ -1,0 +1,852 @@
+@model PartnerCarrier.ViewModels.Admin.StatisticsCityCompaniesVM
+@using System.Globalization
+@{
+    Layout = "~/Themes/Bootstrap/Views/Shared/_Layout.cshtml";
+    var pageTitle = ViewBag.Title ?? "Active Trucking Companies | Truck Carrier Hub";
+    var ti = CultureInfo.CurrentCulture.TextInfo;
+    string cityDisplay = ti.ToTitleCase(Model.CityName.ToLower());
+    var sd = Model.SizeDistribution ?? new PartnerCarrier.ViewModels.Admin.CompanySizeDistribution();
+    var sdTotal = sd.TotalReporting > 0 ? (double)sd.TotalReporting : 1.0;
+    var ad = Model.AgeDistribution ?? new PartnerCarrier.ViewModels.Admin.CompanyAgeDistribution();
+    string ccTotal          = Model.TotalActiveCompanies.ToString("N0");
+    string ccCitySlug       = Model.CityName.Replace(" ", "-");
+    string ccCanonical      = "https://truckcarrierhub.com/statistics/city/" + Model.StateCode + "/" + ccCitySlug;
+    string ccStateCanonical = "https://truckcarrierhub.com/statistics/state/" + Model.StateCode;
+    string mdash            = System.Char.ConvertFromUtf32(0x2014);
+    string ccMetaFull       = cityDisplay + " trucking statistics " + mdash + " " + ccTotal + " active companies, new FMCSA registrations, fleet size analytics, cargo type breakdown, and company age data.";
+    string ccMetaShort      = cityDisplay + ", " + Model.StateName + " trucking statistics " + mdash + " " + ccTotal + " active companies, fleet analytics, cargo types, and FMCSA data.";
+    string ccMetaDesc       = ccMetaFull.Length <= 160 ? ccMetaFull : (ccMetaShort.Length <= 160 ? ccMetaShort : ccMetaShort.Substring(0, 157) + "...");
+    var ccLd = new Newtonsoft.Json.Linq.JObject {
+        ["@context"]    = "https://schema.org",
+        ["@type"]       = "WebPage",
+        ["name"]        = cityDisplay + ", " + Model.StateCode + " Trucking Statistics & Analytics",
+        ["description"] = ccMetaDesc,
+        ["url"]         = ccCanonical,
+        ["breadcrumb"]  = new Newtonsoft.Json.Linq.JObject {
+            ["@type"] = "BreadcrumbList",
+            ["itemListElement"] = new Newtonsoft.Json.Linq.JArray {
+                new Newtonsoft.Json.Linq.JObject { ["@type"] = "ListItem", ["position"] = 1, ["name"] = "Home",                      ["item"] = "https://truckcarrierhub.com" },
+                new Newtonsoft.Json.Linq.JObject { ["@type"] = "ListItem", ["position"] = 2, ["name"] = "Statistics",                ["item"] = "https://truckcarrierhub.com/statistics" },
+                new Newtonsoft.Json.Linq.JObject { ["@type"] = "ListItem", ["position"] = 3, ["name"] = "Active Trucking Companies", ["item"] = "https://truckcarrierhub.com/statistics/active-companies" },
+                new Newtonsoft.Json.Linq.JObject { ["@type"] = "ListItem", ["position"] = 4, ["name"] = Model.StateName,             ["item"] = ccStateCanonical },
+                new Newtonsoft.Json.Linq.JObject { ["@type"] = "ListItem", ["position"] = 5, ["name"] = cityDisplay,                 ["item"] = ccCanonical }
+            }
+        }
+    };
+}
+@section AdditionalMeta {
+<meta name="description" content="@ccMetaDesc" />
+<link rel="canonical" href="@ccCanonical" />
+<script type="application/ld+json">@Html.Raw(ccLd.ToString(Newtonsoft.Json.Formatting.None))</script>
+}
+<link rel="stylesheet" href="@Url.Content("~/Content/statistics-page.css")" />
+<style>
+    /* ── hero ── */
+    .cc-hero {
+        background: linear-gradient(135deg, #0f2547 0%, #1a3a6b 60%, #0f4c81 100%);
+        border-radius: 12px;
+        padding: 36px 40px 32px;
+        margin-bottom: 28px;
+        color: #fff;
+        position: relative;
+        overflow: hidden;
+    }
+    .cc-hero::after {
+        content: '';
+        position: absolute;
+        right: -40px;
+        top: -40px;
+        width: 220px;
+        height: 220px;
+        border-radius: 50%;
+        background: rgba(255,255,255,.04);
+        pointer-events: none;
+    }
+    .cc-hero-label { font-size: .82em; color: rgba(255,255,255,.65); margin-bottom: 6px; letter-spacing: .04em; text-transform: uppercase; }
+    .cc-hero-title { font-size: 2em; font-weight: 800; color: #fff; margin: 0 0 10px; line-height: 1.15; }
+    .cc-hero-sub { font-size: .95em; color: rgba(255,255,255,.75); margin: 0 0 18px; }
+    .cc-hero-badges { display: -webkit-box; display: -ms-flexbox; display: flex; gap: 10px; -ms-flex-wrap: wrap; flex-wrap: wrap; }
+    .cc-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255,255,255,.12);
+        border: 1px solid rgba(255,255,255,.2);
+        border-radius: 20px;
+        padding: 5px 13px;
+        font-size: .8em;
+        color: rgba(255,255,255,.9);
+    }
+    .cc-back-link { display: inline-flex; align-items: center; gap: 6px; font-size: .82em; color: rgba(255,255,255,.7); text-decoration: none; margin-top: 18px; }
+    .cc-back-link:hover { color: #fff; text-decoration: none; }
+
+    /* ── section ── */
+    .cc-section-title {
+        font-size: 1.05em;
+        font-weight: 700;
+        color: #111827;
+        margin: 0 0 16px;
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .cc-section-title .fa { color: #3b82f6; }
+
+    /* ── monthly summary card ── */
+    .cc-monthly-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        box-shadow: 0 1px 4px rgba(0,0,0,.06);
+        padding: 20px 24px;
+        margin-bottom: 24px;
+    }
+    .cc-monthly-stats {
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        gap: 32px;
+        -ms-flex-wrap: wrap;
+        flex-wrap: wrap;
+        margin-top: 14px;
+    }
+    .cc-monthly-stat { min-width: 120px; }
+    .cc-monthly-stat-num { font-size: 1.5em; font-weight: 800; color: #111827; line-height: 1.1; }
+    .cc-monthly-stat-lbl { font-size: .78em; color: #6b7280; margin-top: 2px; }
+
+    /* ── ranked tables ── */
+    .sc-ranked-table { width: 100%; border-collapse: collapse; font-size: .88em; }
+    .sc-ranked-table th { background: #f3f4f6; color: #374151; font-weight: 600; padding: 9px 12px; text-align: left; border-bottom: 2px solid #e5e7eb; white-space: nowrap; }
+    .sc-ranked-table td { padding: 9px 12px; border-bottom: 1px solid #f3f4f6; color: #374151; vertical-align: middle; }
+    .sc-ranked-table tr:last-child td { border-bottom: none; }
+    .sc-ranked-table tr:hover td { background: #f9fafb; }
+    .sc-rank-num { font-weight: 700; color: #9ca3af; width: 32px; }
+    .sc-rank-count { font-weight: 700; color: #111827; white-space: nowrap; }
+    .sc-rank-pct { color: #6b7280; font-size: .82em; white-space: nowrap; }
+    .sc-rank-bar-wrap { width: 80px; display: inline-block; vertical-align: middle; }
+    .sc-rank-bar-bg { background: #e5e7eb; border-radius: 3px; height: 6px; }
+    .sc-rank-bar-fill { background: #3b82f6; border-radius: 3px; height: 6px; }
+
+    /* ── layout rows ── */
+    .sc-row {
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        gap: 24px;
+        -ms-flex-wrap: wrap;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+    }
+    .sc-col-half {
+        -webkit-box-flex: 1;
+        -ms-flex: 1 1 320px;
+        flex: 1 1 320px;
+        min-width: 0;
+    }
+    .cc-col-wide {
+        -webkit-box-flex: 3;
+        -ms-flex: 3 1 360px;
+        flex: 3 1 360px;
+        min-width: 0;
+    }
+    .cc-col-narrow {
+        -webkit-box-flex: 2;
+        -ms-flex: 2 1 260px;
+        flex: 2 1 260px;
+        min-width: 0;
+    }
+
+    /* ── table card ── */
+    .sc-table-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        box-shadow: 0 1px 4px rgba(0,0,0,.06);
+        overflow: hidden;
+        height: 100%;
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -webkit-box-orient: vertical;
+        -webkit-box-direction: normal;
+        -ms-flex-direction: column;
+        flex-direction: column;
+    }
+    .sc-table-header {
+        padding: 16px 18px 14px;
+        border-bottom: 1px solid #e5e7eb;
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -webkit-box-align: center;
+        -ms-flex-align: center;
+        align-items: center;
+        gap: 10px;
+    }
+    .sc-table-header .fa { font-size: 1.1em; color: #3b82f6; }
+    .sc-table-title { font-size: 1em; font-weight: 700; color: #111827; margin: 0; }
+    .sc-table-body { padding: 0; -webkit-box-flex: 1; -ms-flex: 1; flex: 1; }
+
+    /* ── donut chart ── */
+    .sc-donut-wrap {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        box-shadow: 0 1px 4px rgba(0,0,0,.06);
+        padding: 18px 20px 14px;
+        height: 100%;
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -webkit-box-orient: vertical;
+        -webkit-box-direction: normal;
+        -ms-flex-direction: column;
+        flex-direction: column;
+    }
+    .sc-donut-title { font-size: 1em; font-weight: 700; color: #111827; margin-bottom: 14px; }
+    .sc-donut-body {
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -webkit-box-align: center;
+        -ms-flex-align: center;
+        align-items: center;
+        gap: 22px;
+        -webkit-box-flex: 1;
+        -ms-flex: 1;
+        flex: 1;
+        -ms-flex-wrap: wrap;
+        flex-wrap: wrap;
+    }
+    .sc-donut-svg-wrap { position: relative; -ms-flex-negative: 0; flex-shrink: 0; }
+    .sc-donut-center {
+        position: absolute;
+        top: 50%; left: 50%;
+        -webkit-transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%);
+        text-align: center;
+        pointer-events: none;
+    }
+    .sc-donut-center-num { font-size: 1.3em; font-weight: 800; color: #111827; line-height: 1.1; }
+    .sc-donut-center-lbl { font-size: .68em; color: #6b7280; line-height: 1.3; }
+    .sc-donut-legend { -webkit-box-flex: 1; -ms-flex: 1 1 160px; flex: 1 1 160px; min-width: 0; }
+    .sc-legend-row { display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-align: center; -ms-flex-align: center; align-items: center; gap: 8px; margin-bottom: 7px; font-size: .83em; }
+    .sc-legend-dot { width: 10px; height: 10px; border-radius: 50%; -ms-flex-negative: 0; flex-shrink: 0; }
+    .sc-legend-label { color: #374151; -webkit-box-flex: 1; -ms-flex: 1; flex: 1; }
+    .sc-legend-count { color: #111827; font-weight: 600; white-space: nowrap; }
+    .sc-legend-pct { color: #9ca3af; white-space: nowrap; margin-left: 4px; }
+    .sc-donut-note { font-size: .78em; color: #9ca3af; margin-top: 10px; }
+
+    /* ── authority list ── */
+    .cc-auth-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        box-shadow: 0 1px 4px rgba(0,0,0,.06);
+        padding: 18px 20px;
+        height: 100%;
+    }
+    .cc-auth-row {
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -webkit-box-align: center;
+        -ms-flex-align: center;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    .cc-auth-row:last-child { border-bottom: none; }
+    .cc-auth-icon { width: 34px; height: 34px; border-radius: 8px; display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-align: center; -ms-flex-align: center; align-items: center; -webkit-box-pack: center; -ms-flex-pack: center; justify-content: center; -ms-flex-negative: 0; flex-shrink: 0; }
+    .cc-auth-name { -webkit-box-flex: 1; -ms-flex: 1; flex: 1; font-size: .88em; font-weight: 600; color: #374151; }
+    .cc-auth-count { font-size: .92em; font-weight: 700; color: #111827; white-space: nowrap; }
+    .cc-auth-pct { font-size: .78em; color: #9ca3af; margin-left: 4px; white-space: nowrap; }
+    .cc-auth-bar-bg { height: 4px; background: #f3f4f6; border-radius: 2px; margin-top: 4px; }
+    .cc-auth-bar-fill { height: 4px; border-radius: 2px; }
+
+    /* ── CTA ── */
+    .sc-cta-banner {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 10px;
+        padding: 22px 28px;
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: flex;
+        -webkit-box-align: center;
+        -ms-flex-align: center;
+        align-items: center;
+        gap: 24px;
+        margin-bottom: 32px;
+        -ms-flex-wrap: wrap;
+        flex-wrap: wrap;
+    }
+    .sc-cta-icon { color: #2563eb; font-size: 2em; -ms-flex-negative: 0; flex-shrink: 0; }
+    .sc-cta-text { -webkit-box-flex: 1; -ms-flex: 1; flex: 1; min-width: 180px; }
+    .sc-cta-text h3 { font-size: 1.05em; font-weight: 700; color: #1e3a5f; margin: 0 0 4px; }
+    .sc-cta-text p { font-size: .88em; color: #374151; margin: 0; }
+    .sc-cta-btn { display: inline-block; background: #2563eb; color: #fff; font-weight: 600; font-size: .9em; padding: 10px 20px; border-radius: 6px; text-decoration: none; white-space: nowrap; -ms-flex-negative: 0; flex-shrink: 0; }
+    .sc-cta-btn:hover { background: #1d4ed8; color: #fff; text-decoration: none; }
+
+    /* ── source bar ── */
+    .sc-source-bar { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px 22px; display: -webkit-box; display: -ms-flexbox; display: flex; -webkit-box-align: center; -ms-flex-align: center; align-items: center; gap: 14px; margin-bottom: 30px; font-size: .83em; color: #6b7280; }
+    .sc-source-bar .fa { color: #3b82f6; font-size: 1.1em; -ms-flex-negative: 0; flex-shrink: 0; }
+    .sc-source-bar strong { color: #374151; }
+
+    /* ── USDOT link ── */
+    .cc-dot-link { color: #2563eb; text-decoration: none; font-size: .82em; }
+    .cc-dot-link:hover { text-decoration: underline; }
+
+    /* ── range dropdown ── */
+    .cc-range-btn {
+        display: -webkit-inline-box; display: -ms-inline-flexbox; display: inline-flex;
+        -webkit-box-align: center; -ms-flex-align: center; align-items: center;
+        background: #fff; border: 1px solid #d1d5db; border-radius: 6px;
+        padding: 5px 10px; font-size: .8em; font-weight: 500; color: #374151;
+        cursor: pointer; white-space: nowrap;
+    }
+    .cc-range-btn:hover { background: #f9fafb; border-color: #9ca3af; }
+    .cc-range-menu {
+        position: absolute; right: 0; top: calc(100% + 4px); z-index: 50;
+        background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0,0,0,.1); min-width: 160px; overflow: hidden;
+    }
+    .cc-range-menu a {
+        display: block; padding: 9px 14px; font-size: .84em; color: #374151;
+        text-decoration: none;
+    }
+    .cc-range-menu a:hover { background: #f3f4f6; }
+    .cc-range-menu a.cc-range-active { color: #2563eb; font-weight: 600; background: #eff6ff; }
+</style>
+
+<div class="container stats-page">
+
+    <!-- breadcrumb -->
+    <div class="stats-breadcrumb">
+        <a href="@Url.Action("Index", "Home")">Home</a>
+        <span class="sep">/</span>
+        <a href="@Url.Action("Statistics", "Home")">Statistics</a>
+        <span class="sep">/</span>
+        <a href="@Url.Action("ActiveCompanies", "Home")">Active Companies</a>
+        <span class="sep">/</span>
+        <a href="@Url.Action("StateCompanies", "Home", new { stateCode = Model.StateCode })">@Model.StateName</a>
+        <span class="sep">/</span>
+        @cityDisplay
+    </div>
+
+    <!-- hero -->
+    <div class="cc-hero">
+        <div class="cc-hero-label">City Statistics</div>
+        <h1 class="cc-hero-title">Active Trucking Companies<br />in @cityDisplay, @Model.StateCode</h1>
+        <p class="cc-hero-sub">
+            @Model.TotalActiveCompanies.ToString("N0") active carriers, brokers &amp; freight companies.
+            @if (!string.IsNullOrEmpty(Model.CountyName)
+                 && !string.Equals(Model.CountyName.Trim(), (Model.CityName ?? "").Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                <span>Located in @(System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase(Model.CountyName.ToLower())) County.</span>
+            }
+        </p>
+        <div class="cc-hero-badges">
+            <span class="cc-badge"><i class="fa fa-map-marker"></i> @cityDisplay, @Model.StateCode</span>
+            <span class="cc-badge"><i class="fa fa-check-circle" style="color:#4ade80;"></i> FMCSA data &bull; updated weekly</span>
+            @if (Model.PercentOfStateTotal > 0)
+            {
+                <span class="cc-badge"><i class="fa fa-bar-chart"></i> @Model.PercentOfStateTotal.ToString("F2")% of @Model.StateName</span>
+            }
+        </div>
+        <a href="@Url.Action("StateCompanies", "Home", new { stateCode = Model.StateCode })" class="cc-back-link">
+            <i class="fa fa-arrow-left"></i> Back to @Model.StateName Statistics
+        </a>
+    </div>
+
+    <!-- ── Section 2: stat cards ── -->
+    <div class="stat-cards-wrap" style="margin-bottom:24px;">
+
+        <div class="stat-card-col">
+            <div class="stat-card-v2">
+                <div class="stat-icon-circle sic-blue"><i class="fa fa-building"></i></div>
+                <div class="stat-card-num">@Model.TotalActiveCompanies.ToString("N0")</div>
+                <div class="stat-card-label">Active Trucking Companies</div>
+                <div class="stat-card-desc">
+                    @Model.PercentOfStateTotal.ToString("F2")% of all active carriers in @Model.StateName
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card-col">
+            <div class="stat-card-v2">
+                <div class="stat-icon-circle sic-green"><i class="fa fa-calendar-plus-o"></i></div>
+                <div class="stat-card-num">@Model.NewRegistrationsLast24Months.ToString("N0")</div>
+                <div class="stat-card-label">New FMCSA Registrations (24 Mo.)</div>
+                <div class="stat-card-desc">
+                    Avg @Model.AvgNewPerMonth.ToString("F1") new companies per month
+                    @if (Model.NewRegistrationsYoYPercent.HasValue)
+                    {
+                        string sign = Model.NewRegistrationsYoYPercent.Value >= 0 ? "+" : "";
+                        string yoyColor = Model.NewRegistrationsYoYPercent.Value >= 0 ? "#16a34a" : "#dc2626";
+                        <span style="font-weight:600;color:@yoyColor;">(@sign@Model.NewRegistrationsYoYPercent.Value.ToString("F1")% YoY)</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card-col">
+            <div class="stat-card-v2">
+                <div class="stat-icon-circle sic-orange"><i class="fa fa-truck"></i></div>
+                @if (Model.MedianFleetSize > 0)
+                {
+                    <div class="stat-card-num">@Model.MedianFleetSize</div>
+                }
+                else
+                {
+                    <div class="stat-card-num">&mdash;</div>
+                }
+                <div class="stat-card-label">Median Fleet Size</div>
+                <div class="stat-card-desc">Power units at the midpoint of all reporting companies</div>
+            </div>
+        </div>
+
+        <div class="stat-card-col">
+            <div class="stat-card-v2">
+                <div class="stat-icon-circle sic-teal"><i class="fa fa-user"></i></div>
+                <div class="stat-card-num">@Model.OwnerOperatorPercent.ToString("F1")%</div>
+                <div class="stat-card-label">Owner-Operator Rate</div>
+                <div class="stat-card-desc">
+                    vs. @Model.StateOwnerOperatorPercent.ToString("F1")% statewide in @Model.StateName
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ── Registration Trend & Company Size ── -->
+    <div class="sc-row">
+
+        <!-- Monthly Registrations Line Chart -->
+        <div class="sc-col-half">
+            <div class="sc-donut-wrap" style="padding:20px 24px;">
+                <div style="display:-webkit-box;display:-ms-flexbox;display:flex;-webkit-box-align:center;-ms-flex-align:center;align-items:center;-webkit-box-pack:justify;-ms-flex-pack:justify;justify-content:space-between;gap:10px;margin-bottom:8px;">
+                    <div class="sc-donut-title" style="margin:0;"><i class="fa fa-line-chart" style="color:#3b82f6;margin-right:8px;"></i>New FMCSA Registrations</div>
+                    <div style="position:relative;">
+                        <button class="cc-range-btn" onclick="ccToggleRange(event)">@(Model.RangeLabel ?? "Last 24 Months") <i class="fa fa-chevron-down" style="font-size:.7em;margin-left:3px;"></i></button>
+                        <div id="ccRangeMenu" class="cc-range-menu" style="display:none;">
+                            <a href="?range=24m"@(Model.SelectedRange == "24m" ? " class='cc-range-active'" : "")>Last 24 Months</a>
+                            <a href="?range=4y"@(Model.SelectedRange == "4y" ? " class='cc-range-active'" : "")>Last 4 Years</a>
+                            <a href="?range=8y"@(Model.SelectedRange == "8y" ? " class='cc-range-active'" : "")>Last 8 Years</a>
+                            <a href="?range=all"@(Model.SelectedRange == "all" ? " class='cc-range-active'" : "")>All Data Available</a>
+                        </div>
+                    </div>
+                </div>
+                @if (Model.MonthlyRegistrations != null && Model.MonthlyRegistrations.Any())
+                {
+                    int rangeTotalReg = Model.MonthlyRegistrations.Sum(x => x.Count);
+                    int rangeMonthN   = Model.MonthlyRegistrations.Count;
+                    decimal rangeAvg  = rangeMonthN > 0 ? Math.Round((decimal)rangeTotalReg / rangeMonthN, 1) : 0;
+                    var mr   = Model.MonthlyRegistrations;
+                    int mrN  = mr.Count;
+                    int mrMax = mrN > 0 ? mr.Max(x => x.Count) : 1;
+                    if (mrMax < 1) { mrMax = 1; }
+                    int lW = 480; int lH = 160;
+                    int lPL = 36; int lPR = 10; int lPT = 8; int lPB = 24;
+                    int lPW = lW - lPL - lPR; int lPH = lH - lPT - lPB;
+                    double lBotY = lPT + lPH;
+                    var lPts = new System.Text.StringBuilder();
+                    double lFX = lPL, lLX = lPL;
+                    for (int li = 0; li < mrN; li++)
+                    {
+                        double lx = lPL + (mrN <= 1 ? lPW / 2.0 : (double)li / (mrN - 1) * lPW);
+                        double ly = lPT + lPH - (double)mr[li].Count / mrMax * lPH;
+                        if (li == 0) { lPts.AppendFormat(System.Globalization.CultureInfo.InvariantCulture, "{0:F1},{1:F1}", lx, ly); lFX = lx; }
+                        else         { lPts.AppendFormat(System.Globalization.CultureInfo.InvariantCulture, " {0:F1},{1:F1}", lx, ly); }
+                        lLX = lx;
+                    }
+                    string lArea = string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                        "M {0:F1},{1:F1} L {2} L {3:F1},{1:F1} Z", lFX, lBotY, lPts, lLX);
+                    var lG = new System.Text.StringBuilder();
+                    for (int g = 1; g <= 3; g++)
+                    {
+                        double gy = lPT + lPH - (double)g / 3.0 * lPH;
+                        int gv = (int)Math.Round((double)mrMax * g / 3.0);
+                        lG.AppendFormat(System.Globalization.CultureInfo.InvariantCulture,
+                            "<line x1='{0}' y1='{1:F1}' x2='{2}' y2='{1:F1}' stroke='#f3f4f6' stroke-width='1'/>" +
+                            "<text x='{3}' y='{1:F1}' font-size='9' fill='#9ca3af' text-anchor='end' dominant-baseline='middle'>{4}</text>",
+                            lPL, gy, lW - lPR, lPL - 3, gv);
+                    }
+                    var lXL = new System.Text.StringBuilder();
+                    var lIdx = new System.Collections.Generic.HashSet<int> { 0, mrN / 4, mrN / 2, (mrN * 3) / 4, mrN - 1 };
+                    foreach (int li in lIdx)
+                    {
+                        if (li < 0 || li >= mrN) { continue; }
+                        double lx = lPL + (mrN <= 1 ? lPW / 2.0 : (double)li / (mrN - 1) * lPW);
+                        string lbl = mr[li].Label ?? "";
+                        if (lbl.Length >= 8) { lbl = lbl.Substring(0, 3) + " '" + lbl.Substring(lbl.Length - 2); }
+                        lXL.AppendFormat(System.Globalization.CultureInfo.InvariantCulture,
+                            "<text x='{0:F1}' y='{1}' font-size='9' fill='#9ca3af' text-anchor='middle'>{2}</text>",
+                            lx, lH - 4, lbl);
+                    }
+                    <div style="overflow-x:auto;margin-top:12px;">
+                        <svg width="100%" viewBox="0 0 @lW @lH" style="min-width:220px;overflow:visible;">
+                            <defs>
+                                <linearGradient id="ccLineGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="#2563eb" stop-opacity="0.18"/>
+                                    <stop offset="100%" stop-color="#2563eb" stop-opacity="0"/>
+                                </linearGradient>
+                            </defs>
+                            @Html.Raw(lG.ToString())
+                            <line x1="@lPL" y1="@((int)lBotY)" x2="@(lW - lPR)" y2="@((int)lBotY)" stroke="#e5e7eb" stroke-width="1"/>
+                            <path d="@lArea" fill="url(#ccLineGrad)"/>
+                            <polyline points="@lPts.ToString()" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+                            @Html.Raw(lXL.ToString())
+                        </svg>
+                    </div>
+                    <div class="cc-monthly-stats" style="margin-top:14px;border-top:1px solid #f3f4f6;padding-top:12px;">
+                        <div class="cc-monthly-stat">
+                            <div class="cc-monthly-stat-num" style="color:#2563eb;">@rangeTotalReg.ToString("N0")</div>
+                            <div class="cc-monthly-stat-lbl">Total</div>
+                        </div>
+                        <div class="cc-monthly-stat">
+                            <div class="cc-monthly-stat-num">@rangeAvg.ToString("F1")</div>
+                            <div class="cc-monthly-stat-lbl">Avg / month</div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(Model.BestMonthLabel))
+                        {
+                            <div class="cc-monthly-stat">
+                                <div class="cc-monthly-stat-num" style="color:#16a34a;">@Model.BestMonthCount.ToString("N0")</div>
+                                <div class="cc-monthly-stat-lbl">Best: @Model.BestMonthLabel</div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.LowestMonthLabel))
+                        {
+                            <div class="cc-monthly-stat">
+                                <div class="cc-monthly-stat-num" style="color:#dc2626;">@Model.LowestMonthCount.ToString("N0")</div>
+                                <div class="cc-monthly-stat-lbl">Lowest: @Model.LowestMonthLabel</div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p style="color:#9ca3af;font-size:.88em;padding:10px 0;">No registration data available.</p>
+                }
+            </div>
+        </div>
+
+        <!-- Company Size Distribution -->
+        <div class="sc-col-half">
+            <div class="sc-donut-wrap">
+                <div class="sc-donut-title"><i class="fa fa-pie-chart" style="color:#3b82f6;margin-right:8px;"></i>Company Size Distribution</div>
+                @{
+                    var fsColors = new[] { "#2563eb", "#22c55e", "#f59e0b", "#a855f7", "#f97316" };
+                    var fsLabels = new[] { "1 Power Unit", "2&ndash;5 Units", "6&ndash;20 Units", "21&ndash;100 Units", "101+ Units" };
+                    var fsVals   = new[] { sd.OneUnit, sd.TwoToFive, sd.SixToTwenty, sd.TwentyOneToHundred, sd.OverHundred };
+                    int fsSize = 180; int fsCx = 90; int fsCy = 90; int fsR = 72; int fsIn = 46;
+                    double fsTotal = fsVals.Sum(x => (double)x);
+                    if (fsTotal < 1) { fsTotal = 1; }
+                    double fsAngle = -90.0;
+                    var fsPaths = new System.Text.StringBuilder();
+                    for (int fi = 0; fi < fsVals.Length; fi++)
+                    {
+                        double fsDeg = fsVals[fi] / fsTotal * 360.0;
+                        if (fsDeg == 0) { continue; }
+                        double fsEnd = fsAngle + fsDeg;
+                        double fsSR  = fsAngle * Math.PI / 180.0;
+                        double fsER  = fsEnd   * Math.PI / 180.0;
+                        double fx1 = fsCx + fsR  * Math.Cos(fsSR); double fy1 = fsCy + fsR  * Math.Sin(fsSR);
+                        double fx2 = fsCx + fsR  * Math.Cos(fsER); double fy2 = fsCy + fsR  * Math.Sin(fsER);
+                        double fix1 = fsCx + fsIn * Math.Cos(fsSR); double fiy1 = fsCy + fsIn * Math.Sin(fsSR);
+                        double fix2 = fsCx + fsIn * Math.Cos(fsER); double fiy2 = fsCy + fsIn * Math.Sin(fsER);
+                        int fla = fsDeg > 180 ? 1 : 0;
+                        fsPaths.AppendFormat(System.Globalization.CultureInfo.InvariantCulture,
+                            "<path d='M {0:F1} {1:F1} A {2} {2} 0 {7} 1 {3:F1} {4:F1} L {8:F1} {9:F1} A {10} {10} 0 {7} 0 {5:F1} {6:F1} Z' fill='{11}'/>",
+                            fx1, fy1, fsR, fx2, fy2, fix1, fiy1, fla, fix2, fiy2, fsIn, fsColors[fi]);
+                        fsAngle = fsEnd;
+                    }
+                }
+                <div class="sc-donut-body">
+                    <div class="sc-donut-svg-wrap">
+                        <svg width="@fsSize" height="@fsSize" viewBox="0 0 @fsSize @fsSize">
+                            @Html.Raw(fsPaths.ToString())
+                            <circle cx="@fsCx" cy="@fsCy" r="@fsIn" fill="#fff"/>
+                        </svg>
+                        <div class="sc-donut-center">
+                            <div class="sc-donut-center-num">@sd.TotalReporting.ToString("N0")</div>
+                            <div class="sc-donut-center-lbl">Reporting<br/>Fleets</div>
+                        </div>
+                    </div>
+                    <div class="sc-donut-legend">
+                        @for (int fi = 0; fi < fsVals.Length; fi++)
+                        {
+                            double fpct = fsVals[fi] / fsTotal * 100.0;
+                            <div class="sc-legend-row">
+                                <div class="sc-legend-dot" style="background:@fsColors[fi]"></div>
+                                <span class="sc-legend-label">@Html.Raw(fsLabels[fi])</span>
+                                <span class="sc-legend-count">@fsVals[fi].ToString("N0")</span>
+                                <span class="sc-legend-pct">@fpct.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)%</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <p class="sc-donut-note"><i class="fa fa-info-circle"></i> Based on total power units reported to FMCSA.@if (Model.MedianFleetSize > 0) {<span> Median: @Model.MedianFleetSize unit(s).</span>}</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ── Section 4: Age Distribution donut + Authority Types ── -->
+    <div class="sc-row">
+
+        <!-- Company Age Distribution donut -->
+        <div class="sc-col-half">
+            <div class="sc-donut-wrap">
+                <div class="sc-donut-title"><i class="fa fa-history" style="color:#3b82f6;margin-right:8px;"></i>Company Age Distribution</div>
+                @{
+                    var ageColors = new[] { "#22c55e", "#3b82f6", "#f59e0b", "#a78bfa", "#6b7280" };
+                    var ageLabels = new[] { "0&ndash;2 Years", "3&ndash;5 Years", "6&ndash;10 Years", "11&ndash;20 Years", "20+ Years" };
+                    var ageValues = new[] { ad.ZeroToTwo, ad.ThreeToFive, ad.SixToTen, ad.ElevenToTwenty, ad.OverTwenty };
+                    int ageSize = 180;
+                    int ageCx = ageSize / 2;
+                    int ageCy = ageSize / 2;
+                    int ageR = 72;
+                    int ageInner = 46;
+                    double ageTotal = ageValues.Sum(x => (double)x);
+                    if (ageTotal == 0) { ageTotal = 1; }
+                    double ageStartAngle = -90.0;
+                    var agePaths = new System.Text.StringBuilder();
+                    for (int ai = 0; ai < ageValues.Length; ai++)
+                    {
+                        double sliceDeg = ageValues[ai] / ageTotal * 360.0;
+                        if (sliceDeg == 0) { continue; }
+                        double endAngle = ageStartAngle + sliceDeg;
+                        double startRad = ageStartAngle * Math.PI / 180.0;
+                        double endRad = endAngle * Math.PI / 180.0;
+                        double x1 = ageCx + ageR * Math.Cos(startRad);
+                        double y1 = ageCy + ageR * Math.Sin(startRad);
+                        double x2 = ageCx + ageR * Math.Cos(endRad);
+                        double y2 = ageCy + ageR * Math.Sin(endRad);
+                        double ix1 = ageCx + ageInner * Math.Cos(startRad);
+                        double iy1 = ageCy + ageInner * Math.Sin(startRad);
+                        double ix2 = ageCx + ageInner * Math.Cos(endRad);
+                        double iy2 = ageCy + ageInner * Math.Sin(endRad);
+                        int largeArc = sliceDeg > 180 ? 1 : 0;
+                        string agePath = string.Format(
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            "M {0:F1} {1:F1} A {2} {2} 0 {7} 1 {3:F1} {4:F1} L {8:F1} {9:F1} A {10} {10} 0 {7} 0 {5:F1} {6:F1} Z",
+                            x1, y1, ageR, x2, y2, ix1, iy1, largeArc, ix2, iy2, ageInner);
+                        agePaths.AppendFormat("<path d=\"{0}\" fill=\"{1}\" />", agePath, ageColors[ai]);
+                        ageStartAngle = endAngle;
+                    }
+                }
+                <div class="sc-donut-body">
+                    <div class="sc-donut-svg-wrap">
+                        <svg width="@ageSize" height="@ageSize" viewBox="0 0 @ageSize @ageSize">
+                            @Html.Raw(agePaths.ToString())
+                            <circle cx="@ageCx" cy="@ageCy" r="@ageInner" fill="#fff" />
+                        </svg>
+                        <div class="sc-donut-center">
+                            @if (ad.AverageAgeYears > 0)
+                            {
+                                <div class="sc-donut-center-num">@ad.AverageAgeYears.ToString("F1")</div>
+                                <div class="sc-donut-center-lbl">Avg age<br />(years)</div>
+                            }
+                            else
+                            {
+                                <div class="sc-donut-center-num">@Model.TotalActiveCompanies.ToString("N0")</div>
+                                <div class="sc-donut-center-lbl">Companies</div>
+                            }
+                        </div>
+                    </div>
+                    <div class="sc-donut-legend">
+                        @for (int ai = 0; ai < ageValues.Length; ai++)
+                        {
+                            double pct = ageValues[ai] / ageTotal * 100.0;
+                            <div class="sc-legend-row">
+                                <div class="sc-legend-dot" style="background:@ageColors[ai]"></div>
+                                <span class="sc-legend-label">@Html.Raw(ageLabels[ai])</span>
+                                <span class="sc-legend-count">@ageValues[ai].ToString("N0")</span>
+                                <span class="sc-legend-pct">@pct.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)%</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+                @if (ad.AverageAgeYears > 0)
+                {
+                    <p class="sc-donut-note"><i class="fa fa-info-circle"></i> Based on FMCSA registration date. Average age: @ad.AverageAgeYears.ToString("F1") years.</p>
+                }
+            </div>
+        </div>
+
+        <!-- Authority Types -->
+        <div class="sc-col-half">
+            <div class="cc-auth-card">
+                <div class="sc-donut-title"><i class="fa fa-id-badge" style="color:#3b82f6;margin-right:8px;"></i>Company Authority Types</div>
+                @if (Model.TopAuthorityTypes != null && Model.TopAuthorityTypes.Any())
+                {
+                    var authColors = new[] { "#2563eb", "#10b981", "#f59e0b", "#8b5cf6", "#f97316", "#14b8a6" };
+                    var authIcons = new[] { "fa-truck", "fa-handshake-o", "fa-industry", "fa-share-alt", "fa-cubes", "fa-tint" };
+                    int maxAuthCount = Model.TopAuthorityTypes[0].CompanyCount;
+                    for (int ai = 0; ai < Model.TopAuthorityTypes.Count; ai++)
+                    {
+                        var auth = Model.TopAuthorityTypes[ai];
+                        string authColor = authColors[ai % authColors.Length];
+                        string authIcon = authIcons[ai % authIcons.Length];
+                        double authBarPct = maxAuthCount > 0 ? (double)auth.CompanyCount / maxAuthCount * 100.0 : 0;
+                        <div class="cc-auth-row">
+                            <div class="cc-auth-icon" style="background:#f3f4f6;color:@authColor;">
+                                <i class="fa @authIcon"></i>
+                            </div>
+                            <div style="flex:1;min-width:0;">
+                                <div style="display:flex;align-items:baseline;gap:8px;">
+                                    <span class="cc-auth-name">@auth.AuthorityTypeName</span>
+                                    <span class="cc-auth-count">@auth.CompanyCount.ToString("N0")</span>
+                                    <span class="cc-auth-pct">@auth.PercentOfTotal.ToString("F1")%</span>
+                                </div>
+                                <div class="cc-auth-bar-bg">
+                                    <div class="cc-auth-bar-fill" style="width:@authBarPct.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)%;background:@authColor;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    <p class="sc-donut-note" style="margin-top:14px;">
+                        <i class="fa fa-info-circle"></i> A company may hold multiple authority types simultaneously.
+                    </p>
+                }
+                else
+                {
+                    <p style="color:#9ca3af;font-size:.88em;padding:20px 0;">No authority type data available.</p>
+                }
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ── Section 3: Top 10 tables ── -->
+    <div class="sc-row">
+
+        <!-- Top 10 Cargo Types -->
+        <div class="sc-col-half">
+            <div class="sc-table-card">
+                <div class="sc-table-header">
+                    <i class="fa fa-list-ul"></i>
+                    <span class="sc-table-title">Top 10 Cargo Types</span>
+                </div>
+                <div class="sc-table-body">
+                    @if (Model.TopCargoTypes != null && Model.TopCargoTypes.Any())
+                    {
+                        var maxCargo = Model.TopCargoTypes[0].CompanyCount;
+                        <table class="sc-ranked-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:28px">#</th>
+                                    <th>Cargo Type</th>
+                                    <th>Companies</th>
+                                    <th>% of City</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < Model.TopCargoTypes.Count; i++)
+                                {
+                                    var row = Model.TopCargoTypes[i];
+                                    <tr>
+                                        <td class="sc-rank-num">@(i + 1)</td>
+                                        <td>@row.CargoTypeName</td>
+                                        <td class="sc-rank-count">@row.CompanyCount.ToString("N0")</td>
+                                        <td class="sc-rank-pct">@row.PercentOfTotal.ToString("F1")%</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p style="padding:20px;color:#6b7280;font-size:.88em;">No cargo data available.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Top 10 Companies by Fleet Size -->
+        <div class="sc-col-half">
+            <div class="sc-table-card">
+                <div class="sc-table-header">
+                    <i class="fa fa-truck"></i>
+                    <span class="sc-table-title">Largest Fleets in @cityDisplay</span>
+                </div>
+                <div class="sc-table-body">
+                    @if (Model.TopCompaniesByFleetSize != null && Model.TopCompaniesByFleetSize.Any())
+                    {
+                        <table class="sc-ranked-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:28px">#</th>
+                                    <th>Company</th>
+                                    <th>Fleet</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < Model.TopCompaniesByFleetSize.Count; i++)
+                                {
+                                    var row = Model.TopCompaniesByFleetSize[i];
+                                    string companyName = !string.IsNullOrEmpty(row.LegalName) ? row.LegalName : "USDOT #" + row.USDOTNumber;
+                                    <tr>
+                                        <td class="sc-rank-num">@(i + 1)</td>
+                                        <td>
+                                            <a href="/@Model.StateCode/USDOT-@row.USDOTNumber" class="cc-dot-link" title="View USDOT @row.USDOTNumber">
+                                                @companyName
+                                            </a>
+                                        </td>
+                                        <td class="sc-rank-count">@row.FleetSize.ToString("N0")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p style="padding:20px;color:#6b7280;font-size:.88em;">No fleet data available.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ── CTA Banner ── -->
+    <div class="sc-cta-banner">
+        <div class="sc-cta-icon"><i class="fa fa-search"></i></div>
+        <div class="sc-cta-text">
+            <h3>Browse all active trucking companies in @cityDisplay</h3>
+            <p>Search, filter, and compare @Model.TotalActiveCompanies.ToString("N0") companies by cargo type, fleet size, authority type, and more.</p>
+        </div>
+        <a href="@Url.Action("City", "Home", new { stateCode = Model.StateCode.ToUpper(), city = Model.CityName.ToUpper().Replace(" ", "-") })" class="sc-cta-btn">
+            Browse @cityDisplay Companies
+        </a>
+    </div>
+
+    <!-- ── Source footer ── -->
+    <div class="sc-source-bar" id="ccPageBottom">
+        <i class="fa fa-shield"></i>
+        <div>
+            <strong>Data source:</strong> U.S. Federal Motor Carrier Safety Administration (FMCSA) &mdash; active carrier registrations.
+            @if (Model.LastDataUpdate.HasValue)
+            {
+                <span>Last updated: @Model.LastDataUpdate.Value.ToString("MMMM d, yyyy").</span>
+            }
+            Active status reflects carriers with FMCSA status code "A" at the time of data collection.
+        </div>
+    </div>
+
+</div>
+<script>
+function ccToggleRange(e) {
+    e.stopPropagation();
+    var m = document.getElementById('ccRangeMenu');
+    m.style.display = m.style.display === 'none' ? 'block' : 'none';
+}
+document.addEventListener('click', function() {
+    var m = document.getElementById('ccRangeMenu');
+    if (m) m.style.display = 'none';
+});
+</script>

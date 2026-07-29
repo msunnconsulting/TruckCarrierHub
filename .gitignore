@@ -42,6 +42,11 @@ _ReSharper*/
 *.dbmdl
 *.jfm
 
+# Web.config has real per-environment secrets (DB connection string, Google/OpenAI API keys,
+# SMTP password) inline - never commit it. Web.config.example is the tracked template;
+# Web.Debug.config/Web.Release.config are just XDT transforms with no secrets, still tracked.
+TruckCarrierHub.Web/Web.config
+
 # Bromium / HP Sure Click sandbox artifacts
 ~BROMIUM/
 

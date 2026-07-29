@@ -1,0 +1,153 @@
+<?xml version="1.0"?>
+<!--
+  For more information on how to configure your ASP.NET application, please visit
+  https://go.microsoft.com/fwlink/?LinkId=301880
+  -->
+<!--
+  TEMPLATE FILE - copy this to Web.config and fill in real values locally.
+  Web.config itself is gitignored (see .gitignore) precisely so real secrets never get
+  committed - production's Web.config is a separate, hand-maintained file on the VPS and is
+  never overwritten by a deploy copy, same as the custom IIS rewrite block documented in
+  CLAUDE.md / production-rewrite-rules.md.
+  -->
+<configuration>
+  <configSections>
+    <!-- For more information on Entity Framework configuration, visit http://go.microsoft.com/fwlink/?LinkID=237468 -->
+    <section name="logger" type="Common.Utility.Logger.LoggerSection, Common.Utility" allowLocation="true" allowDefinition="Everywhere"/>
+    <section name="dbUpdator" type="Common.Utility.DbUpdator.Config.DbUpdatorSection, Common.Utility" allowLocation="true" allowDefinition="Everywhere"/>
+    <!-- For more information on Entity Framework configuration, visit http://go.microsoft.com/fwlink/?LinkID=237468 -->
+    <section name="entityFramework" type="System.Data.Entity.Internal.ConfigFile.EntityFrameworkSection, EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" requirePermission="false"/>
+  </configSections>
+  <connectionStrings>
+    <add name="PartnerCarrieConnectionStringADO" providerName="System.Data.SqlClient" connectionString="Data Source=REPLACE_WITH_YOUR_SQL_SERVER;Initial Catalog=PartnerCarrier_New;Integrated Security=True;Connect Timeout=360;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False"/>
+    <add name="PartnerCarrier_DevEntities" connectionString="metadata=res://*/Database.PartnerCarrierModel.csdl|res://*/Database.PartnerCarrierModel.ssdl|res://*/Database.PartnerCarrierModel.msl;provider=System.Data.SqlClient;provider connection string=&quot;Data Source=REPLACE_WITH_YOUR_SQL_SERVER;Initial Catalog=PartnerCarrier_New;Integrated Security=True;Connect Timeout=360;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False&quot;" providerName="System.Data.EntityClient"/>
+  </connectionStrings>
+  <appSettings>
+    <add key="OutboundBannerFilePath" value="Uploads/OutboundBanners"/>
+    <add key="webpages:Version" value="3.0.0.0"/>
+    <add key="webpages:Enabled" value="false"/>
+    <add key="ClientValidationEnabled" value="true"/>
+    <add key="UnobtrusiveJavaScriptEnabled" value="true"/>
+    <add key="AdminThemeName" value="Bootstrap"/>
+    <add key="FrontEndThemeName" value="Bootstrap"/>
+    <add key="EnableSetup" value="true"/>
+    <!--Setup login Credantial-->
+    <add key="username" value="setupadmin@email.com"/>
+    <add key="saltpassword" value="REPLACE_WITH_YOUR_SALT"/>
+    <add key="hashpassword" value="REPLACE_WITH_YOUR_HASH"/>
+    <add key="AdminNotificationEmail" value="admin@truckcarrierhub.com"/>
+    <!-- Set here mail which use for Contact Us page eg:  admin@truckcarrierhub.com  -->
+    <add key="FromEmail" value="noreply@truckcarrierhub.com"/>
+    <!-- Set here mail which you want to use for Send mail eg: noreply@truckcarrierhub.com -->
+    <add key="GoogleAPIKeyForMap" value="REPLACE_WITH_YOUR_GOOGLE_MAPS_KEY"/>
+    <!--reCAPTCHA Keys-->
+    <add key="GoogleRecaptchaSecretKey" value="REPLACE_WITH_YOUR_RECAPTCHA_SECRET_KEY"/>
+    <add key="GoogleRecaptchaSiteKey" value="REPLACE_WITH_YOUR_RECAPTCHA_SITE_KEY"/>
+    <add key="SendMailSleep" value="15"/>
+    <!-- Set here mail pause time duration in second. -->
+    <add key="AdminLoginAuthenticationName" value=".PartnerCarrier_Dev_Admin_V1"/>
+    <add key="SetupLoginAuthenticationName" value=".PartnerCarrier_Dev_Setup_V1"/>
+    <add key="BusinessLoginAuthenticationName" value=".PartnerCarrier_Dev_Business_V1"/>
+    <!-- ChatGPT-->
+    <add key="OpenAIAPIKey" value="REPLACE_WITH_YOUR_OPENAI_API_KEY" />
+    <add key="OpenAIModel" value="gpt-4" />
+    <add key="OpenAISystemContent" value="You are a factual content writer for a trucking company directory. You write short, accurate, data-driven descriptions and articles about local trucking markets. You never editorialize, speculate, or explain industry terminology. You report numbers and stop." />
+
+  </appSettings>
+  <!--
+    For a description of web.config changes see http://go.microsoft.com/fwlink/?LinkId=235367.
+
+    The following attributes can be set on the <httpRuntime> tag.
+      <system.Web>
+        <httpRuntime targetFramework="4.6.1" />
+      </system.Web>
+  -->
+  <location path="." inheritInChildApplications="false">
+    <system.web>
+      <authentication mode="Forms">
+        <forms name=".PartnerCarrier_Dev_V1"/>
+      </authentication>
+      <globalization fileEncoding="utf-8" requestEncoding="utf-8" responseEncoding="utf-8"/>
+      <compilation debug="true" targetFramework="4.6.1"/>
+      <httpRuntime maxUrlLength="1024" relaxedUrlToFileSystemMapping="true" targetFramework="4.6.1" requestPathInvalidCharacters="" requestValidationMode="2.0" executionTimeout="300"/>
+      <pages validateRequest="false"/>
+      <httpModules>
+        <add name="ApplicationInsightsWebTracking" type="Microsoft.ApplicationInsights.Web.ApplicationInsightsHttpModule, Microsoft.AI.Web"/>
+      </httpModules>
+    </system.web>
+  </location>
+  <runtime>
+    <assemblyBinding xmlns="urn:schemas-microsoft-com:asm.v1">
+      <dependentAssembly>
+        <assemblyIdentity name="Newtonsoft.Json" culture="neutral" publicKeyToken="30ad4fe6b2a6aeed"/>
+        <bindingRedirect oldVersion="0.0.0.0-6.0.0.0" newVersion="6.0.0.0"/>
+      </dependentAssembly>
+      <dependentAssembly>
+        <assemblyIdentity name="System.Web.Optimization" publicKeyToken="31bf3856ad364e35"/>
+        <bindingRedirect oldVersion="1.0.0.0-1.1.0.0" newVersion="1.1.0.0"/>
+      </dependentAssembly>
+      <dependentAssembly>
+        <assemblyIdentity name="WebGrease" publicKeyToken="31bf3856ad364e35"/>
+        <bindingRedirect oldVersion="0.0.0.0-1.5.2.14234" newVersion="1.5.2.14234"/>
+      </dependentAssembly>
+      <dependentAssembly>
+        <assemblyIdentity name="System.Web.Helpers" publicKeyToken="31bf3856ad364e35"/>
+        <bindingRedirect oldVersion="1.0.0.0-3.0.0.0" newVersion="3.0.0.0"/>
+      </dependentAssembly>
+      <dependentAssembly>
+        <assemblyIdentity name="System.Web.WebPages" publicKeyToken="31bf3856ad364e35"/>
+        <bindingRedirect oldVersion="0.0.0.0-3.0.0.0" newVersion="3.0.0.0"/>
+      </dependentAssembly>
+      <dependentAssembly>
+        <assemblyIdentity name="System.Web.Mvc" publicKeyToken="31bf3856ad364e35"/>
+        <bindingRedirect oldVersion="0.0.0.0-5.2.3.0" newVersion="5.2.3.0"/>
+      </dependentAssembly>
+    </assemblyBinding>
+  </runtime>
+  <system.webServer>
+    <validation validateIntegratedModeConfiguration="false"/>
+    <modules runAllManagedModulesForAllRequests="false">
+      <!--#182 Set false Because of this true its send all request on server.(If js/image/css not found then also send request on server)-->
+      <remove name="ApplicationInsightsWebTracking"/>
+      <add name="ApplicationInsightsWebTracking" type="Microsoft.ApplicationInsights.Web.ApplicationInsightsHttpModule, Microsoft.AI.Web" preCondition="managedHandler"/>
+    </modules>
+    <staticContent>
+      <remove fileExtension=".json"/>
+      <mimeMap fileExtension=".json" mimeType="application/json"/>
+      <remove fileExtension=".woff"/>
+      <mimeMap fileExtension=".woff" mimeType="application/x-font-woff"/>
+      <remove fileExtension=".woff2"/>
+      <mimeMap fileExtension=".woff2" mimeType="application/font-woff2"/>
+    </staticContent>
+    <httpErrors existingResponse="PassThrough"/>
+  </system.webServer>
+  <logger logType="text" enabled="true">
+    <textLogger logFilePath="|root|\app-log.txt"/>
+  </logger>
+  <dbUpdator createDb="false" enableLog="true" connectionString="PartnerCarrieConnectionStringADO" dbFilesDirectory="|root|\DbFiles\" dbScriptsDirectory="|root|\DbScripts\">
+    <backup enabled="false" backupDirectory="|root|\DbFiles\"/>
+  </dbUpdator>
+  <entityFramework>
+    <defaultConnectionFactory type="System.Data.Entity.Infrastructure.LocalDbConnectionFactory, EntityFramework">
+      <parameters>
+        <parameter value="mssqllocaldb"/>
+      </parameters>
+    </defaultConnectionFactory>
+    <providers>
+      <provider invariantName="System.Data.SqlClient" type="System.Data.Entity.SqlServer.SqlProviderServices, EntityFramework.SqlServer"/>
+    </providers>
+  </entityFramework>
+  <system.net>
+    <mailSettings>
+      <smtp>
+        <network host="smtp-relay.gmail.com" port="587" enableSsl="true" password="REPLACE_WITH_YOUR_SMTP_PASSWORD" userName="noreply@truckcarrierhub.com" defaultCredentials="true"/>
+      </smtp>
+    </mailSettings>
+  </system.net>
+  <system.codedom>
+    <compilers>
+      <compiler extension=".cs" language="c#;cs;csharp" warningLevel="4" compilerOptions="/langversion:7.0 /nowarn:1659;1699;1701;612;618" type="Microsoft.CodeDom.Providers.DotNetCompilerPlatform.CSharpCodeProvider, Microsoft.CodeDom.Providers.DotNetCompilerPlatform, Version=3.6.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35"/>
+      <compiler extension=".vb" language="vb;vbs;visualbasic;vbscript" warningLevel="4" compilerOptions="/langversion:default /nowarn:41008,40000,40008 /define:_MYTYPE=\&quot;Web\&quot; /optionInfer+" type="Microsoft.CodeDom.Providers.DotNetCompilerPlatform.VBCodeProvider, Microsoft.CodeDom.Providers.DotNetCompilerPlatform, Version=3.6.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35"/>
+    </compilers>
+  </system.codedom>
+</configuration>

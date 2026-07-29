@@ -44,3 +44,19 @@ _ReSharper*/
 
 # Bromium / HP Sure Click sandbox artifacts
 ~BROMIUM/
+
+# FUSE mount "silly rename" artifacts (seen via cross-platform tooling)
+.fuse_hidden*
+
+# Sitemap files are generated at runtime (Areas/Admin BusinessController.GenerateSitemaps,
+# also auto-regenerated on app start - see Global.asax.cs) - not meant to be hand-edited
+# source, so they don't belong in version control.
+TruckCarrierHub.Web/sitemap.xml
+TruckCarrierHub.Web/sitemap_pages.xml
+TruckCarrierHub.Web/sitemap_states.xml
+TruckCarrierHub.Web/sitemap_cities.xml
+TruckCarrierHub.Web/sitemap_registrations.xml
+
+# Stray one-off images sitting in the web root, not referenced by any code
+TruckCarrierHub.Web/ChatGPT Image Jul 4, 2026, 07_30_52 PM.png
+TruckCarrierHub.Web/TruckingCompaniesLA_2.png

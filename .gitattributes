@@ -1,0 +1,32 @@
+# Normalize line endings in the repository to LF, regardless of which OS/editor touched a
+# file (Visual Studio on Windows vs. other tooling). Git still checks files out using each
+# contributor's own core.autocrlf setting - this only fixes what's stored in the repo, so
+# `git status`/`git diff` stop being swamped by CRLF-vs-LF noise across the two environments
+# that edit this codebase.
+* text=auto
+
+*.cs text
+*.cshtml text
+*.js text
+*.css text
+*.sql text
+*.config text
+*.csproj text
+*.sln text
+*.json text
+*.md text
+*.xml text
+*.txt text
+*.svg text
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.dll binary
+*.pdb binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary

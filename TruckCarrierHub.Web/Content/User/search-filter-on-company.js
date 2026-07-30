@@ -1021,6 +1021,15 @@
                                 zoomControl: true,
                                 panControl: true,
                             });
+                            //#map is inside a container that starts as display:none (list view is
+                            //the default) and gets .show()'n right before this runs; the browser
+                            //doesn't always finish reflowing that container's real size before
+                            //Maps reads it, so the map can init at 0x0 and its controls (zoom
+                            //+/-, etc.) fail to lay out correctly until something (a click, a
+                            //manual browser resize) forces Maps to recompute. Telling Maps to
+                            //resize itself right after construction is the standard fix.
+                            google.maps.event.trigger(map, 'resize');
+                            map.setCenter(center);
                             //set markers on selected companies
                             google.maps.event.addListener(map, 'dragend', getPinsToMapBound);
                             google.maps.event.addListener(map, 'zoom_changed', getPinsToMapBound);
@@ -1158,6 +1167,11 @@
                             zoom: parseFloat(zoomLevel),
                             mapTypeId: google.maps.MapTypeId.ROADMAP
                         });
+                        //#map's container starts display:none and is shown right before this runs;
+                        //force Maps to recompute its size/controls now instead of waiting for the
+                        //user to interact with it (see matching comment near the other Map() call above).
+                        google.maps.event.trigger(map, 'resize');
+                        map.setCenter(center);
                         //callback event for zoom in/out or drag
                         //when user zoom or drag map at anywhere then redraw map boundries and display companies which are under this values
                         google.maps.event.addListener(map, 'dragend', getPinsToMapBound);
@@ -1226,7 +1240,7 @@
             url: url,
             data: "",
             dataType: "json",
-            // type: "POST",
+            type: "POST",
             contentType: "application/json; charset=utf-8",
             success: function (response) {
                 zoomLevel = map.getZoom();
@@ -1239,6 +1253,7 @@
                 window.pushUrlIfChanged($("#filterCompanyForm").attr("action"));
             },
             error: function (response) {
+                console.error('Map pan/zoom refresh request failed', response && response.status, response && response.responseText);
             },
             failure: function (response) {
             }

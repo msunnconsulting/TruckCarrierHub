@@ -257,6 +257,24 @@
                 namespaces: new string[] { "PartnerCarrier.Web.Controllers" });
 
             routes.MapRoute(
+                name: "InteractiveMapBounds",
+                url: "interactive-map-bounds",
+                defaults: new { controller = "Home", action = "InteractiveMapBounds" },
+                namespaces: new string[] { "PartnerCarrier.Web.Controllers" });
+
+            routes.MapRoute(
+                name: "Reviews",
+                url: "reviews",
+                defaults: new { controller = "Home", action = "Reviews" },
+                namespaces: new string[] { "PartnerCarrier.Web.Controllers" });
+
+            routes.MapRoute(
+                name: "TruckDriverJobs",
+                url: "truck-driver-jobs",
+                defaults: new { controller = "Home", action = "TruckDriverJobs" },
+                namespaces: new string[] { "PartnerCarrier.Web.Controllers" });
+
+            routes.MapRoute(
                name: "State",
                url: "{stateCode}",
                defaults: new { controller = "Home", action = "State", stateCode = UrlParameter.Optional },

@@ -825,6 +825,8 @@
     <Content Include="Views\Home\City.cshtml" />
     <Content Include="Views\Home\Company.cshtml" />
     <Content Include="Views\Home\InteractiveMap.cshtml" />
+    <Content Include="Views\Home\Reviews.cshtml" />
+    <Content Include="Views\Home\TruckDriverJobs.cshtml" />
     <Content Include="Views\Home\State.cshtml" />
     <Content Include="Views\Home\Statistics.cshtml" />
     <Content Include="Views\Home\ActiveBrokers.cshtml" />

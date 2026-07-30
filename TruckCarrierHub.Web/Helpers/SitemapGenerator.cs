@@ -55,6 +55,8 @@ namespace PartnerCarrier.Web.Helpers
                 Tuple.Create(BaseUrl + "/", "1.0"),
                 Tuple.Create(BaseUrl + "/statistics", "0.9"),
                 Tuple.Create(BaseUrl + "/interactive-map", "0.9"),
+                Tuple.Create(BaseUrl + "/reviews", "0.9"),
+                Tuple.Create(BaseUrl + "/truck-driver-jobs", "0.9"),
                 Tuple.Create(BaseUrl + "/statistics/active-companies", "0.8"),
                 Tuple.Create(BaseUrl + "/statistics/active-brokers", "0.8"),
                 Tuple.Create(BaseUrl + "/statistics/fleet-operations", "0.8"),

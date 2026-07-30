@@ -1,6 +1,10 @@
+@using Common.Utility;
+@model System.Collections.Generic.List<PartnerCarrier.ViewModels.User.CompanyVM>
 @{
     ViewBag.Title = "Interactive Map " + System.Char.ConvertFromUtf32(0x2014) + " Search Trucking Companies by City | Truck Carrier Hub";
-    string metaDesc = "Search trucking companies and freight brokers by city on our interactive map, then zoom in or out to browse carriers near you.";
+    string metaDesc = "Search trucking companies and freight brokers by city on our interactive map, then pan, zoom, or search to browse carriers near you.";
+    var googleAPIKey = Config.GetValue("GoogleAPIKeyForMap");
+    var dcCompanies = Model ?? new System.Collections.Generic.List<PartnerCarrier.ViewModels.User.CompanyVM>();
 
     var mapLd = new Newtonsoft.Json.Linq.JObject {
         ["@context"]    = "https://schema.org",
@@ -35,6 +39,10 @@
 .imap-crosslinks { max-width: 720px; margin: 0 auto; text-align: center; }
 .imap-crosslinks p { font-size: .95em; color: #6b7280; }
 .imap-crosslinks a { color: #2563eb; }
+.imap-example { max-width: 900px; margin: 0 auto 40px; text-align: center; }
+.imap-example h2 { font-size: 1.4em; font-weight: 700; color: #111827; margin-bottom: 10px; }
+.imap-example p { font-size: .95em; color: #4b5563; margin-bottom: 18px; }
+.imap-example-map { width: 100%; height: 420px; border: 1px solid #e5e7eb; border-radius: 10px; }
 </style>
 
 <div class="container imap-page">
@@ -64,9 +72,25 @@
 
     <div class="imap-note">
         <i class="fa fa-info-circle"></i>
-        Please select a city first &mdash; once you do, the map opens centered on that city, and
-        you can zoom in and out to browse the trucking companies and freight brokers located there.
+        Please select a city first &mdash; once you do, the map opens centered on that city. From
+        there you can zoom in and out, or click and drag to pan the map to any other area of the
+        U.S. or Canada &mdash; the trucking companies and freight brokers shown update
+        automatically to match whatever area is on screen. You can also just search for a
+        different city by name at any time to jump straight there.
     </div>
+
+    @if (dcCompanies.Count > 0)
+    {
+        <div class="imap-example">
+            <h2>See It in Action: Washington, DC</h2>
+            <p>
+                Here's a live example showing real trucking companies and freight brokers located
+                in Washington, DC. Zoom, pan, or click a marker to preview what the map looks like
+                for any city on Truck Carrier Hub.
+            </p>
+            <div id="dcExampleMap" class="imap-example-map"></div>
+        </div>
+    }
 
     <div class="imap-crosslinks">
         <p>
@@ -79,6 +103,10 @@
 
 </div>
 
+@if (dcCompanies.Count > 0)
+{
+    <script src="https://maps.googleapis.com/maps/api/js?key=@googleAPIKey"></script>
+}
 @section scripts {
 <script>
     $(function () {
@@ -140,4 +168,100 @@
         });
     });
 </script>
+@if (dcCompanies.Count > 0)
+{
+    var dcMarkersJson = Newtonsoft.Json.JsonConvert.SerializeObject(dcCompanies.Select(c => new
+    {
+        Name = c.DoingBusinessAsName ?? c.LegalName,
+        Lat = c.Latitude,
+        Lng = c.Longitude,
+        USDOT = c.USDOTNumber,
+        State = c.StateCode,
+        Phone = c.OfficeTelephoneNumber,
+        Status = c.Status
+    }));
+    <script>
+        function initDcExampleMap() {
+            var initialCompanies = @Html.Raw(dcMarkersJson);
+            var center = { lat: 38.9072, lng: -77.0369 };
+            var map = new google.maps.Map(document.getElementById('dcExampleMap'), {
+                zoom: 11,
+                center: center,
+                zoomControl: true,
+                panControl: true
+            });
+            var currentInfoWindow = null;
+            var currentMarkers = [];
+
+            function clearMarkers() {
+                currentMarkers.forEach(function (m) { m.setMap(null); });
+                currentMarkers = [];
+                if (currentInfoWindow) { currentInfoWindow.close(); currentInfoWindow = null; }
+            }
+
+            function renderCompanies(companies) {
+                clearMarkers();
+                (companies || []).forEach(function (c) {
+                    if (c.Lat == null || c.Lng == null) { return; }
+                    var marker = new google.maps.Marker({
+                        position: { lat: parseFloat(c.Lat), lng: parseFloat(c.Lng) },
+                        map: map,
+                        title: c.Name || ''
+                    });
+                    var companyUrl = '/' + (c.State || '').trim() + '/USDOT-' + c.USDOT;
+                    var phoneDisplay = c.Phone ? c.Phone.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3') : null;
+                    var content = "<div style='max-width:240px;'><b><a target='_blank' href='" + companyUrl + "'>" + (c.Name || '') + "</a></b><br/>USDOT " + c.USDOT + "<br/>" +
+                        (phoneDisplay ? "<a href='tel:+1-" + phoneDisplay + "'>" + phoneDisplay + "</a>" : "Phone: N/A");
+                    if (c.Status && c.Status.toLowerCase() === 'i') {
+                        content += "<br/><b style='color:#dc2626;'>Inactive</b>";
+                    }
+                    var infowindow = new google.maps.InfoWindow({ content: content, maxWidth: 300 });
+                    marker.addListener('click', function () {
+                        if (currentInfoWindow) { currentInfoWindow.close(); }
+                        infowindow.open(map, marker);
+                        currentInfoWindow = infowindow;
+                    });
+                    currentMarkers.push(marker);
+                });
+            }
+
+            // Initial paint uses the server-rendered DC list (no round trip, good for
+            // first-load and for crawlers). Every subsequent pan/zoom re-fetches companies for
+            // whatever's on screen now, mirroring the City page's own pan/zoom refresh, but not
+            // scoped to a single city since this map can go anywhere in the US/Canada.
+            renderCompanies(initialCompanies);
+
+            var reloadTimer = null;
+            function reloadForCurrentView() {
+                var bounds = map.getBounds();
+                if (!bounds) { return; }
+                var ne = bounds.getNorthEast();
+                var sw = bounds.getSouthWest();
+                $.ajax({
+                    url: '/interactive-map-bounds',
+                    type: 'POST',
+                    data: { swLat: sw.lat(), swLng: sw.lng(), neLat: ne.lat(), neLng: ne.lng() },
+                    success: function (companies) {
+                        renderCompanies(companies);
+                    },
+                    error: function () {
+                        // Leave whatever markers are currently on screen rather than clearing them.
+                    }
+                });
+            }
+
+            // 'idle' fires once after a pan/zoom settles (not on every intermediate frame), so
+            // this debounces naturally without extra timers.
+            // 'idle' also fires once right after the map first finishes loading tiles - skip
+            // that first firing since the server already rendered the initial DC list above.
+            var isFirstIdle = true;
+            google.maps.event.addListener(map, 'idle', function () {
+                if (isFirstIdle) { isFirstIdle = false; return; }
+                clearTimeout(reloadTimer);
+                reloadTimer = setTimeout(reloadForCurrentView, 200);
+            });
+        }
+        $(function () { initDcExampleMap(); });
+    </script>
+}
 }

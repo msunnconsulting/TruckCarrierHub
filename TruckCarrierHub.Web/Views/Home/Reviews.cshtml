@@ -1,0 +1,137 @@
+@{
+    ViewBag.Title = "Trucking Company Reviews " + System.Char.ConvertFromUtf32(0x2014) + " Read & Write Reviews | Truck Carrier Hub";
+    string metaDesc = "Learn how to find and read trucking company reviews, write your own review, and respond to reviews left on your company's listing.";
+
+    var reviewsLd = new Newtonsoft.Json.Linq.JObject {
+        ["@context"]    = "https://schema.org",
+        ["@type"]       = "WebPage",
+        ["name"]        = "Trucking Company Reviews - Read & Write Reviews",
+        ["url"]         = "https://truckcarrierhub.com/reviews",
+        ["description"] = metaDesc,
+        ["breadcrumb"]  = new Newtonsoft.Json.Linq.JObject {
+            ["@type"] = "BreadcrumbList",
+            ["itemListElement"] = new Newtonsoft.Json.Linq.JArray {
+                new Newtonsoft.Json.Linq.JObject { ["@type"] = "ListItem", ["position"] = 1, ["name"] = "Home",    ["item"] = "https://truckcarrierhub.com" },
+                new Newtonsoft.Json.Linq.JObject { ["@type"] = "ListItem", ["position"] = 2, ["name"] = "Reviews", ["item"] = "https://truckcarrierhub.com/reviews" }
+            }
+        }
+    };
+}
+@section AdditionalMeta {
+<meta name="description" content="@metaDesc" />
+<link rel="canonical" href="https://truckcarrierhub.com/reviews" />
+<script type="application/ld+json">@Html.Raw(reviewsLd.ToString(Newtonsoft.Json.Formatting.None))</script>
+}
+
+<style>
+.rev-page { padding-top: 16px; padding-bottom: 48px; }
+.rev-hero { max-width: 720px; margin: 0 auto 28px; text-align: center; }
+.rev-hero h1 { font-size: 2.1em; font-weight: 700; color: #111827; margin-bottom: 14px; }
+.rev-hero p { font-size: 1.05em; color: #4b5563; line-height: 1.6; }
+.rev-search-card { max-width: 560px; margin: 0 auto 36px; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.06); padding: 28px 30px; }
+.rev-search-card label { font-weight: 600; color: #111827; margin-bottom: 8px; display: block; }
+.rev-steps { max-width: 720px; margin: 0 auto 32px; }
+.rev-steps h2 { font-size: 1.3em; font-weight: 700; color: #111827; margin-bottom: 12px; }
+.rev-steps ol { color: #4b5563; font-size: .98em; line-height: 1.7; padding-left: 22px; }
+.rev-steps p.rev-note { font-size: .9em; color: #6b7280; margin-top: 10px; }
+.rev-crosslinks { max-width: 720px; margin: 0 auto; text-align: center; }
+.rev-crosslinks p { font-size: .95em; color: #6b7280; }
+.rev-crosslinks a { color: #2563eb; }
+</style>
+
+<div class="container rev-page">
+
+    <ul class="breadcrumb">
+        <li><a href="@Url.Action("Index", "home")">Home</a></li>
+        <li class="active">Reviews</li>
+    </ul>
+
+    <div class="rev-hero">
+        <h1>Trucking Company Reviews</h1>
+        <p>
+            Read what other carriers, brokers, and shippers have to say about a company, or leave
+            your own review after working with one.
+        </p>
+    </div>
+
+    <div class="rev-search-card">
+        <label for="reviewSearchText">Find a Company by USDOT Number</label>
+        <div class="input-group" style="width:100%;">
+            <input type="search" class="form-control" id="reviewSearchText" placeholder="e.g. 1234567" autocomplete="off" />
+            <span class="input-group-btn">
+                <button type="button" id="reviewSearchButton" class="btn btn-primary"><span class="glyphicon glyphicon-search"></span> Go to Company Page</button>
+            </span>
+        </div>
+    </div>
+
+    <div class="rev-steps">
+        <h2>How to Write a Review</h2>
+        <ol>
+            <li>Search for the company above by its USDOT number (or use the search bar at the top of any page and choose "USDOT Number").</li>
+            <li>This takes you directly to that company's page, where you'll find its review section.</li>
+            <li>Sign in with your registered business account and submit your rating and comments.</li>
+        </ol>
+        <p class="rev-note">
+            Writing a review requires a registered Truck Carrier Hub business account (carriers and
+            brokers are registered by USDOT number); you can't leave a review on your own listing.
+        </p>
+    </div>
+
+    <div class="rev-steps">
+        <h2>How to Respond to a Review</h2>
+        <ol>
+            <li>If a review has been left on your company's listing and you'd like to respond, start by <a href="@Url.Action("BusinessLogin", "Home")">logging in</a> to your business account.</li>
+            <li>Once you're logged in, open your own company's page &mdash; search your USDOT number, the same way described above.</li>
+            <li>You'll see a reply option under each review on your listing.</li>
+        </ol>
+    </div>
+
+    <div class="rev-crosslinks">
+        <p>
+            Don't know the USDOT number? Browse the full
+            <a href="@Url.Action("Index", "home")">state and city directory</a> on the homepage,
+            or use the <a href="@Url.Action("InteractiveMap", "Home")">interactive map</a> to find
+            a company by location instead.
+        </p>
+    </div>
+
+</div>
+
+@section scripts {
+<script>
+    $(function () {
+        function goToCompanyPage(usdot) {
+            if (!usdot) {
+                ShowDialogBox('Info', 'Please enter a USDOT number first', 'Ok', '', '', null);
+                return;
+            }
+            $.ajax({
+                url: '/search',
+                type: 'POST',
+                data: { searchText: usdot, selectedValue: 'USDOT Number' },
+                success: function (response) {
+                    if (!response) {
+                        ShowDialogBox('Info', 'No company found with that USDOT number', 'Ok', '', '', null);
+                        return;
+                    }
+                    window.location.href = response;
+                },
+                error: function (xhr) {
+                    ShowDialogBox('Info', 'No company found with that USDOT number', 'Ok', '', '', null);
+                }
+            });
+        }
+
+        $('#reviewSearchButton').on('click', function () {
+            goToCompanyPage($('#reviewSearchText').val());
+        });
+
+        $('#reviewSearchText').on('keypress', function (e) {
+            if (e.which === 13) {
+                goToCompanyPage($(this).val());
+                return false;
+            }
+        });
+    });
+</script>
+}

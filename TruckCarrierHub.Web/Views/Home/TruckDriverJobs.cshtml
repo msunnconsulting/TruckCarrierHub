@@ -1,0 +1,189 @@
+@{
+    ViewBag.Title = "Truck Driver Jobs " + System.Char.ConvertFromUtf32(0x2014) + " Find Trucking Companies That Are Hiring | Truck Carrier Hub";
+    string metaDesc = "Find trucking companies that are currently hiring drivers by state or city, or mark your own company as hiring so job seekers can find you.";
+
+    var jobsLd = new Newtonsoft.Json.Linq.JObject {
+        ["@context"]    = "https://schema.org",
+        ["@type"]       = "WebPage",
+        ["name"]        = "Truck Driver Jobs - Find Trucking Companies That Are Hiring",
+        ["url"]         = "https://truckcarrierhub.com/truck-driver-jobs",
+        ["description"] = metaDesc,
+        ["breadcrumb"]  = new Newtonsoft.Json.Linq.JObject {
+            ["@type"] = "BreadcrumbList",
+            ["itemListElement"] = new Newtonsoft.Json.Linq.JArray {
+                new Newtonsoft.Json.Linq.JObject { ["@type"] = "ListItem", ["position"] = 1, ["name"] = "Home",              ["item"] = "https://truckcarrierhub.com" },
+                new Newtonsoft.Json.Linq.JObject { ["@type"] = "ListItem", ["position"] = 2, ["name"] = "Truck Driver Jobs", ["item"] = "https://truckcarrierhub.com/truck-driver-jobs" }
+            }
+        }
+    };
+}
+@section AdditionalMeta {
+<meta name="description" content="@metaDesc" />
+<link rel="canonical" href="https://truckcarrierhub.com/truck-driver-jobs" />
+<script type="application/ld+json">@Html.Raw(jobsLd.ToString(Newtonsoft.Json.Formatting.None))</script>
+}
+
+<style>
+.jobs-page { padding-top: 16px; padding-bottom: 48px; }
+.jobs-hero { max-width: 720px; margin: 0 auto 28px; text-align: center; }
+.jobs-hero h1 { font-size: 2.1em; font-weight: 700; color: #111827; margin-bottom: 14px; }
+.jobs-hero p { font-size: 1.05em; color: #4b5563; line-height: 1.6; }
+.jobs-primary-card { max-width: 560px; margin: 0 auto 20px; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.06); padding: 28px 30px; text-align: center; }
+.jobs-primary-card p { font-size: .95em; color: #4b5563; margin-bottom: 16px; }
+.jobs-or-divider { max-width: 560px; margin: 20px auto; text-align: center; font-size: .85em; color: #9ca3af; text-transform: uppercase; letter-spacing: .05em; }
+.jobs-search-card { max-width: 560px; margin: 0 auto 36px; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,.06); padding: 28px 30px; }
+.jobs-search-card label { font-weight: 600; color: #111827; margin-bottom: 8px; display: block; }
+.jobs-steps { max-width: 720px; margin: 0 auto 32px; }
+.jobs-steps h2 { font-size: 1.3em; font-weight: 700; color: #111827; margin-bottom: 12px; }
+.jobs-steps ol { color: #4b5563; font-size: .98em; line-height: 1.7; padding-left: 22px; }
+.jobs-steps p.jobs-note { font-size: .9em; color: #6b7280; margin-top: 10px; }
+.jobs-crosslinks { max-width: 720px; margin: 0 auto; text-align: center; }
+.jobs-crosslinks p { font-size: .95em; color: #6b7280; }
+.jobs-crosslinks a { color: #2563eb; }
+</style>
+
+<div class="container jobs-page">
+
+    <ul class="breadcrumb">
+        <li><a href="@Url.Action("Index", "home")">Home</a></li>
+        <li class="active">Truck Driver Jobs</li>
+    </ul>
+
+    <div class="jobs-hero">
+        <h1>Find Trucking Companies That Are Hiring</h1>
+        <p>
+            Truck Carrier Hub doesn't run a separate job board with individual postings. Instead,
+            companies mark themselves as "Now Hiring" right on their listing, and you can browse
+            for those companies by state/province or by city.
+        </p>
+    </div>
+
+    <div class="jobs-primary-card">
+        <label style="font-weight:600; color:#111827; margin-bottom:8px; display:block;">Browse by State/Province</label>
+        <p>
+            Companies marked Now Hiring are still relatively few and spread out, so searching one
+            city at a time often comes up empty. This shows every state and province next to how
+            many companies there are currently hiring, so you can see where to look first.
+        </p>
+        <button type="button" id="jobsBrowseStatesButton" class="btn btn-primary">See States/Provinces With Hiring Companies</button>
+    </div>
+
+    <div class="jobs-or-divider">or search a specific city</div>
+
+    <div class="jobs-search-card">
+        <label for="jobsSearchText">Search by City</label>
+        <div class="input-group" style="width:100%;">
+            <input type="search" class="form-control" id="jobsSearchText" placeholder="e.g. Cheyenne Wells, CO" autocomplete="off" />
+            <span class="input-group-btn">
+                <button type="button" id="jobsSearchButton" class="btn btn-default"><span class="glyphicon glyphicon-search"></span> Search</button>
+            </span>
+        </div>
+    </div>
+
+    <div class="jobs-steps">
+        <h2>Looking for a Driving Job?</h2>
+        <ol>
+            <li>See which states/provinces currently have hiring companies above, or search a city you already have in mind.</li>
+            <li>On a city's listings, companies marked Now Hiring show a badge &mdash; open one for its contact information (phone number and address) to reach out directly.</li>
+        </ol>
+    </div>
+
+    <div class="jobs-steps">
+        <h2>Hiring Drivers? Get Listed as Now Hiring</h2>
+        <ol>
+            <li><a href="@Url.Action("BusinessLogin", "Home")">Log in</a> to your business account (registered by USDOT number).</li>
+            <li>Open your business profile and turn on the Now Hiring option.</li>
+            <li>Your listing will show a Now Hiring badge and appear when job seekers browse or filter by hiring status.</li>
+        </ol>
+        <p class="jobs-note">
+            Don't have a business account yet? Search for your company by USDOT number from any
+            page to find your listing and claim it first.
+        </p>
+    </div>
+
+    <div class="jobs-crosslinks">
+        <p>
+            Prefer to browse without filtering? See the full
+            <a href="@Url.Action("Index", "home")">state and city directory</a> on the homepage,
+            or use the <a href="@Url.Action("InteractiveMap", "Home")">interactive map</a> to
+            browse companies by location.
+        </p>
+    </div>
+
+</div>
+
+@section scripts {
+<script>
+    $(function () {
+        $('#jobsBrowseStatesButton').on('click', function () {
+            // Mirrors what the navbar's own "Companies Now Hiring" checkbox does: set the
+            // site-wide flag, then land on the homepage, where the state list is filtered down
+            // to states/provinces that actually have at least one hiring company.
+            $.ajax({
+                url: '/storeischeckcheckboxvalue',
+                type: 'POST',
+                data: { isHiringCheckboxCheck: true },
+                complete: function () {
+                    window.location.href = '/';
+                }
+            });
+        });
+
+        function goToCity(cityText) {
+            if (!cityText) {
+                ShowDialogBox('Info', 'Please select a city first', 'Ok', '', '', null);
+                return;
+            }
+            $.ajax({
+                url: '/search',
+                type: 'POST',
+                data: { searchText: cityText, selectedValue: 'City' },
+                success: function (response) {
+                    if (!response) {
+                        ShowDialogBox('Info', 'No city found', 'Ok', '', '', null);
+                        return;
+                    }
+                    window.location.href = response;
+                },
+                error: function (xhr) {
+                    ShowDialogBox('Info', 'No city found', 'Ok', '', '', null);
+                }
+            });
+        }
+
+        $('#jobsSearchText').autocomplete({
+            delay: 100,
+            minLength: 3,
+            source: function (request, response) {
+                $.ajax({
+                    url: '/searchautocomplete',
+                    data: JSON.stringify({ SelctedSearchPrefix: request.term, SelectedValue: 'City' }),
+                    dataType: 'json',
+                    type: 'POST',
+                    contentType: 'application/json; charset=utf-8',
+                    success: function (data) {
+                        response($.map(data || [], function (item) {
+                            return { label: item.Value, value: item.Value };
+                        }));
+                    }
+                });
+            },
+            select: function (event, ui) {
+                $('#jobsSearchText').val(ui.item.value);
+                goToCity(ui.item.value);
+            }
+        });
+
+        $('#jobsSearchButton').on('click', function () {
+            goToCity($('#jobsSearchText').val());
+        });
+
+        $('#jobsSearchText').on('keypress', function (e) {
+            if (e.which === 13) {
+                goToCity($(this).val());
+                return false;
+            }
+        });
+    });
+</script>
+}

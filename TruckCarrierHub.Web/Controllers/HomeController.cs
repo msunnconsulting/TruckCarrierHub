@@ -474,6 +474,19 @@ namespace PartnerCarrier.Web.Controllers
                 bool isHiringCheckboxIsChecked = SessionManager.Instance.IsHiringCheckboxIsChecked;
 
                 var info = _homepageService.GetSearchRedirectInfo(searchText, selectedValue, isHiringCheckboxIsChecked, GlobalHire);
+
+                // No match - either the city/company/USDOT genuinely doesn't exist, or (when the
+                // hiring checkbox is on) it exists but has zero companies currently marked Now
+                // Hiring. Previously this fell through to info[0] on an empty list, which threw
+                // an unhandled IndexOutOfRangeException: every single "no results" search
+                // returned an HTTP 500 (read client-side as a generic error) AND fired an
+                // exception-report email to the site admin. Return a clean null result instead
+                // so callers can show an accurate, specific message.
+                if (info == null || info.Count == 0)
+                {
+                    return Json(null, JsonRequestBehavior.AllowGet);
+                }
+
                 var row = info[0];
 
                 if (string.IsNullOrEmpty(selectedValue) || selectedValue == "City")
@@ -1400,14 +1413,120 @@ namespace PartnerCarrier.Web.Controllers
         /// endpoints (selectedValue hardcoded to "City") and appends ?view=map to the redirect
         /// target so City.cshtml's init script (see the "view=map" block near the bottom of that
         /// view) opens straight into Map view instead of the default List view.
-        /// No ViewModel/DB query backs this page - it's static instructional content plus a
-        /// client-side search box - so there's nothing here to cache per the usual
-        /// HttpRuntime.Cache pattern used on other heavy pages.
+        /// Also loads a small, capped (default page size, ~70 rows) live company list for
+        /// Washington, DC to render an embedded example map, so users and Google can see what
+        /// the map view looks like before picking a city themselves. This is a light,
+        /// uncached query (same shape as the City page's default list query) - if it fails for
+        /// any reason we log and fall back to the page with no example map rather than 500ing
+        /// the whole landing page, since the example map is illustrative, not core content.
         /// </summary>
         [HttpGet]
         public ActionResult InteractiveMap()
         {
             ViewBag.Title = "Interactive Map " + System.Char.ConvertFromUtf32(0x2014) + " Search Trucking Companies by City | Truck Carrier Hub";
+
+            List<CompanyVM> dcCompanies = new List<CompanyVM>();
+            try
+            {
+                var dcCityName = _homepageService.GetCityNameFromURLCityName("WASHINGTON", "DC") ?? "WASHINGTON";
+                var searchFilterVM = new SearchFilterVM();
+                var ps = new PageSortPara { p = 1 };
+                var result = _homepageService.GetCompanyListFromFilter(searchFilterVM, "DC", dcCityName, ps, false, true, false, 0, false, 0);
+                if (result != null && result.Items != null)
+                {
+                    dcCompanies = result.Items.Where(c => c.Latitude.HasValue && c.Longitude.HasValue).ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Instance.Log("InteractiveMap: failed to load DC example map companies - " + ex.Message, LogType.Error, null, true);
+                dcCompanies = new List<CompanyVM>();
+            }
+
+            return View(dcCompanies);
+        }
+
+        /// <summary>
+        /// AJAX endpoint backing the /interactive-map example map's pan/zoom refresh. Unlike the
+        /// City page's equivalent (GetCompaniesAfterZoomOrDrag), this map isn't scoped to one
+        /// city, so it reuses GetCompanyListFromFilter with an empty city/state and only
+        /// BoundrieValues set: isRestrictResultToCity=true (server default when unset) plus a
+        /// non-zero ZoomLevel together skip the exact city/state match branch inside that method
+        /// and fall through to the lat/lng bounding-box filter only - the same mechanism the City
+        /// page's own pan/zoom AJAX call relies on. Capped at 300 markers since a zoomed-out view
+        /// can span a huge area; the map only ever needs to render what's currently on screen.
+        /// </summary>
+        [HttpPost]
+        public ActionResult InteractiveMapBounds(double swLat, double swLng, double neLat, double neLng)
+        {
+            try
+            {
+                var searchFilterVM = new SearchFilterVM
+                {
+                    ZoomLevel = 10,
+                    BoundrieValues = new BoundrieValuesVM
+                    {
+                        Southwest = new PartnerCarrier.ViewModels.User.southwest { lat = swLat, lng = swLng },
+                        Northeast = new PartnerCarrier.ViewModels.User.northeast { lat = neLat, lng = neLng }
+                    }
+                };
+                var ps = new PageSortPara { p = 1 };
+                var result = _homepageService.GetCompanyListFromFilter(searchFilterVM, "", "", ps, true, true, false, 0, false, 0);
+
+                var items = (result != null && result.Items != null)
+                    ? result.Items
+                        .Where(c => c.Latitude.HasValue && c.Longitude.HasValue)
+                        .Take(300)
+                        .Select(c => new
+                        {
+                            Name = c.DoingBusinessAsName ?? c.LegalName,
+                            Lat = c.Latitude,
+                            Lng = c.Longitude,
+                            USDOT = c.USDOTNumber,
+                            State = c.StateCode,
+                            Phone = c.OfficeTelephoneNumber,
+                            Status = c.Status
+                        })
+                        .ToList()
+                    : null;
+
+                return Json(items, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Instance.Log("InteractiveMapBounds: failed to load companies for bounds - " + ex.Message, LogType.Error, null, true);
+                return Json(null, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        /// <summary>
+        /// Landing/instruction page for the review system - explains both writing a review
+        /// (search by USDOT number -> land on the company page -> submit a rating, logged-in
+        /// business accounts only) and responding to a review as a company owner (log in first,
+        /// then open your own company's page). No ViewModel/DB query backs this page - it's
+        /// static instructional content plus a client-side USDOT search box.
+        /// </summary>
+        [HttpGet]
+        public ActionResult Reviews()
+        {
+            ViewBag.Title = "Trucking Company Reviews " + System.Char.ConvertFromUtf32(0x2014) + " Read & Write Reviews | Truck Carrier Hub";
+            return View();
+        }
+
+        /// <summary>
+        /// Landing/instruction page for the "Now Hiring" feature. Deliberately does NOT frame
+        /// this as a job board with individual postings - there is no job-posting table, just a
+        /// NowHiring boolean flag on the Business record surfaced as a filter on city listings.
+        /// Copy explains both sides: companies flip the flag from their business profile after
+        /// logging in, and job seekers filter city results down to hiring companies only. The
+        /// city search box on this page pre-sets the hiring filter in session (reusing the same
+        /// /storeischeckcheckboxvalue endpoint the navbar checkbox uses) before redirecting via
+        /// /search, so the destination city page opens already filtered to hiring companies.
+        /// </summary>
+        [HttpGet]
+        public ActionResult TruckDriverJobs()
+        {
+            ViewBag.Title = "Truck Driver Jobs " + System.Char.ConvertFromUtf32(0x2014) + " Find Trucking Companies That Are Hiring | Truck Carrier Hub";
             return View();
         }
 

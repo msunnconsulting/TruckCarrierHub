@@ -1165,7 +1165,9 @@
                         map = new google.maps.Map(document.getElementById('map'), {
                             center: center,
                             zoom: parseFloat(zoomLevel),
-                            mapTypeId: google.maps.MapTypeId.ROADMAP
+                            mapTypeId: google.maps.MapTypeId.ROADMAP,
+                            zoomControl: true,
+                            panControl: true
                         });
                         //#map's container starts display:none and is shown right before this runs;
                         //force Maps to recompute its size/controls now instead of waiting for the

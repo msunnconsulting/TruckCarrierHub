@@ -22,6 +22,12 @@
            namespaces: new string[] { "PartnerCarrier.Web.Controllers" });
 
             routes.MapRoute(
+           name: "SearchHiringCity",
+           url: "search-hiring-city",
+           defaults: new { controller = "Home", action = "SearchHiringCity" },
+           namespaces: new string[] { "PartnerCarrier.Web.Controllers" });
+
+            routes.MapRoute(
                name: "SubmitGetAQuote",
                url: "SubmitGetAQuotePage",
                defaults: new { controller = "Home", action = "SubmitGetAQuotePage", getAQuoteVM = UrlParameter.Optional },

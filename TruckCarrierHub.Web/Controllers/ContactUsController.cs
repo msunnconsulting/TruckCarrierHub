@@ -8,6 +8,7 @@
     using System.Collections.Generic;
     using System.IO;
     using System.Net;
+    using System.Text;
     using System.Web.Mvc;
     using ViewModels.User;
 
@@ -75,10 +76,27 @@
                 string secretKey = Config.GetValue("GoogleRecaptchaSecretKey");
                 var captchaResponse = filterContext.HttpContext.Request.Form["g-recaptcha-response"];
 
-                if (string.IsNullOrWhiteSpace(captchaResponse)) AddErrorAndRedirectToGetAction(filterContext);
+                if (string.IsNullOrWhiteSpace(captchaResponse))
+                {
+                    AddErrorAndRedirectToGetAction(filterContext);
+                    return;
+                }
 
                 var validateResult = ValidateFromGoogle(urlToPost, secretKey, captchaResponse);
-                if (!validateResult.Success) AddErrorAndRedirectToGetAction(filterContext);
+                if (!validateResult.Success)
+                {
+                    // Google always returns which specific reason it rejected the token for
+                    // (invalid-input-secret, invalid-input-response, timeout-or-duplicate,
+                    // bad-request, etc.) - log it so a future failure is diagnosable from
+                    // AppLogger directly instead of guessing blind again.
+                    var errorCodes = validateResult.ErrorCodes != null
+                        ? string.Join(", ", validateResult.ErrorCodes)
+                        : "(none returned)";
+                    AppLogger.Instance.Log("Google reCAPTCHA validation failed - error-codes: " + errorCodes, LogType.Error, null, true);
+
+                    AddErrorAndRedirectToGetAction(filterContext);
+                    return;
+                }
 
                 base.OnActionExecuting(filterContext);
             }
@@ -97,14 +115,21 @@
             private static ReCaptchaResponse ValidateFromGoogle(string urlToPost, string secretKey, string captchaResponse)
             {
                 var postData = "secret=" + secretKey + "&response=" + captchaResponse;
+                // Encode explicitly and skip StreamWriter's default encoding, which emits a
+                // 3-byte UTF-8 BOM before the content. ContentLength below was set from the
+                // string's character count, not the actual bytes written, so that BOM silently
+                // corrupted every request body sent to Google - this is why captcha validation
+                // failed unconditionally, on every environment, regardless of correct keys or
+                // domain registration.
+                var postDataBytes = new UTF8Encoding(false).GetBytes(postData);
 
                 var request = (HttpWebRequest)WebRequest.Create(urlToPost);
                 request.Method = "POST";
-                request.ContentLength = postData.Length;
+                request.ContentLength = postDataBytes.Length;
                 request.ContentType = "application/x-www-form-urlencoded";
 
-                using (var streamWriter = new StreamWriter(request.GetRequestStream()))
-                    streamWriter.Write(postData);
+                using (var requestStream = request.GetRequestStream())
+                    requestStream.Write(postDataBytes, 0, postDataBytes.Length);
 
                 string result;
                 using (var response = (HttpWebResponse)request.GetResponse())

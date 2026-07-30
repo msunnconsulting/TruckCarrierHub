@@ -134,19 +134,22 @@
                 ShowDialogBox('Info', 'Please select a city first', 'Ok', '', '', null);
                 return;
             }
+            // This checks whether the city has at least one Now Hiring company, without ever
+            // reading or changing the navbar's Companies Now Hiring checkbox (a separate,
+            // site-wide setting this page must not touch either direction).
             $.ajax({
-                url: '/search',
+                url: '/search-hiring-city',
                 type: 'POST',
-                data: { searchText: cityText, selectedValue: 'City' },
+                data: { searchText: cityText },
                 success: function (response) {
                     if (!response) {
-                        ShowDialogBox('Info', 'No city found', 'Ok', '', '', null);
+                        ShowDialogBox('Info', 'There are no hiring companies in this city right now', 'Ok', '', '', null);
                         return;
                     }
                     window.location.href = response;
                 },
                 error: function (xhr) {
-                    ShowDialogBox('Info', 'No city found', 'Ok', '', '', null);
+                    ShowDialogBox('Info', 'There are no hiring companies in this city right now', 'Ok', '', '', null);
                 }
             });
         }

@@ -6,7 +6,9 @@ using ExpressiveAnnotations.MvcUnobtrusive.Validators;
 using PartnerCarrier.Infrastructure.Contracts.Admin.AdminManagement;
 using PartnerCarrier.Infrastructure.Contracts.User;
 using PartnerCarrier.MyRazorViewEngines;
+using PartnerCarrier.Web.App_Start;
 using PartnerCarrier.Web.Helpers;
+using StructureMap;
 using System;
 using System.Web;
 using System.Web.Hosting;
@@ -40,15 +42,20 @@ namespace PartnerCarrier.Web
             // forgotten about - previously only ever produced by a manual admin button click.
             // Queued as a background work item so a slow DB read can't delay app startup, and
             // wrapped in try/catch so a failure here never takes the whole site down.
-            // DependencyResolver.Current is safely available already at this point - StructureMap
-            // is wired up via [assembly: PreApplicationStartMethod(typeof(StructuremapMvc), "Start")]
-            // in App_Start/StructuremapMvc.cs, which runs before Application_Start.
+            // Resolve services from StructureMap's root container directly rather than via
+            // DependencyResolver.Current: that path (StructureMapDependencyScope.HttpContext)
+            // wraps System.Web.HttpContext.Current in a HttpContextWrapper, which throws when
+            // HttpContext.Current is null - always true inside a background work item, since
+            // there's no active HTTP request here. That silently broke this exact feature on
+            // every single app start until now (see AppLogger for the resulting
+            // NullReferenceException from SitemapGenerator.GenerateAll).
             HostingEnvironment.QueueBackgroundWorkItem(ct =>
             {
                 try
                 {
-                    var homepageService = DependencyResolver.Current.GetService<IHomepageService>();
-                    var businessMangementService = DependencyResolver.Current.GetService<IBusinessMangementService>();
+                    var container = StructuremapMvc.StructureMapDependencyScope.Container;
+                    var homepageService = container.GetInstance<IHomepageService>();
+                    var businessMangementService = container.GetInstance<IBusinessMangementService>();
                     SitemapGenerator.GenerateAll(homepageService, businessMangementService, HostingEnvironment.MapPath);
                     AppLogger.Instance.Log("Sitemaps regenerated on application start.", LogType.Info);
                 }

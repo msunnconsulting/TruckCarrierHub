@@ -12,5 +12,6 @@ Disallow: /searchautocomplete
 Disallow: /searchautocompletecity
 Disallow: /interactive-map-bounds
 Disallow: /Home/BusinessLogin
+Disallow: /search-hiring-city
 
 Sitemap: https://truckcarrierhub.com/sitemap.xml

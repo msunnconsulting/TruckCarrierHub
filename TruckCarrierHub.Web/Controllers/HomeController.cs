@@ -501,6 +501,39 @@ namespace PartnerCarrier.Web.Controllers
         }
 
         /// <summary>
+        /// City search used only by the Truck Driver Jobs page. Checks whether a city has at
+        /// least one Now Hiring company and, if so, returns that city's normal URL - same as
+        /// Search() above, but deliberately passes isHiringCheckboxIsChecked: true as a literal
+        /// argument instead of reading/writing SessionManager.Instance.IsHiringCheckboxIsChecked.
+        /// This must have zero effect on the navbar's Companies Now Hiring checkbox or on any
+        /// other page's filtering; it only answers "does this city have a hiring company right
+        /// now" and hands back a plain city URL that renders using whatever the real checkbox
+        /// state already is.
+        /// </summary>
+        [HttpPost]
+        public ActionResult SearchHiringCity(string searchText)
+        {
+            try
+            {
+                int GlobalHire = _businessMangementService.GetGlobalHiring().GlobalHire;
+
+                var info = _homepageService.GetSearchRedirectInfo(searchText, "City", true, GlobalHire);
+
+                if (info == null || info.Count == 0)
+                {
+                    return Json(null, JsonRequestBehavior.AllowGet);
+                }
+
+                var row = info[0];
+                return Json("/" + row.PhysicalAddressStateCode + "/" + row.PhysicalAddressCity, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return ReturnExceptionResult(ex);
+            }
+        }
+
+        /// <summary>
         /// AutoComplete textbox after adding 3 character in the search textbox
         /// this method execute after user enter  character in search textbox
         /// </summary>

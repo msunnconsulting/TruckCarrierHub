@@ -11,5 +11,6 @@ Disallow: /error
 Disallow: /searchautocomplete
 Disallow: /searchautocompletecity
 Disallow: /interactive-map-bounds
+Disallow: /Home/BusinessLogin
 
 Sitemap: https://truckcarrierhub.com/sitemap.xml

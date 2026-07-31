@@ -134,9 +134,9 @@
                 ShowDialogBox('Info', 'Please select a city first', 'Ok', '', '', null);
                 return;
             }
-            // This checks whether the city has at least one Now Hiring company, without ever
-            // reading or changing the navbar's Companies Now Hiring checkbox (a separate,
-            // site-wide setting this page must not touch either direction).
+            // First just check whether the city has at least one Now Hiring company, without
+            // touching the navbar's Companies Now Hiring checkbox yet - only once we know
+            // there's actually somewhere to send them do we warn and flip it (below).
             $.ajax({
                 url: '/search-hiring-city',
                 type: 'POST',
@@ -146,12 +146,48 @@
                         ShowDialogBox('Info', 'There are no hiring companies in this city right now', 'Ok', '', '', null);
                         return;
                     }
-                    window.location.href = response;
+                    warnEnteringHiringModeThenGo(response);
                 },
                 error: function (xhr) {
                     ShowDialogBox('Info', 'There are no hiring companies in this city right now', 'Ok', '', '', null);
                 }
             });
+        }
+
+        // Same #dialog/#lblMessage elements ShowDialogBox() (Common.AJAX.js) uses, but built
+        // locally instead of extending that shared function: this is the only place on the site
+        // that needs a dialog whose Ok button runs a callback instead of just closing, and
+        // ShowDialogBox's btn1/btn2 wiring doesn't support that today.
+        function warnEnteringHiringModeThenGo(cityUrl) {
+            $("#lblMessage").html('You are entering <strong>Companies Now Hiring</strong> mode &mdash; only companies marked Now Hiring will show as you browse, on this city page and elsewhere on the site, until you uncheck "Companies Now Hiring" at the top of the page.');
+            $("#dialog").dialog({
+                resizable: false,
+                title: false,
+                modal: true,
+                width: 'auto',
+                height: 'auto',
+                bgiframe: false,
+                position: 'top',
+                hide: { effect: 'fade', duration: 400 },
+                buttons: [
+                    {
+                        text: 'Ok',
+                        "class": "showcss btn btn-primary",
+                        click: function () {
+                            $("#dialog").dialog('close');
+                            $.ajax({
+                                url: '/storeischeckcheckboxvalue',
+                                type: 'POST',
+                                data: { isHiringCheckboxCheck: true },
+                                complete: function () {
+                                    window.location.href = cityUrl;
+                                }
+                            });
+                        }
+                    }
+                ]
+            });
+            $(".ui-dialog-titlebar").hide();
         }
 
         $('#jobsSearchText').autocomplete({

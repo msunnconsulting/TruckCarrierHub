@@ -687,3 +687,38 @@ a.hpb-card-link {
     src: url('/Themes/Bootstrap/plugins/bootstrap-3.3.7-custom/dist/fonts/glyphicons-halflings-regular.eot');
     src: url('/Themes/Bootstrap/plugins/bootstrap-3.3.7-custom/dist/fonts/glyphicons-halflings-regular.eot?#iefix') format('embedded-opentype'), url('/Themes/Bootstrap/plugins/bootstrap-3.3.7-custom/dist/fonts/glyphicons-halflings-regular.woff2') format('woff2'), url('/Themes/Bootstrap/plugins/bootstrap-3.3.7-custom/dist/fonts/glyphicons-halflings-regular.woff') format('woff'), url('/Themes/Bootstrap/plugins/bootstrap-3.3.7-custom/dist/fonts/glyphicons-halflings-regular.ttf') format('truetype'), url('/Themes/Bootstrap/plugins/bootstrap-3.3.7-custom/dist/fonts/glyphicons-halflings-regular.svg#glyphicons_halflingsregular') format('svg');
 }
+
+/* Homepage hero (.home-background-image, Views/Home/Index.cshtml). The hero photo itself
+   is unchanged, but this section had never been touched by the redesign above: the overlaid
+   text was still plain white with no scrim, so legibility depended on what happened to be
+   behind it in the photo at a given viewport width, and it was still set in the pre-redesign
+   Georgia serif rather than this file's Archivo/IBM Plex Sans system. A dark navy gradient
+   guarantees contrast regardless of the underlying image, and the text now matches the same
+   typography used everywhere else (navbar, buttons, headings). Declared here (not
+   Themes/Bootstrap/CSS/Site.css, where .home-background-image itself still lives) because
+   this file loads after that bundle - see the loading-order note at the top of this file. */
+.home-background-image::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(180deg, rgba(15, 34, 54, 0.65) 0%, rgba(15, 34, 54, 0.45) 45%, rgba(15, 34, 54, 0.65) 100%);
+    pointer-events: none;
+}
+
+.home-background-image > * {
+    position: relative;
+    z-index: 1;
+}
+
+.home-background-image .homepage-font-color {
+    font-family: var(--font-body) !important;
+    color: var(--white);
+}
+
+.home-background-image .homepage-title-font {
+    font-family: var(--font-display) !important;
+    font-weight: 700;
+}

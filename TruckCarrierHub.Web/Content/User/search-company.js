@@ -19,7 +19,16 @@
             $(this).parent().is(".open") && e.stopPropagation();
         });
         $('body').removeClass('open');
-        $(".dropdown-menu li a").click(function () {
+        // Scoped to #dropdown-change (this navbar's own City/Company Name/USDOT/MC search-type
+        // dropdown) - it used to be the far broader ".dropdown-menu li a", which also matched
+        // every OTHER .dropdown-menu on the page (e.g. City page's Cargo/Entity/Sort By filter
+        // dropdowns). It also never called preventDefault(), so each click followed its
+        // href="#" and changed the URL; on City pages specifically that combines badly with
+        // this same file's window.onpopstate/pageshow reload handlers, causing an unwanted
+        // page reload that resets the module-scoped selectedValue below back to its "City"
+        // default - which is why any other search type appeared to silently revert to City.
+        $("#dropdown-change li a").click(function (e) {
+            e.preventDefault();
             var selectedtText = $(this).text();///User selected value...****
             selectedValue = selectedtText;
             if (selectedtText == "City") {

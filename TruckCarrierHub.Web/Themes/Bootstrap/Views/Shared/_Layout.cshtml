@@ -280,6 +280,6 @@
     @Scripts.Render("~/bundles/bootstrap-frontend")
     @Scripts.Render("~/bundles/common-ajax-frontend")
     @RenderSection("scripts", required: false)
-    <script src="~/Content/User/search-company.js"></script>
+    <script src="~/Content/User/search-company.js?v=@(System.IO.File.GetLastWriteTimeUtc(Server.MapPath("~/Content/User/search-company.js")).Ticks)"></script>
 </body>
 </html>

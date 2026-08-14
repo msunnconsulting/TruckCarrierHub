@@ -451,6 +451,10 @@ namespace PartnerCarrier.Web.Controllers
             companyInformationVM.AverageRating = companyRating.AverageRating;
             companyInformationVM.TotalReviews = companyRating.TotalReviews;
 
+            // Used by the claimed-listing owner-login prompt below: don't show "login to manage
+            // your listing" to someone who's already logged in as this exact business.
+            var loggedInBusinessUser = FormsAuthService.Instance.LoggedInUser(Config.GetValue("BusinessLoginAuthenticationName"));
+            ViewBag.IsLoggedInAsThisBusiness = loggedInBusinessUser != null && loggedInBusinessUser.USDOTNumber == usdotnumber;
 
             //return company information
             return View(companyInformationVM);

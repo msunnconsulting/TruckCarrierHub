@@ -154,6 +154,18 @@ a {
         color: var(--ink-700);
     }
 
+/* Same low-contrast-inline-link problem as above, on the plain informational paragraphs of
+   the account/auth pages that all share ".contact-form" (Business Login "Reset" link,
+   Create Account, Forgot Password, Email Verify, Contact Us). */
+.contact-form p a {
+    color: var(--signal-500);
+    text-decoration: underline;
+}
+
+    .contact-form p a:hover {
+        color: var(--ink-700);
+    }
+
 .home-article b,
 .home-article strong,
 .homepage-page-decription b,
@@ -163,6 +175,22 @@ a {
 .city-article b,
 .city-article strong {
     font-weight: 400 !important;
+}
+
+/* Opt-in escape hatch for the blanket de-bolding above: admin content is otherwise
+   stripped of stray/accidental bold, but sometimes a line is deliberately meant to stand
+   out (e.g. "Everything on Truck Carrier Hub is completely free..."). Add
+   class="article-emphasis" to that specific <b>/<strong> tag in the admin HTML to restore
+   bold just for it. */
+.home-article b.article-emphasis,
+.home-article strong.article-emphasis,
+.homepage-page-decription b.article-emphasis,
+.homepage-page-decription strong.article-emphasis,
+.state-article b.article-emphasis,
+.state-article strong.article-emphasis,
+.city-article b.article-emphasis,
+.city-article strong.article-emphasis {
+    font-weight: 700 !important;
 }
 
 /* -------------------------------------------------------------------- */

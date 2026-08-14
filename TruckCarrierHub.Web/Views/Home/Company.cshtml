@@ -402,6 +402,16 @@
         </div>
     }
 
+    @* Owner login prompt — claimed, active listings, only when the visitor isn't already
+       logged in as this exact business (set in HomeController.Company()). *@
+    @if (Model.UsDOtNum != 0 && Model.Status.ToLower() == "a" && ViewBag.IsLoggedInAsThisBusiness != true)
+    {
+        <div class="co-claim-banner">
+            <p><strong>Are you the owner of this listing?</strong> Login to manage your Hiring status, add a link to your website, and respond to reviews.</p>
+            <a class="btn btn-warning btn-sm" rel="nofollow" href="@Url.Action("BusinessLogin", "Home", new { returnUrl = Request.Url.PathAndQuery })">Login to your account</a>
+        </div>
+    }
+
     @* Company header *@
     <div class="co-header">
         <div class="co-header-left">
